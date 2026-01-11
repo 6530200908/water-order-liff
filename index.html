@@ -2,109 +2,82 @@
 <html>
 <head>
 <meta charset="UTF-8">
-
-<!-- LIFF SDK -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-
-<!-- Bootstrap -->
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-
 <style>
-body {
-  background-color: #1a1d21;
-  color: white;
-  padding: 10px;
-}
-#debug-box {
-  background: #000;
-  color: #0f0;
-  padding: 10px;
-  font-size: 12px;
-  border-radius: 5px;
-  margin-bottom: 10px;
-  border: 1px solid #333;
-}
-.status-red { color: #ff4d4d; }
-.status-green { color: #00ff00; }
+  body { background-color: #1a1d21; color: white; padding: 10px; font-family: sans-serif; }
+  #debug-box { background: #000; color: #0f0; padding: 10px; font-size: 11px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #333; }
+  .product-item { background: #2c3036; border: 1px solid #3e444d; border-radius: 12px; padding: 12px; margin-bottom: 8px; }
+  .checkout-form { display: none; background: white; color: #333; border-radius: 20px; padding: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
 </style>
 </head>
-
 <body>
 
 <div id="debug-box">
-  <b>🔍 ระบบตรวจสอบสถานะ:</b><br>
-  - LIFF Init: <span id="st-init">รอ...</span><br>
-  - Login Status: <span id="st-login">รอ...</span><br>
-  - UserID: <span id="st-uid">กำลังดึงข้อมูล...</span>
+  <b>🔍 สถานะระบบ:</b><br>
+  - LIFF: <span id="st-init">รอ...</span> | Login: <span id="st-login">รอ...</span><br>
+  - UserID: <span id="st-uid">กำลังดึง...</span>
 </div>
 
 <div id="app-content">
-  <div id="product-list">กำลังโหลดสินค้า...</div>
-  <hr>
-  ยอดรวม: <span id="total-price" class="fw-bold">0</span> ฿
-  <button id="btn-next" class="btn btn-primary w-100 mt-2" disabled>
-    รอข้อมูลจาก LINE...
-  </button>
+  <h5 class="mb-3">🛒 สั่งซื้อน้ำดื่ม</h5>
+  <div id="product-list">กำลังโหลดรายการสินค้า...</div>
+  <hr class="border-secondary">
+  <div class="d-flex justify-content-between mb-3 fs-5">
+    <span>ยอดรวม:</span> <span id="total-price" class="fw-bold text-info">0</span> ฿
+  </div>
+  <button id="btn-next" class="btn btn-primary w-100 p-3 fw-bold" disabled>กรุณารอสักครู่...</button>
 </div>
 
-<div id="payment-ui" style="display:none; background:white; color:black; padding:20px; border-radius:15px;">
-  <h5>ข้อมูลจัดส่ง</h5>
-  <input type="text" id="cusName" class="form-control mb-2" placeholder="ชื่อ">
-  <textarea id="cusAddress" class="form-control mb-2" rows="3" placeholder="ที่อยู่"></textarea>
-  <button class="btn btn-success w-100" onclick="confirmOrder()">ยืนยันและบันทึก</button>
+<div id="payment-ui" class="checkout-form">
+  <h5 class="text-center mb-3">รายละเอียดการจัดส่ง</h5>
+  <div class="mb-3">
+    <label class="form-label fw-bold">ชื่อผู้รับ</label>
+    <input type="text" id="cusName" class="form-control" placeholder="ชื่อ-นามสกุล">
+  </div>
+  <div class="mb-3">
+    <label class="form-label fw-bold">ที่อยู่จัดส่ง</label>
+    <textarea id="cusAddress" class="form-control" rows="3" placeholder="เลขที่บ้าน ถนน ซอย..."></textarea>
+  </div>
+  <button id="btn-confirm" class="btn btn-success w-100 p-3 fw-bold" onclick="confirmOrder()">ยืนยันและบันทึกข้อมูล</button>
+  <button class="btn btn-link w-100 mt-2 text-muted" onclick="location.reload()">ย้อนกลับ</button>
 </div>
 
 <script>
-const GAS_API = "https://script.google.com/macros/s/AKfycbyG-KugGOLYZhE9cxbBpCwPQiqNTuUidfA9WVmJdy9_Wm_-o9yATebnhyqLmxIfZP43Aw/exec";
-
-let products = [];
-let cart = {};
-let currentUserId = "";
-
-function logStatus(id, text, isError = false) {
-  const el = document.getElementById(id);
-  el.innerText = text;
-  el.className = isError ? "status-red" : "status-green";
-}
+const GAS_API = "https://script.google.com/macros/s/AKfycbwajp6xbNQ5VsTeZ7GdLgqK3sUnLqlDsLL3YA-89ewgwkYZwMs8SPYHvtCyCKixDKKuPg/exec";
+let products = [], cart = {}, currentUserId = "";
 
 async function init() {
   try {
     await liff.init({ liffId: "2008859930-NxfsF3xM" });
-    logStatus("st-init", "สำเร็จ ✅");
-  } catch {
-    logStatus("st-init", "Init error", true);
-    return;
-  }
+    document.getElementById("st-init").innerText = "OK ✅";
+    
+    if (!liff.isLoggedIn()) {
+      liff.login();
+      return;
+    }
+    document.getElementById("st-login").innerText = "Yes ✅";
 
-  if (!liff.isInClient()) {
-    logStatus("st-login", "ไม่ได้เปิดใน LINE App", true);
-    return;
-  }
-
-  if (!liff.isLoggedIn()) {
-    logStatus("st-login", "กำลัง Login...");
-    liff.login();
-    return;
-  }
-
-  logStatus("st-login", "Log-in แล้ว ✅");
-
-  try {
     const profile = await liff.getProfile();
     currentUserId = profile.userId;
+    document.getElementById("st-uid").innerText = currentUserId;
     document.getElementById("cusName").value = profile.displayName;
-    logStatus("st-uid", currentUserId);
 
-    const btn = document.getElementById("btn-next");
-    btn.disabled = false;
-    btn.innerText = "ไปหน้าชำระเงิน";
-    btn.onclick = showPayment;
-  } catch {
-    logStatus("st-uid", "ดึง UserID ไม่ได้", true);
-    return;
+    const btnNext = document.getElementById("btn-next");
+    btnNext.disabled = false;
+    btnNext.innerText = "ไปหน้าชำระเงิน";
+    btnNext.onclick = () => {
+      if(document.getElementById("total-price").innerText == "0") return alert("เลือกสินค้าก่อน");
+      document.getElementById("app-content").style.display = "none";
+      document.getElementById("payment-ui").style.display = "block";
+    };
+
+    loadProducts();
+  } catch (err) {
+    document.getElementById("st-init").innerText = "Error ❌";
+    console.error(err);
   }
-
-  loadProducts();
 }
 
 function loadProducts() {
@@ -114,64 +87,62 @@ function loadProducts() {
       products = data;
       renderProducts();
     })
-    .catch(() => {
-      document.getElementById("product-list").innerText = "โหลดสินค้าไม่สำเร็จ";
-    });
+    .catch(() => document.getElementById("product-list").innerText = "โหลดข้อมูลไม่สำเร็จ");
 }
 
 function renderProducts() {
   document.getElementById("product-list").innerHTML = products.map((p, i) => `
-    <div class="d-flex justify-content-between align-items-center mb-2 p-2 border border-secondary rounded">
-      <span>${p.desc} (${p.price}฿)</span>
-      <div class="d-flex align-items-center gap-2">
-        <button class="btn btn-sm btn-light" onclick="updateQty(${i},1)">+</button>
-        <span id="qty-${i}">0</span>
+    <div class="product-item d-flex justify-content-between align-items-center">
+      <div><b>${p.desc}</b><br><small class="text-info">${p.price} ฿</small></div>
+      <div class="d-flex align-items-center gap-3">
+        <button class="btn btn-sm btn-outline-light" onclick="updateQty(${i},-1)">-</button>
+        <span id="qty-${i}" class="fw-bold">0</span>
+        <button class="btn btn-sm btn-outline-light" onclick="updateQty(${i},1)">+</button>
       </div>
-    </div>
-  `).join("");
+    </div>`).join("");
 }
 
 function updateQty(i, d) {
   cart[i] = Math.max(0, (cart[i] || 0) + d);
   document.getElementById(`qty-${i}`).innerText = cart[i];
-
   let total = 0;
-  Object.keys(cart).forEach(k => {
-    total += cart[k] * products[k].price;
-  });
+  Object.keys(cart).forEach(k => total += cart[k] * products[k].price);
   document.getElementById("total-price").innerText = total;
 }
 
-function showPayment() {
-  document.getElementById("app-content").style.display = "none";
-  document.getElementById("payment-ui").style.display = "block";
-}
-
 function confirmOrder() {
+  const btn = document.getElementById("btn-confirm");
+  btn.disabled = true;
+  btn.innerText = "กำลังบันทึกข้อมูล...";
+
   const order = {
     uid: currentUserId,
     name: document.getElementById("cusName").value,
     address: document.getElementById("cusAddress").value,
-    items: Object.keys(cart)
-      .filter(i => cart[i] > 0)
-      .map(i => `${products[i].desc} x${cart[i]}`)
-      .join(", "),
+    items: Object.keys(cart).filter(i => cart[i] > 0).map(i => `${products[i].desc} x${cart[i]}`).join(", "),
     total: document.getElementById("total-price").innerText
   };
 
+  // ส่งข้อมูลเข้า Google Sheets แบบไม่ติด CORS
   fetch(GAS_API, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    mode: "no-cors",
+    headers: { "Content-Type": "text/plain" },
     body: JSON.stringify(order)
-  }).then(() => {
-    liff.sendMessages([
-      { type: "text", text: "✅ บันทึกออเดอร์เรียบร้อย" }
-    ]).finally(() => liff.closeWindow());
+  })
+  .then(() => {
+    liff.sendMessages([{
+      type: "text",
+      text: `✅ สั่งซื้อเรียบร้อย!\nรายการ: ${order.items}\nยอดรวม: ${order.total} บาท`
+    }]).finally(() => liff.closeWindow());
+  })
+  .catch(err => {
+    alert("ผิดพลาด: " + err.message);
+    btn.disabled = false;
   });
 }
 
 window.onload = init;
 </script>
-
 </body>
 </html>
