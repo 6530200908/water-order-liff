@@ -1,67 +1,90 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8">
-  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<meta charset="UTF-8">
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+<style>
+body { background:#1a1d21; color:white; padding:10px; }
+</style>
 </head>
 
 <body>
-  <div id="product-list">กำลังโหลด...</div>
-  <hr>
-  รวม: <span id="total">0</span> บาท  
-  <br><br>
-  <button onclick="submitOrder()">ยืนยัน</button>
+<h4>🛒 สั่งซื้อน้ำดื่ม</h4>
+<div id="product-list">กำลังโหลดสินค้า...</div>
+<hr>
+ยอดรวม: <span id="total">0</span> ฿  
+<button class="btn btn-primary w-100 mt-2" onclick="showPayment()">ถัดไป</button>
+
+<div id="payment" style="display:none; background:white; color:black; padding:15px;">
+  <input id="name" class="form-control mb-2" placeholder="ชื่อ">
+  <textarea id="address" class="form-control mb-2" placeholder="ที่อยู่"></textarea>
+  <button class="btn btn-success w-100" onclick="confirmOrder()">ยืนยัน</button>
+</div>
 
 <script>
-const GAS_API = "https://script.google.com/macros/s/AKfycbzshx9Z-2r_Fo-G1gqDZSC7du8V0frLoMScjLD1GunF-X3hUeqR1EjXv64U30Ks1_QqfA/exec";
+const GAS_API = "🔥 ใส่ URL Web App 🔥";
 let products = [];
 let cart = {};
 let uid = "";
 
 async function init() {
   await liff.init({ liffId: "2008859930-NxfsF3xM" });
-
-  if (!liff.isLoggedIn()) {
-    liff.login();
-    return;
-  }
-
   const profile = await liff.getProfile();
   uid = profile.userId;
-
+  document.getElementById("name").value = profile.displayName;
   loadProducts();
 }
 
 function loadProducts() {
   fetch(GAS_API)
     .then(r => r.json())
-    .then(data => {
-      products = data;
-      document.getElementById("product-list").innerHTML =
-        data.map((p,i) =>
-          `<div>
-            ${p.desc} (${p.price})
-            <button onclick="add(${i})">+</button>
-          </div>`
-        ).join("");
+    .then(d => {
+      products = d;
+      render();
     });
+}
+
+function render() {
+  const el = document.getElementById("product-list");
+  el.innerHTML = "";
+
+  products.forEach((p, i) => {
+    el.innerHTML += `
+      <div class="d-flex justify-content-between mb-2">
+        <span>${p.desc} (${p.price}฿)</span>
+        <button class="btn btn-sm btn-light" onclick="add(${i})">+</button>
+        <span id="q${i}">0</span>
+      </div>
+    `;
+  });
 }
 
 function add(i) {
   cart[i] = (cart[i] || 0) + 1;
-  let total = 0;
-  for (let k in cart) {
-    total += cart[k] * products[k].price;
-  }
-  document.getElementById("total").innerText = total;
+  document.getElementById(`q${i}`).innerText = cart[i];
+  calc();
 }
 
-function submitOrder() {
+function calc() {
+  let t = 0;
+  Object.keys(cart).forEach(i => {
+    t += cart[i] * products[i].price;
+  });
+  document.getElementById("total").innerText = t;
+}
+
+function showPayment() {
+  document.getElementById("payment").style.display = "block";
+}
+
+function confirmOrder() {
   const order = {
-    uid: uid,
-    items: Object.keys(cart)
-      .map(i => `${products[i].desc} x${cart[i]}`)
-      .join(", "),
+    uid,
+    name: document.getElementById("name").value,
+    address: document.getElementById("address").value,
+    items: Object.keys(cart).map(i => `${products[i].desc} x${cart[i]}`).join(", "),
     total: document.getElementById("total").innerText
   };
 
@@ -70,7 +93,8 @@ function submitOrder() {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(order)
   }).then(() => {
-    liff.closeWindow();
+    liff.sendMessages([{ type:"text", text:"✅ รับออเดอร์แล้ว" }])
+      .finally(() => liff.closeWindow());
   });
 }
 
