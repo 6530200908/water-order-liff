@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <style>
+    body { background:#1a1d21; color:white; padding:12px; }
+  </style>
+</head>
+<body>
+
+<h3>ระบบสั่งน้ำดื่ม</h3>
+<div id="status">กำลังโหลด...</div>
+<div id="product-list"></div>
+<button onclick="submitOrder()">สั่งซื้อ</button>
+
+<script>
+const GAS_URL = "https://script.google.com/macros/s/AKfycbxxxx/exec";
+const LIFF_ID = "2008859930-NxfsF3xM";
+
+let products = [];
+let userId = "";
+
+async function init() {
+  await liff.init({ liffId: LIFF_ID });
+
+  if (!liff.isInClient()) {
+    document.getElementById("status").innerText = "กรุณาเปิดใน LINE";
+    return;
+  }
+
+  if (!liff.isLoggedIn()) {
+    liff.login();
+    return;
+  }
+
+  const profile = await liff.getProfile();
+  userId = profile.userId;
+
+  const res = await fetch(GAS_URL);
+  products = await res.json();
+
+  document.getElementById("status").innerText = "ยินดีต้อนรับ " + profile.displayName;
+}
+init();
+
+async function submitOrder() {
+  const payload = {
+    uid: userId,
+    name: "ทดสอบ",
+    items: "น้ำดื่ม x1",
+    total: 20,
+    address: "LINE"
+  };
+
+  await fetch(GAS_URL, {
+    method: "POST",
+    body: JSON.stringify(payload)
+  });
+
+  liff.sendMessages([{ type:"text", text:"สั่งน้ำเรียบร้อยแล้ว" }]);
+  liff.closeWindow();
+}
+</script>
+</body>
+</html>
