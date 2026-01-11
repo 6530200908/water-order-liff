@@ -144,15 +144,16 @@
       total: document.getElementById("total-price").innerText
     };
 
-    fetch(GAS_API, {
-      method: "POST",
-      body: JSON.stringify(order)
-    })
-    .then(() => {
-      liff.sendMessages([{ type: "text", text: "✅ บันทึกออเดอร์เรียบร้อย" }])
-        .finally(() => liff.closeWindow());
-    });
-  }
+  fetch(GAS_API, {
+    method: "POST",
+    body: JSON.stringify(order)
+  })
+  .then(() => {
+    liff.sendMessages([
+      { type: "text", text: "✅ รับคำสั่งซื้อเรียบร้อย" }
+    ]).finally(() => liff.closeWindow());
+  });
+
 
   window.onload = init;
 </script>
