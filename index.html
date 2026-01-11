@@ -1,94 +1,120 @@
 <!DOCTYPE html>
-<html>
+<html lang="th">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>สั่งซื้อน้ำดื่ม</title>
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
-    body { background-color: #1a1d21; color: white; padding: 15px; padding-bottom: 110px; font-family: sans-serif; }
-    #payment-ui { 
-      display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0,0,0,0.9); z-index: 1000; padding: 20px; overflow-y: auto;
-    }
-    .modal-card { background: white; color: #333; border-radius: 20px; padding: 25px; margin-top: 30px; }
-    .product-card { background: #2c3036; border: 1px solid #3e444d; border-radius: 12px; padding: 12px; margin-bottom: 10px; }
-    .sticky-footer { position: fixed; bottom: 0; left: 0; width: 100%; background: #1a1d21; padding: 15px; border-top: 1px solid #333; z-index: 900; }
+    :root { --main-bg: #1a1d21; --card-bg: #2c3036; --accent: #0dcaf0; }
+    body { background-color: var(--main-bg); color: white; padding: 15px; padding-bottom: 120px; font-family: 'Chakra Petch', sans-serif; }
+    
+    /* Loading Screen */
+    #loader { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--main-bg); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    
+    /* Product Cards */
+    .product-card { background: var(--card-bg); border: 1px solid #3e444d; border-radius: 16px; padding: 15px; margin-bottom: 12px; transition: 0.3s; }
+    .product-card:active { transform: scale(0.98); }
+    
+    /* Payment Modal */
+    #payment-ui { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 1000; padding: 20px; overflow-y: auto; }
+    .modal-card { background: white; color: #333; border-radius: 24px; padding: 25px; margin-top: 10px; animation: slideUp 0.4s ease-out; }
+    
+    /* Sticky Footer Button */
+    .sticky-footer { position: fixed; bottom: 0; left: 0; width: 100%; background: var(--main-bg); padding: 20px; border-top: 1px solid #333; z-index: 900; }
+    .btn-checkout { background: var(--accent); color: #000; border: none; padding: 15px; border-radius: 12px; font-weight: bold; width: 100%; box-shadow: 0 4px 15px rgba(13, 202, 240, 0.3); }
+
+    @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
   </style>
 </head>
 <body>
 
-  <div id="app-content">
-    <h5 class="mb-4 text-center text-info">🛒 สั่งซื้อน้ำดื่ม</h5>
-    <div id="product-list">กำลังโหลดสินค้า...</div>
+  <div id="loader">
+    <div class="spinner-border text-info" role="status"></div>
+    <div class="mt-3 text-info">กำลังเชื่อมต่อข้อมูล...</div>
   </div>
 
-  <div class="sticky-footer shadow-lg">
-    <div class="d-flex justify-content-between mb-2 fs-5 px-2">
-      <span>ยอดรวม:</span> <span id="total-price" class="fw-bold text-info">0</span> ฿
+  <div id="app-content">
+    <h4 class="mb-4 fw-bold">🛒 สั่งซื้อน้ำดื่ม</h4>
+    <div id="product-list"></div>
+  </div>
+
+  <div class="sticky-footer">
+    <div class="d-flex justify-content-between mb-2 fs-5 px-1">
+      <span class="text-secondary">ยอดรวมทั้งหมด</span>
+      <span class="fw-bold text-info"><span id="total-price">0</span> ฿</span>
     </div>
-    <button id="btn-next" class="btn btn-primary w-100 p-3 fw-bold" disabled>รอข้อมูลจากระบบ...</button>
+    <button id="btn-next" class="btn-checkout" disabled>กำลังโหลด...</button>
   </div>
 
   <div id="payment-ui">
-    <div class="modal-card shadow">
-      <h5 class="text-center mb-3">รายละเอียดการจัดส่ง</h5>
-      <label class="small fw-bold text-muted">ชื่อผู้รับ</label>
-      <input type="text" id="cusName" class="form-control mb-3" placeholder="ระบุชื่อ">
+    <div class="modal-card">
+      <h5 class="text-center fw-bold mb-4">ข้อมูลการจัดส่ง</h5>
       
-      <label class="small fw-bold text-muted">เลือกหอพัก/สถานที่</label>
-      <select id="locSelect" class="form-select mb-3" onchange="toggleOther(this.value)">
-        <option value="">-- เลือกสถานที่ --</option>
-      </select>
-      
-      <label class="small fw-bold text-muted">เลขห้อง/ข้อมูลเพิ่มเติม</label>
-      <textarea id="cusAddress" class="form-control mb-4" rows="2" placeholder="เช่น ห้อง 101"></textarea>
-      
-      <button id="btn-confirm" class="btn btn-success w-100 p-3 fw-bold mb-2" onclick="confirmOrder()">ยืนยันสั่งซื้อ</button>
-      <button class="btn btn-light w-100" onclick="closePayment()">ย้อนกลับ</button>
+      <div class="mb-3">
+        <label class="small text-muted mb-1 d-block">ชื่อผู้รับ</label>
+        <input type="text" id="cusName" class="form-control" placeholder="ชื่อของคุณ">
+      </div>
+
+      <div class="mb-3">
+        <label class="small text-muted mb-1 d-block">สถานที่จัดส่ง</label>
+        <select id="locSelect" class="form-select" onchange="toggleOther(this.value)">
+          <option value="">-- เลือกสถานที่ --</option>
+        </select>
+      </div>
+
+      <div class="mb-4">
+        <label class="small text-muted mb-1 d-block">รายละเอียด (ห้อง/ชั้น/อื่นๆ)</label>
+        <textarea id="cusAddress" class="form-control" rows="2" placeholder="เช่น ห้อง 101"></textarea>
+      </div>
+
+      <button id="btn-confirm" class="btn btn-success w-100 p-3 fw-bold rounded-3 mb-2" onclick="confirmOrder()">ยืนยันสั่งซื้อตอนนี้</button>
+      <button class="btn btn-link w-100 text-muted" onclick="closePayment()">ย้อนกลับไปแก้รายการ</button>
     </div>
   </div>
 
 <script>
-const GAS_API = "https://script.google.com/macros/s/AKfycbyZhiE5-9c1iGPcjydmwpaz8wLY0ZO8ugraVae2BPyENEygtTHcgNxGt4BZDnv21NEziw/exec";
-let products = [], cart = {}, currentUserId = "", currentDisplayName = "";
+const GAS_API = "https://script.google.com/macros/s/AKfycbyw_xM0URBHwea-YjqCoWIXZHIqsML2HlSlsd3dgygqysJRboE-997MO0hmjpNRPET6PA/exec";
+let products = [], cart = {}, currentUserId = "";
 
 async function init() {
   try {
-    await liff.init({ liffId: "2008859930-NxfsF3xM" });
+    await liff.init({ liffId: "2008821220-C8oqqBvB" });
     if (!liff.isLoggedIn()) { liff.login(); return; }
+    
     const profile = await liff.getProfile();
     currentUserId = profile.userId;
-    currentDisplayName = profile.displayName;
+    document.getElementById("cusName").value = profile.displayName;
 
-    // โหลดข้อมูล สินค้า และ สถานที่จัดส่ง (ไม่ต้องรอโหลดข้อมูลลูกค้าเก่า จะเร็วขึ้น)
-    fetch(`${GAS_API}?type=init`)
+    fetch(GAS_API)
       .then(res => res.json())
       .then(res => {
+        document.getElementById("loader").style.display = "none";
         products = res.products;
         renderProducts();
         
         const select = document.getElementById("locSelect");
         res.locations.forEach(loc => select.innerHTML += `<option value="${loc}">${loc}</option>`);
-        select.innerHTML += `<option value="อื่นๆ">อื่นๆ</option>`;
-
-        // ตั้งค่าชื่อเริ่มต้นจาก LINE Profile
-        document.getElementById("cusName").value = currentDisplayName;
+        select.innerHTML += `<option value="อื่นๆ">กรอกเอง (ระบุด้านล่าง)</option>`;
 
         document.getElementById("btn-next").disabled = false;
         document.getElementById("btn-next").innerText = "ไปหน้าชำระเงิน";
       });
-  } catch (err) { console.error(err); }
+  } catch (err) { alert("LIFF Error: " + err); }
 }
 
 function renderProducts() {
   document.getElementById("product-list").innerHTML = products.map((p, i) => `
     <div class="product-card d-flex justify-content-between align-items-center">
-      <div><b>${p.desc}</b><br><small class="text-info">${p.price} ฿</small></div>
+      <div>
+        <div class="fw-bold">${p.desc}</div>
+        <div class="text-info small">${p.price} ฿</div>
+      </div>
       <div class="d-flex align-items-center gap-3">
-        <button class="btn btn-sm btn-outline-light" onclick="updateQty(${i},-1)">-</button>
-        <span id="qty-${i}" class="fw-bold fs-5">0</span>
-        <button class="btn btn-sm btn-outline-light" onclick="updateQty(${i},1)">+</button>
+        <button class="btn btn-sm btn-outline-secondary text-white border-secondary rounded-circle" onclick="updateQty(${i},-1)" style="width:30px;height:30px;">-</button>
+        <span id="qty-${i}" class="fw-bold fs-5" style="min-width:20px;text-align:center">0</span>
+        <button class="btn btn-sm btn-outline-info text-info border-info rounded-circle" onclick="updateQty(${i},1)" style="width:30px;height:30px;">+</button>
       </div>
     </div>`).join("");
 }
@@ -106,22 +132,20 @@ function toggleOther(val) {
 }
 
 document.getElementById("btn-next").onclick = () => {
-  if(document.getElementById("total-price").innerText == "0") return alert("กรุณาเลือกสินค้า");
+  if(document.getElementById("total-price").innerText == "0") return alert("กรุณาเลือกน้ำดื่มอย่างน้อย 1 รายการ");
   document.getElementById("payment-ui").style.display = "block";
 };
 
-function closePayment() {
-  document.getElementById("payment-ui").style.display = "none";
-}
+function closePayment() { document.getElementById("payment-ui").style.display = "none"; }
 
 function confirmOrder() {
   const loc = document.getElementById("locSelect").value;
   const addr = document.getElementById("cusAddress").value;
-  if(!loc) return alert("กรุณาเลือกสถานที่");
+  if(!loc) return alert("กรุณาเลือกสถานที่จัดส่ง");
 
   const btn = document.getElementById("btn-confirm");
   btn.disabled = true;
-  btn.innerText = "กำลังบันทึกข้อมูล...";
+  btn.innerText = "กำลังส่งข้อมูล...";
 
   const itemsInCart = Object.keys(cart).filter(i => cart[i] > 0);
   const order = {
@@ -135,8 +159,10 @@ function confirmOrder() {
 
   fetch(GAS_API, { method: "POST", mode: "no-cors", body: JSON.stringify(order) })
   .then(() => {
-    liff.sendMessages([{ type: "text", text: `✅ สั่งซื้อเรียบร้อยแล้ว!\nรายการ: ${order.items}\nยอดรวม: ${order.total} ฿\nสถานะ: รอยืนยันออเดอร์` }])
-    .finally(() => liff.closeWindow());
+    liff.sendMessages([{ 
+      type: "text", 
+      text: `✅ สั่งซื้อเรียบร้อย!\n------------------\n📍 ส่งที่: ${order.address}\n📦 รายการ: ${order.items}\n💰 ยอดรวม: ${order.total} ฿\n⏳ สถานะ: รอยืนยันออเดอร์` 
+    }]).finally(() => liff.closeWindow());
   });
 }
 
