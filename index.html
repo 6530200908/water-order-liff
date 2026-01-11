@@ -2,65 +2,160 @@
 <html>
 <head>
   <meta charset="UTF-8">
+
+  <!-- LIFF SDK -->
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+
+  <!-- Bootstrap -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
   <style>
-    body { background:#1a1d21; color:white; padding:12px; }
+    body { background-color: #1a1d21; color: white; padding: 10px; }
+    #debug-box { background: #000; color: #0f0; padding: 10px; font-size: 12px; border-radius: 5px; margin-bottom: 10px; border: 1px solid #333; }
+    .status-red { color: #ff4d4d; }
+    .status-green { color: #00ff00; }
   </style>
 </head>
+
 <body>
 
-<h3>ระบบสั่งน้ำดื่ม</h3>
-<div id="status">กำลังโหลด...</div>
-<div id="product-list"></div>
-<button onclick="submitOrder()">สั่งซื้อ</button>
+<div id="debug-box">
+  <b>🔍 ระบบตรวจสอบสถานะ:</b><br>
+  - LIFF Init: <span id="st-init">รอ...</span><br>
+  - Login Status: <span id="st-login">รอ...</span><br>
+  - UserID: <span id="st-uid">กำลังดึงข้อมูล...</span>
+</div>
+
+<div id="app-content">
+  <div id="product-list">กำลังโหลดสินค้า...</div>
+  <hr>
+  ยอดรวม: <span id="total-price" class="fw-bold">0</span> ฿
+  <button id="btn-next" class="btn btn-primary w-100 mt-2" disabled>รอข้อมูลจาก LINE...</button>
+</div>
+
+<div id="payment-ui" style="display:none; background:white; color:black; padding:20px; border-radius:15px;">
+  <h5>ข้อมูลจัดส่ง</h5>
+  <input type="text" id="cusName" class="form-control mb-2" placeholder="ชื่อ">
+  <textarea id="cusAddress" class="form-control mb-2" rows="3" placeholder="ที่อยู่"></textarea>
+  <button class="btn btn-success w-100" onclick="confirmOrder()">ยืนยันและบันทึก</button>
+</div>
 
 <script>
-const GAS_URL = "https://script.google.com/macros/s/AKfycbydQlCDd0FPt9jAlcf0s05FPWSzoRoWEe5YvsD2g8CDeRJioe7Ylwjlze_jMKXhMFG_Qw/exec";
-const LIFF_ID = "2008859930-NxfsF3xM";
+  const GAS_API = "https://script.google.com/macros/s/AKfycbywbN00Zo9eSJjfqQSu31UuVpnwC0WfQjfQHLrrBKZfSrSEKFh-qJdW1eXTE3lTR7QGoQ/exec"; // 🔥 เปลี่ยน
+  let products = [];
+  let cart = {};
+  let currentUserId = "";
 
-let products = [];
-let userId = "";
-
-async function init() {
-  await liff.init({ liffId: LIFF_ID });
-
-  if (!liff.isInClient()) {
-    document.getElementById("status").innerText = "กรุณาเปิดใน LINE";
-    return;
+  function logStatus(id, text, isError = false) {
+    const el = document.getElementById(id);
+    el.innerText = text;
+    el.className = isError ? "status-red" : "status-green";
   }
 
-  if (!liff.isLoggedIn()) {
-    liff.login();
-    return;
+  async function init() {
+    try {
+      await liff.init({ liffId: "2008859930-NxfsF3xM" });
+      logStatus("st-init", "สำเร็จ ✅");
+    } catch (e) {
+      logStatus("st-init", "Init error", true);
+      return;
+    }
+
+    if (!liff.isInClient()) {
+      logStatus("st-login", "ไม่ได้เปิดใน LINE App", true);
+      return;
+    }
+
+    if (!liff.isLoggedIn()) {
+      logStatus("st-login", "กำลัง Login...");
+      liff.login();
+      return;
+    }
+
+    logStatus("st-login", "Log-in แล้ว ✅");
+
+    try {
+      const profile = await liff.getProfile();
+      currentUserId = profile.userId;
+      document.getElementById("cusName").value = profile.displayName;
+      logStatus("st-uid", currentUserId);
+
+      document.getElementById("btn-next").disabled = false;
+      document.getElementById("btn-next").innerText = "ไปหน้าชำระเงิน";
+      document.getElementById("btn-next").onclick = showPayment;
+    } catch {
+      logStatus("st-uid", "ดึง UserID ไม่ได้", true);
+      return;
+    }
+
+    loadProducts();
   }
 
-  const profile = await liff.getProfile();
-  userId = profile.userId;
+  function loadProducts() {
+    fetch(GAS_API)
+      .then(res => res.json())
+      .then(data => {
+        products = data;
+        renderProducts();
+      })
+      .catch(err => {
+        document.getElementById("product-list").innerText = "โหลดสินค้าไม่สำเร็จ";
+        console.error(err);
+      });
+  }
 
-  const res = await fetch(GAS_URL);
-  products = await res.json();
+  function renderProducts() {
+    document.getElementById("product-list").innerHTML = products.map((p, i) => `
+      <div class="d-flex justify-content-between align-items-center mb-2 p-2 border border-secondary rounded">
+        <span>${p.desc} (${p.price}฿)</span>
+        <div class="d-flex align-items-center gap-2">
+          <button class="btn btn-sm btn-light" onclick="updateQty(${i},1)">+</button>
+          <span id="qty-${i}">0</span>
+        </div>
+      </div>
+    `).join("");
+  }
 
-  document.getElementById("status").innerText = "ยินดีต้อนรับ " + profile.displayName;
-}
-init();
+  function updateQty(i, d) {
+    cart[i] = Math.max(0, (cart[i] || 0) + d);
+    document.getElementById(`qty-${i}`).innerText = cart[i];
 
-async function submitOrder() {
-  const payload = {
-    uid: userId,
-    name: "ทดสอบ",
-    items: "น้ำดื่ม x1",
-    total: 20,
-    address: "LINE"
-  };
+    let total = 0;
+    Object.keys(cart).forEach(k => {
+      total += cart[k] * products[k].price;
+    });
+    document.getElementById("total-price").innerText = total;
+  }
 
-  await fetch(GAS_URL, {
-    method: "POST",
-    body: JSON.stringify(payload)
-  });
+  function showPayment() {
+    document.getElementById("app-content").style.display = "none";
+    document.getElementById("payment-ui").style.display = "block";
+  }
 
-  liff.sendMessages([{ type:"text", text:"สั่งน้ำเรียบร้อยแล้ว" }]);
-  liff.closeWindow();
-}
+  function confirmOrder() {
+    const order = {
+      uid: currentUserId,
+      name: document.getElementById("cusName").value,
+      address: document.getElementById("cusAddress").value,
+      items: Object.keys(cart)
+        .filter(i => cart[i] > 0)
+        .map(i => `${products[i].desc} x${cart[i]}`)
+        .join(", "),
+      total: document.getElementById("total-price").innerText
+    };
+
+    fetch(GAS_API, {
+      method: "POST",
+      body: JSON.stringify(order)
+    })
+    .then(() => {
+      liff.sendMessages([{ type: "text", text: "✅ บันทึกออเดอร์เรียบร้อย" }])
+        .finally(() => liff.closeWindow());
+    });
+  }
+
+  window.onload = init;
 </script>
+
 </body>
 </html>
