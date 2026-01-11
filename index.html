@@ -56,37 +56,48 @@ const GAS_API = "https://script.google.com/macros/s/AKfycbzDaovxh_RDbg8PGxccbWHE
 let products = [], cart = {}, currentUserId = "";
 
 async function init() {
-  try {
-    await liff.init({ liffId: "2008859930-NxfsF3xM" });
-    if (!liff.isLoggedIn()) { liff.login(); return; }
-    const profile = await liff.getProfile();
-    currentUserId = profile.userId;
+  await liff.init({ liffId: "2008859930-NxfsF3xM" });
+  if (!liff.isLoggedIn()) { liff.login(); return; }
+  
+  const profile = await liff.getProfile();
+  currentUserId = profile.userId;
 
-    fetch(`${GAS_API}?type=init&uid=${currentUserId}`)
-      .then(res => res.json())
-      .then(res => {
-        products = res.products;
-        renderProducts();
-        const select = document.getElementById("locSelect");
-        res.locations.forEach(loc => select.innerHTML += `<option value="${loc}">${loc}</option>`);
-        select.innerHTML += `<option value="อื่นๆ">อื่นๆ</option>`;
+  // --- ขั้นตอนที่ 1: โหลดสินค้าขึ้นมาโชว์ก่อนทันที ---
+  // ไม่ต้องรอให้ข้อมูลลูกค้าโหลดเสร็จ แอปจะดูเร็วขึ้น
+  fetch(`${GAS_API}?type=products`) 
+    .then(res => res.json())
+    .then(data => {
+      products = data;
+      renderProducts(); // แสดงรายการสินค้าทันที
+      document.getElementById("btn-next").disabled = false;
+      document.getElementById("btn-next").innerText = "ไปหน้าชำระเงิน";
+    });
 
-        if (res.customer) {
-          document.getElementById("cusName").value = res.customer.name;
-          if (res.locations.includes(res.customer.address)) {
-            select.value = res.customer.address;
-          } else {
-            select.value = "อื่นๆ";
-            document.getElementById("cusAddress").value = res.customer.address;
-          }
-        } else {
-          document.getElementById("cusName").value = profile.displayName;
+  // --- ขั้นตอนที่ 2: โหลดข้อมูลที่อยู่/ลูกค้าเก่า แบบเบื้องหลัง (Background) ---
+  fetch(`${GAS_API}?type=init&uid=${currentUserId}`)
+    .then(res => res.json())
+    .then(res => {
+      // เมื่อข้อมูลมาถึง ค่อยเติมใส่ Dropdown และ Input เตรียมไว้
+      const select = document.getElementById("locSelect");
+      res.locations.forEach(loc => {
+        if(![...select.options].some(o => o.value === loc)) {
+           select.innerHTML += `<option value="${loc}">${loc}</option>`;
         }
-
-        document.getElementById("btn-next").disabled = false;
-        document.getElementById("btn-next").innerText = "ไปหน้าชำระเงิน";
       });
-  } catch (err) { console.error(err); }
+      if (![...select.options].some(o => o.value === "อื่นๆ")) {
+         select.innerHTML += `<option value="อื่นๆ">อื่นๆ</option>`;
+      }
+      
+      if (res.customer) {
+        document.getElementById("cusName").value = res.customer.name;
+        if (res.locations.includes(res.customer.address)) {
+          select.value = res.customer.address;
+        } else {
+          select.value = "อื่นๆ";
+          document.getElementById("cusAddress").value = res.customer.address;
+        }
+      }
+    });
 }
 
 function renderProducts() {
