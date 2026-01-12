@@ -52,8 +52,6 @@
     </div>
   </div>
 
-// ... ส่วน UI และ CSS เดิมของคุณ ...
-
 <script>
 const GAS_API = "https://script.google.com/macros/s/AKfycby4ouDE5qxwVKoJgxEp3XX1JzMmjTc2-ss3il3ib2at6aBIZGlAlIaLsT5Yt8qcVAp1Fg/exec"; 
 let products = [], cart = {}, currentUserId = "";
@@ -64,21 +62,82 @@ async function init() {
   const profile = await liff.getProfile();
   currentUserId = profile.userId;
 
-  // ดึงข้อมูลสินค้า
   fetch(`${GAS_API}?uid=${currentUserId}`)
     .then(res => res.json())
     .then(res => {
       document.getElementById("loader").style.display = "none";
       products = res.products;
       renderProducts();
-      // ... จัดการส่วนเลือกที่อยู่ ...
+      
+      // จัดการส่วนเลือกที่อยู่
+      const select = document.getElementById("locSelect");
+      res.locations.forEach(loc => {
+        select.innerHTML += `<option value="${loc}">${loc}</option>`;
+      });
+      select.innerHTML += `<option value="อื่นๆ">อื่นๆ</option>`;
+
+      // ถ้ามีข้อมูลลูกค้าเดิม ให้กรอกอัตโนมัติ
+      if (res.customer) {
+        document.getElementById("cusName").value = res.customer.name;
+        if (res.locations.includes(res.customer.address)) {
+          select.value = res.customer.address;
+        } else if (res.customer.address) {
+          select.value = "อื่นๆ";
+          document.getElementById("cusAddress").style.display = "block";
+          document.getElementById("cusAddress").value = res.customer.address;
+        }
+      } else {
+        document.getElementById("cusName").value = profile.displayName;
+      }
+      document.getElementById("btn-next").disabled = false;
     });
+}
+
+function renderProducts() {
+  const list = document.getElementById("product-list");
+  list.innerHTML = products.map((p, i) => `
+    <div class="product-card d-flex justify-content-between align-items-center">
+      <div>
+        <div class="fw-bold">${p.desc}</div>
+        <div class="text-info small">${p.price} ฿</div>
+      </div>
+      <div class="d-flex align-items-center gap-3">
+        <button class="btn btn-sm btn-outline-light rounded-circle" onclick="updateQty(${i},-1)">-</button>
+        <span id="qty-${i}" class="fw-bold">0</span>
+        <button class="btn btn-sm btn-outline-info rounded-circle" onclick="updateQty(${i},1)">+</button>
+      </div>
+    </div>`).join("");
+}
+
+function updateQty(i, d) {
+  cart[i] = Math.max(0, (cart[i] || 0) + d);
+  document.getElementById(`qty-${i}`).innerText = cart[i];
+  
+  let total = 0;
+  Object.keys(cart).forEach(k => {
+    total += cart[k] * products[k].price;
+  });
+  document.getElementById("total-price").innerText = total;
+}
+
+function toggleOther(val) {
+  document.getElementById("cusAddress").style.display = (val === "อื่นๆ") ? "block" : "none";
+}
+
+document.getElementById("btn-next").onclick = () => {
+  const total = document.getElementById("total-price").innerText;
+  if(total === "0") return alert("กรุณาเลือกสินค้าก่อนครับ");
+  document.getElementById("payment-ui").style.display = "block";
+};
+
+function closePayment() {
+  document.getElementById("payment-ui").style.display = "none";
 }
 
 function confirmOrder() {
   const loc = document.getElementById("locSelect").value;
   const finalAddr = (loc === "อื่นๆ") ? document.getElementById("cusAddress").value : loc;
-  if(!finalAddr) return alert("กรุณาระบุที่อยู่");
+  if(!finalAddr || !document.getElementById("cusName").value) return alert("กรุณากรอกข้อมูลให้ครบถ้วน");
 
   const btn = document.getElementById("btn-confirm");
   btn.disabled = true; btn.innerText = "กำลังบันทึก...";
@@ -93,7 +152,6 @@ function confirmOrder() {
     total: document.getElementById("total-price").innerText
   };
 
-  // *** แก้ไขจุดนี้: ลบ mode: 'no-cors' ออก ***
   fetch(GAS_API, {
     method: "POST",
     body: JSON.stringify(orderData)
@@ -113,6 +171,7 @@ function confirmOrder() {
     btn.innerText = "ยืนยันสั่งซื้อ";
   });
 }
+
 window.onload = init;
 </script>
 </body>
