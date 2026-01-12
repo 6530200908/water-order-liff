@@ -52,8 +52,10 @@
     </div>
   </div>
 
+// ... ส่วน UI และ CSS เดิมของคุณ ...
+
 <script>
-const GAS_API = "https://script.google.com/macros/s/AKfycbyes1oLr5TUnK1EG-FEdfUVCAN-zWnAwtu7absTVnOaBbPWwNN8mTRnskaUOCFBEgtjpg/exec";
+const GAS_API = "https://script.google.com/macros/s/AKfycby4ouDE5qxwVKoJgxEp3XX1JzMmjTc2-ss3il3ib2at6aBIZGlAlIaLsT5Yt8qcVAp1Fg/exec"; 
 let products = [], cart = {}, currentUserId = "";
 
 async function init() {
@@ -62,63 +64,16 @@ async function init() {
   const profile = await liff.getProfile();
   currentUserId = profile.userId;
 
+  // ดึงข้อมูลสินค้า
   fetch(`${GAS_API}?uid=${currentUserId}`)
     .then(res => res.json())
     .then(res => {
       document.getElementById("loader").style.display = "none";
       products = res.products;
       renderProducts();
-      
-      const select = document.getElementById("locSelect");
-      res.locations.forEach(loc => select.innerHTML += `<option value="${loc}">${loc}</option>`);
-      select.innerHTML += `<option value="อื่นๆ">อื่นๆ</option>`;
-
-      if (res.customer) {
-        document.getElementById("cusName").value = res.customer.name;
-        if (res.locations.includes(res.customer.address)) {
-          select.value = res.customer.address;
-        } else {
-          select.value = "อื่นๆ";
-          document.getElementById("cusAddress").style.display = "block";
-          document.getElementById("cusAddress").value = res.customer.address;
-        }
-      } else {
-        document.getElementById("cusName").value = profile.displayName;
-      }
-      document.getElementById("btn-next").disabled = false;
+      // ... จัดการส่วนเลือกที่อยู่ ...
     });
 }
-
-function renderProducts() {
-  document.getElementById("product-list").innerHTML = products.map((p, i) => `
-    <div class="product-card d-flex justify-content-between align-items-center">
-      <div><div>${p.desc}</div><div class="text-info small">${p.price} ฿</div></div>
-      <div class="d-flex align-items-center gap-3">
-        <button class="btn btn-sm btn-outline-light rounded-circle" onclick="updateQty(${i},-1)">-</button>
-        <span id="qty-${i}">0</span>
-        <button class="btn btn-sm btn-outline-info rounded-circle" onclick="updateQty(${i},1)">+</button>
-      </div>
-    </div>`).join("");
-}
-
-function updateQty(i, d) {
-  cart[i] = Math.max(0, (cart[i] || 0) + d);
-  document.getElementById(`qty-${i}`).innerText = cart[i];
-  let total = 0;
-  Object.keys(cart).forEach(k => total += cart[k] * products[k].price);
-  document.getElementById("total-price").innerText = total;
-}
-
-function toggleOther(val) {
-  document.getElementById("cusAddress").style.display = (val === "อื่นๆ") ? "block" : "none";
-}
-
-document.getElementById("btn-next").onclick = () => {
-  if(document.getElementById("total-price").innerText == "0") return alert("เลือกสินค้าก่อนครับ");
-  document.getElementById("payment-ui").style.display = "block";
-};
-
-function closePayment() { document.getElementById("payment-ui").style.display = "none"; }
 
 function confirmOrder() {
   const loc = document.getElementById("locSelect").value;
@@ -129,7 +84,7 @@ function confirmOrder() {
   btn.disabled = true; btn.innerText = "กำลังบันทึก...";
 
   const itemsInCart = Object.keys(cart).filter(i => cart[i] > 0);
-  const order = {
+  const orderData = {
     uid: currentUserId,
     name: document.getElementById("cusName").value,
     address: finalAddr,
@@ -138,12 +93,24 @@ function confirmOrder() {
     total: document.getElementById("total-price").innerText
   };
 
-  fetch(GAS_API, { method: "POST", mode: "no-cors", body: JSON.stringify(order) })
-  .then(() => {
-    liff.sendMessages([{ 
-      type: "text", 
-      text: `✅ สั่งซื้อสำเร็จ!\n📍 ส่งที่: ${order.address}\n📦 รายการ:\n${itemsInCart.map(i => `- ${products[i].desc} (${cart[i]} ขวด)`).join("\n")}\n💰 ยอด: ${order.total} ฿` 
-    }]).finally(() => liff.closeWindow());
+  // *** แก้ไขจุดนี้: ลบ mode: 'no-cors' ออก ***
+  fetch(GAS_API, {
+    method: "POST",
+    body: JSON.stringify(orderData)
+  })
+  .then(res => res.json())
+  .then(res => {
+    if(res.status === "ok") {
+      liff.sendMessages([{ 
+        type: "text", 
+        text: `✅ สั่งซื้อสำเร็จ!\nเลขที่: ${res.orderId}\n📍 ส่งที่: ${orderData.address}\n💰 ยอด: ${orderData.total} ฿` 
+      }]).finally(() => liff.closeWindow());
+    }
+  })
+  .catch(e => {
+    alert("เกิดข้อผิดพลาดในการบันทึก กรุณาลองใหม่");
+    btn.disabled = false;
+    btn.innerText = "ยืนยันสั่งซื้อ";
   });
 }
 window.onload = init;
