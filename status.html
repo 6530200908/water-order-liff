@@ -7,47 +7,42 @@
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <style>
-    body { background-color: #1a1d21; color: white; padding: 20px; }
-    .status-card { background: #2c3036; border-radius: 20px; padding: 25px; border-left: 6px solid #0dcaf0; }
-    .badge-status { padding: 6px 15px; border-radius: 20px; font-weight: bold; }
-    .st-รอตรวจสอบ { background: #ffc107; color: #000; }
-    .st-รอยืนยันออเดอร์ { background: #17a2b8; }
-    .st-ชำระเงินแล้ว { background: #28a745; }
-    .st-จัดส่งสำเร็จ { background: #6f42c1; }
+    :root { --bg: #1a1d21; --card: #2c3036; --blue: #0dcaf0; --dim: #555; }
+    body { background: var(--bg); color: white; padding: 20px; font-family: sans-serif; }
+    .status-card { background: var(--card); border-radius: 20px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.4); }
+    
+    .timeline { position: relative; padding: 0; margin: 20px 0; list-style: none; }
+    .t-item { position: relative; padding-left: 40px; margin-bottom: 25px; color: var(--dim); transition: 0.3s; }
+    .t-item::before { content: ""; position: absolute; left: 6px; top: 0; bottom: -25px; width: 2px; background: var(--dim); }
+    .t-item:last-child::before { display: none; }
+    .t-icon { position: absolute; left: 0; top: 4px; width: 14px; height: 14px; border-radius: 50%; background: var(--dim); border: 2px solid var(--bg); z-index: 2; }
+    
+    .active { color: var(--blue); font-weight: bold; }
+    .active .t-icon { background: var(--blue); box-shadow: 0 0 12px var(--blue); transform: scale(1.2); }
+    .done { color: #ccc; }
+    .done .t-icon { background: var(--blue); }
+    .done::before { background: var(--blue); }
   </style>
 </head>
 <body>
 
-  <div id="loader" class="text-center mt-5">
-    <div class="spinner-border text-info"></div>
-    <p class="mt-2">กำลังเช็คสถานะล่าสุด...</p>
-  </div>
+  <div id="loader" class="text-center mt-5"><div class="spinner-border text-info"></div></div>
 
-  <div id="status-content" style="display: none;">
-    <h4 class="mb-4 fw-bold">📦 สถานะการจัดส่ง</h4>
-    <div class="status-card shadow-lg mb-4">
-      <div class="d-flex justify-content-between mb-3">
-        <span id="order-id" class="text-secondary small">ID: -</span>
-        <span id="order-badge" class="badge-status"></span>
-      </div>
-      <h3 id="order-status-text" class="fw-bold mb-1">--</h3>
-      <p id="order-time" class="text-muted small mb-4"></p>
+  <div id="content" style="display:none;">
+    <h4 class="mb-4 text-center">📦 ติดตามการจัดส่ง</h4>
+    <div class="status-card">
+      <div id="timeline-box" class="timeline"></div>
       <hr style="border-color: #444;">
-      <div class="small text-secondary">จัดส่งไปที่:</div>
-      <div id="order-address" class="mb-3">--</div>
-      <div class="small text-secondary">รายการ:</div>
-      <div id="order-items">--</div>
+      <div class="small"><span class="text-secondary">เลขที่:</span> <span id="o-id"></span></div>
+      <div class="small"><span class="text-secondary">รายการ:</span> <span id="o-items"></span></div>
+      <div class="small text-secondary mt-2" id="o-time"></div>
     </div>
-    <a href="index.html" class="btn btn-outline-light w-100 p-3">กลับหน้าหลัก</a>
-  </div>
-
-  <div id="no-order" class="text-center mt-5" style="display: none;">
-    <p class="text-muted">ยังไม่มีประวัติการสั่งซื้อ</p>
-    <a href="index.html" class="btn btn-info">เริ่มสั่งซื้อ</a>
+    <a href="index.html" class="btn btn-outline-info w-100 p-3 mt-4 rounded-pill">กลับหน้าสั่งซื้อ</a>
   </div>
 
 <script>
-const GAS_API = "https://script.google.com/macros/s/AKfycbzCNAqXq5lx5_rrkSCBQ8Ua4nwkTAVql4zfoXN3msN9KrYloNFH6lsWueoZMUsI-UXlWQ/exec";
+const GAS_API = "https://script.google.com/macros/s/AKfycbyVPS8a_dSnSSy75YdDREQHsbNm2NehMtXmjMbbjnAJI86i0epfj6UTGMu92O0sZC6B6A/exec"; 
+
 async function init() {
   await liff.init({ liffId: "2008821220-URtBKHjL" });
   if (!liff.isLoggedIn()) { liff.login(); return; }
@@ -57,20 +52,22 @@ async function init() {
     .then(res => res.json())
     .then(res => {
       document.getElementById("loader").style.display = "none";
-      if (!res) {
-        document.getElementById("no-order").style.display = "block";
-        return;
-      }
-      document.getElementById("status-content").style.display = "block";
-      document.getElementById("order-id").innerText = "ID: " + res.id;
-      document.getElementById("order-status-text").innerText = res.status;
-      document.getElementById("order-time").innerText = "อัปเดตเมื่อ: " + res.time;
-      document.getElementById("order-address").innerText = res.address;
-      document.getElementById("order-items").innerText = res.items;
+      if (!res.order) { alert("ไม่พบข้อมูลออเดอร์ล่าสุด"); return; }
       
-      const badge = document.getElementById("order-badge");
-      badge.innerText = res.status;
-      badge.className = "badge-status st-" + res.status.replace(/\s/g, '');
+      document.getElementById("content").style.display = "block";
+      const box = document.getElementById("timeline-box");
+      const currentIdx = res.allStatus.indexOf(res.order.status);
+      
+      res.allStatus.forEach((name, i) => {
+        const div = document.createElement("div");
+        div.className = "t-item " + (i < currentIdx ? "done" : (i === currentIdx ? "active" : ""));
+        div.innerHTML = `<div class="t-icon"></div>${name}`;
+        box.appendChild(div);
+      });
+
+      document.getElementById("o-id").innerText = res.order.id;
+      document.getElementById("o-items").innerText = res.order.items;
+      document.getElementById("o-time").innerText = "อัปเดต: " + res.order.time;
     });
 }
 window.onload = init;
