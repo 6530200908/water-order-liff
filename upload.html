@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <title>อัปโหลดสลิป</title>
+
+  <!-- LIFF SDK -->
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+
+  <!-- Bootstrap -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <style>
+    body {
+      background: #1a1d21;
+      color: white;
+      padding: 20px;
+    }
+  </style>
+</head>
+
+<body>
+
+<h4>📤 ส่งสลิปการชำระเงิน</h4>
+<p id="orderText">กำลังโหลด...</p>
+
+<input type="file" id="slipFile" accept="image/*" class="form-control mb-3">
+<button class="btn btn-success w-100" onclick="uploadSlip()">อัปโหลดสลิป</button>
+
+<p id="status" class="mt-3"></p>
+
+<script>
+const N8N_WEBHOOK = "https://amarin-650200908-drinking-water-bot.hf.space/webhook/13a7308b-4072-44f1-99f5-39117dd991dc/webhook"; // 🔴 เปลี่ยนตรงนี้
+
+let orderId = "";
+let userId = "";
+
+async function init() {
+  await liff.init({ liffId: "2008821220-NqDJdKS0" });
+
+  if (!liff.isLoggedIn()) {
+    liff.login();
+    return;
+  }
+
+  const profile = await liff.getProfile();
+  userId = profile.userId;
+
+  const params = new URLSearchParams(window.location.search);
+  orderId = params.get("order_id");
+
+  document.getElementById("orderText").innerText =
+    orderId ? `ออเดอร์: ${orderId}` : "❌ ไม่พบเลขออเดอร์";
+}
+
+function uploadSlip() {
+  const fileInput = document.getElementById("slipFile");
+  if (!fileInput.files.length) {
+    alert("กรุณาเลือกไฟล์สลิป");
+    return;
+  }
+
+  const formData = new FormData();
+  formData.append("order_id", orderId);
+  formData.append("user_id", userId);
+  formData.append("slip", fileInput.files[0]);
+
+  fetch(N8N_WEBHOOK, {
+    method: "POST",
+    body: formData
+  })
+  .then(() => {
+    document.getElementById("status").innerText = "✅ อัปโหลดสำเร็จ";
+    setTimeout(() => liff.closeWindow(), 1500);
+  })
+  .catch(() => {
+    document.getElementById("status").innerText = "❌ อัปโหลดล้มเหลว";
+  });
+}
+
+window.onload = init;
+</script>
+
+</body>
+</html>
