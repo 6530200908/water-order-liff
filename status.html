@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>สถานะออเดอร์</title>
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body { background-color: #1a1d21; color: white; padding: 20px; }
+    .status-card { background: #2c3036; border-radius: 20px; padding: 25px; border-left: 6px solid #0dcaf0; }
+    .badge-status { padding: 6px 15px; border-radius: 20px; font-weight: bold; }
+    .st-รอตรวจสอบ { background: #ffc107; color: #000; }
+    .st-รอยืนยันออเดอร์ { background: #17a2b8; }
+    .st-ชำระเงินแล้ว { background: #28a745; }
+    .st-จัดส่งสำเร็จ { background: #6f42c1; }
+  </style>
+</head>
+<body>
+
+  <div id="loader" class="text-center mt-5">
+    <div class="spinner-border text-info"></div>
+    <p class="mt-2">กำลังเช็คสถานะล่าสุด...</p>
+  </div>
+
+  <div id="status-content" style="display: none;">
+    <h4 class="mb-4 fw-bold">📦 สถานะการจัดส่ง</h4>
+    <div class="status-card shadow-lg mb-4">
+      <div class="d-flex justify-content-between mb-3">
+        <span id="order-id" class="text-secondary small">ID: -</span>
+        <span id="order-badge" class="badge-status"></span>
+      </div>
+      <h3 id="order-status-text" class="fw-bold mb-1">--</h3>
+      <p id="order-time" class="text-muted small mb-4"></p>
+      <hr style="border-color: #444;">
+      <div class="small text-secondary">จัดส่งไปที่:</div>
+      <div id="order-address" class="mb-3">--</div>
+      <div class="small text-secondary">รายการ:</div>
+      <div id="order-items">--</div>
+    </div>
+    <a href="index.html" class="btn btn-outline-light w-100 p-3">กลับหน้าหลัก</a>
+  </div>
+
+  <div id="no-order" class="text-center mt-5" style="display: none;">
+    <p class="text-muted">ยังไม่มีประวัติการสั่งซื้อ</p>
+    <a href="index.html" class="btn btn-info">เริ่มสั่งซื้อ</a>
+  </div>
+
+<script>
+const GAS_API = "https://script.google.com/macros/s/AKfycbzCNAqXq5lx5_rrkSCBQ8Ua4nwkTAVql4zfoXN3msN9KrYloNFH6lsWueoZMUsI-UXlWQ/exec";
+async function init() {
+  await liff.init({ liffId: "2008821220-URtBKHjL" });
+  if (!liff.isLoggedIn()) { liff.login(); return; }
+  const profile = await liff.getProfile();
+
+  fetch(`${GAS_API}?type=status&uid=${profile.userId}`)
+    .then(res => res.json())
+    .then(res => {
+      document.getElementById("loader").style.display = "none";
+      if (!res) {
+        document.getElementById("no-order").style.display = "block";
+        return;
+      }
+      document.getElementById("status-content").style.display = "block";
+      document.getElementById("order-id").innerText = "ID: " + res.id;
+      document.getElementById("order-status-text").innerText = res.status;
+      document.getElementById("order-time").innerText = "อัปเดตเมื่อ: " + res.time;
+      document.getElementById("order-address").innerText = res.address;
+      document.getElementById("order-items").innerText = res.items;
+      
+      const badge = document.getElementById("order-badge");
+      badge.innerText = res.status;
+      badge.className = "badge-status st-" + res.status.replace(/\s/g, '');
+    });
+}
+window.onload = init;
+</script>
+</body>
+</html>
