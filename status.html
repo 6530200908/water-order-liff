@@ -48,7 +48,7 @@
   </div>
 
 <script>
-const GAS_API = "https://script.google.com/macros/s/AKfycbyes1oLr5TUnK1EG-FEdfUVCAN-zWnAwtu7absTVnOaBbPWwNN8mTRnskaUOCFBEgtjpg/exec"; // แก้เป็น URL ของคุณ
+const GAS_API = "https://script.google.com/macros/s/AKfycby4ouDE5qxwVKoJgxEp3XX1JzMmjTc2-ss3il3ib2at6aBIZGlAlIaLsT5Yt8qcVAp1Fg/exec"; 
 
 async function init() {
   await liff.init({ liffId: "2008821220-URtBKHjL" });
@@ -59,39 +59,26 @@ async function init() {
     .then(res => res.json())
     .then(res => {
       document.getElementById("loader").style.display = "none";
-      if (!res.order) { document.body.innerHTML = '<div class="text-center mt-5 text-muted">ไม่พบประวัติการสั่งซื้อ</div>'; return; }
-      document.getElementById("content").style.display = "block";
-
-      const box = document.getElementById("timeline-box");
-      const currentStatusObj = res.statusMaster.find(s => s.desc === res.order.status);
-      
-      // ตรวจสอบว่าเป็นเลขทศนิยมหรือไม่
-      const isDecimal = currentStatusObj ? currentStatusObj.id.includes('.') : false;
-      const mainSteps = res.statusMaster.filter(s => !s.id.includes('.'));
-      
-      let activeIdx = -1;
-      if (!isDecimal) {
-        activeIdx = mainSteps.findIndex(s => s.desc === res.order.status);
-      } else {
-        // ถ้าเป็นทศนิยม ให้จุดเลขจำนวนเต็ม "ก่อนหน้า" เป็น Active
-        const currentId = parseFloat(currentStatusObj.id);
-        activeIdx = mainSteps.findLastIndex(s => parseFloat(s.id) < currentId);
-        
-        // แสดงแถบแดง
-        document.getElementById("error-box").style.display = "block";
-        document.getElementById("error-msg").innerText = res.order.status;
+      if (!res.order) {
+        document.getElementById("no-order").style.display = "block";
+        return;
       }
+      
+      // แสดงข้อมูลออเดอร์
+      document.getElementById("o-id").innerText = res.order.id;
+      document.getElementById("o-status").innerText = res.order.status;
+      
+      // วนลูปวาด Timeline ตามสถานะที่มีในชีท status
+      const box = document.getElementById("timeline-box");
+      const mainSteps = res.statusMaster.filter(s => !s.id.includes('.'));
+      const activeIdx = mainSteps.findIndex(s => s.desc === res.order.status);
 
       mainSteps.forEach((s, i) => {
         const item = document.createElement("div");
-        item.className = "t-item " + (i < activeIdx ? "done" : (i === activeIdx ? "active" : ""));
+        item.className = `t-item ${i < activeIdx ? 'done' : (i === activeIdx ? 'active' : '')}`;
         item.innerHTML = `<div class="t-icon"></div>${s.desc}`;
         box.appendChild(item);
       });
-
-      document.getElementById("o-id").innerText = res.order.id;
-      document.getElementById("o-items").innerText = res.order.items;
-      document.getElementById("o-time").innerText = res.order.time;
     });
 }
 window.onload = init;
