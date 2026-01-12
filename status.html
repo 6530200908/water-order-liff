@@ -1,84 +1,57 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ติดตามสถานะ</title>
-  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <style>
-    :root { --bg: #1a1d21; --card: #2c3036; --blue: #0dcaf0; --dim: #555; --red: #ff4d4d; }
-    body { background: var(--bg); color: white; padding: 20px; font-family: sans-serif; }
-    .status-card { background: var(--card); border-radius: 20px; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
-    
-    .timeline { position: relative; list-style: none; padding: 0; margin: 20px 0; }
-    .t-item { position: relative; padding-left: 45px; margin-bottom: 35px; color: var(--dim); }
-    .t-item::before { content: ""; position: absolute; left: 7px; top: 0; bottom: -35px; width: 2px; background: var(--dim); }
-    .t-item:last-child::before { display: none; }
-    .t-icon { position: absolute; left: 0; top: 4px; width: 16px; height: 16px; border-radius: 50%; background: var(--dim); border: 2px solid var(--bg); z-index: 2; }
-    
-    .active { color: var(--blue); font-weight: bold; }
-    .active .t-icon { background: var(--blue); box-shadow: 0 0 12px var(--blue); transform: scale(1.3); }
-    .done { color: #ccc; }
-    .done .t-icon, .done::before { background: var(--blue); }
-    
-    .alert-error { background: rgba(255, 77, 77, 0.15); border: 1px solid var(--red); color: var(--red); border-radius: 12px; padding: 15px; margin-top: 15px; display: none; animation: shake 0.5s; }
-    @keyframes shake { 0%, 100% {transform: translateX(0);} 25% {transform: translateX(-5px);} 75% {transform: translateX(5px);} }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>สถานะออเดอร์</title>
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background: #1a1d21; color: white; padding: 20px; }
+        .t-item { position: relative; padding-left: 35px; margin-bottom: 25px; color: #666; }
+        .t-item.active { color: #0dcaf0; font-weight: bold; }
+        .t-item.done { color: #fff; }
+        .t-icon { position: absolute; left: 0; top: 0; width: 20px; height: 20px; border-radius: 50%; border: 2px solid #444; background: #1a1d21; }
+        .done .t-icon { background: #0dcaf0; border-color: #0dcaf0; }
+        .active .t-icon { border-color: #0dcaf0; box-shadow: 0 0 10px #0dcaf0; }
+    </style>
 </head>
 <body>
-
-  <div id="loader" class="text-center mt-5"><div class="spinner-border text-info"></div></div>
-
-  <div id="content" style="display:none;">
-    <h4 class="mb-4 fw-bold">📦 สถานะออเดอร์</h4>
-    <div class="status-card">
-      <div id="timeline-box" class="timeline"></div>
-      
-      <div id="error-box" class="alert-error">
-        <strong>⚠️ แจ้งเตือน:</strong> <span id="error-msg"></span>
-      </div>
-
-      <hr style="border-color: #444;">
-      <div class="small text-secondary mb-1">เลขที่: <span id="o-id" class="text-white"></span></div>
-      <div class="small text-secondary mb-1">รายการ: <span id="o-items" class="text-white"></span></div>
-      <div class="small text-secondary">สั่งเมื่อ: <span id="o-time" class="text-white"></span></div>
+    <div id="loader" class="text-center mt-5"><div class="spinner-border text-info"></div></div>
+    <div id="content" style="display:none;">
+        <h4 class="mb-4">📦 สถานะล่าสุด</h4>
+        <div id="timeline-box"></div>
+        <hr>
+        <div class="small text-muted">ออเดอร์: <span id="o-id"></span></div>
+        <div class="small text-muted">รายการ: <span id="o-items"></span></div>
     </div>
-    <a href="index.html" class="btn btn-outline-info w-100 p-3 mt-4 rounded-pill fw-bold">กลับหน้าสั่งซื้อ</a>
-  </div>
 
 <script>
-const GAS_API = "https://script.google.com/macros/s/AKfycby4ouDE5qxwVKoJgxEp3XX1JzMmjTc2-ss3il3ib2at6aBIZGlAlIaLsT5Yt8qcVAp1Fg/exec"; 
-
+const GAS_API = "https://script.google.com/macros/s/AKfycbwTselqbeuzCyFu3ez4KARv1nG9_k-7f_Yl72OeU9jeBvFitmQBgRxlmfLkQnC7gEoo5A/exec"; 
 async function init() {
-  await liff.init({ liffId: "2008821220-URtBKHjL" });
-  if (!liff.isLoggedIn()) { liff.login(); return; }
-  const profile = await liff.getProfile();
+    await liff.init({ liffId: "2008821220-URtBKHjL" });
+    if(!liff.isLoggedIn()){ liff.login(); return; }
+    const profile = await liff.getProfile();
 
-  fetch(`${GAS_API}?type=status&uid=${profile.userId}`)
+    fetch(`${GAS_API}?type=status&uid=${profile.userId}`)
     .then(res => res.json())
     .then(res => {
-      document.getElementById("loader").style.display = "none";
-      if (!res.order) {
-        document.getElementById("no-order").style.display = "block";
-        return;
-      }
-      
-      // แสดงข้อมูลออเดอร์
-      document.getElementById("o-id").innerText = res.order.id;
-      document.getElementById("o-status").innerText = res.order.status;
-      
-      // วนลูปวาด Timeline ตามสถานะที่มีในชีท status
-      const box = document.getElementById("timeline-box");
-      const mainSteps = res.statusMaster.filter(s => !s.id.includes('.'));
-      const activeIdx = mainSteps.findIndex(s => s.desc === res.order.status);
+        document.getElementById("loader").style.display = "none";
+        if(!res.order) { document.body.innerHTML = "<div class='text-center mt-5'>ไม่พบข้อมูล</div>"; return; }
+        document.getElementById("content").style.display = "block";
+        document.getElementById("o-id").innerText = res.order.id;
+        document.getElementById("o-items").innerText = res.order.items;
 
-      mainSteps.forEach((s, i) => {
-        const item = document.createElement("div");
-        item.className = `t-item ${i < activeIdx ? 'done' : (i === activeIdx ? 'active' : '')}`;
-        item.innerHTML = `<div class="t-icon"></div>${s.desc}`;
-        box.appendChild(item);
-      });
+        const box = document.getElementById("timeline-box");
+        const mainSteps = res.statusMaster.filter(s => !s.id.includes('.'));
+        const activeIdx = mainSteps.findIndex(s => s.desc === res.order.status);
+
+        mainSteps.forEach((s, i) => {
+            const div = document.createElement("div");
+            div.className = `t-item ${i < activeIdx ? 'done' : (i === activeIdx ? 'active' : '')}`;
+            div.innerHTML = `<div class="t-icon"></div>${s.desc}`;
+            box.appendChild(div);
+        });
     });
 }
 window.onload = init;
