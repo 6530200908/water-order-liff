@@ -122,31 +122,59 @@ function closePayment() { document.getElementById("payment-ui").style.display = 
 function confirmOrder() {
   const loc = document.getElementById("locSelect").value;
   const finalAddr = (loc === "อื่นๆ") ? document.getElementById("cusAddress").value : loc;
-  if(!finalAddr) return alert("ระบุที่อยู่ด้วยครับ");
+  const cusName = document.getElementById("cusName").value;
+  
+  if(!finalAddr || !cusName) return alert("กรุณาระบุชื่อและที่อยู่");
 
   const btn = document.getElementById("btn-confirm");
   btn.disabled = true; btn.innerText = "กำลังบันทึก...";
 
+  // เตรียมรายการสินค้าเพื่อแสดงใน LINE Chat
   const itemsInCart = Object.keys(cart).filter(i => cart[i] > 0);
+  const itemListText = itemsInCart.map(i => `- ${products[i].desc} (${cart[i]} ขวด)`).join("\n");
+  const totalPrice = document.getElementById("total-price").innerText;
+
   const orderData = {
     uid: currentUserId,
-    name: document.getElementById("cusName").value,
+    name: cusName,
     address: finalAddr,
     items: itemsInCart.map(i => products[i].desc).join(", "),
     amounts: itemsInCart.map(i => cart[i]).join(", "),
-    total: document.getElementById("total-price").innerText
+    total: totalPrice
   };
 
-  fetch(GAS_API, { method: "POST", body: JSON.stringify(orderData) })
+  fetch(GAS_API, {
+    method: "POST",
+    body: JSON.stringify(orderData)
+  })
   .then(res => res.json())
   .then(res => {
     if(res.status === "ok") {
+      // --- แก้ไขส่วนส่งข้อความเข้า LINE ตรงนี้ ---
       liff.sendMessages([{ 
         type: "text", 
-        text: `✅ สั่งซื้อสำเร็จ!\nเลขที่: ${res.orderId}\n📍 ส่งที่: ${orderData.address}\n💰 ยอด: ${orderData.total} ฿` 
-      }]).finally(() => liff.closeWindow());
+        text: `✅ สั่งซื้อสำเร็จ!\n` +
+              `เลขที่ออเดอร์: ${res.orderId}\n` +
+              `คุณ: ${orderData.name}\n` +
+              `รายการสินค้า:\n${itemListText}\n` + // ดึงตัวแปรที่เตรียมไว้มาโชว์
+              `💰 ยอดรวม: ${orderData.total} ฿\n` +
+              `📍 ที่อยู่: ${orderData.address}`
+      }]).then(() => {
+        console.log("Message sent");
+        liff.closeWindow();
+      }).catch((err) => {
+        console.error("Send message error:", err);
+        alert("บันทึกแล้ว แต่ไม่สามารถส่งข้อความเข้าแชทได้ (โปรดอนุญาตสิทธิ์แชท)");
+        liff.closeWindow();
+      });
     }
-  }).catch(e => { alert("บันทึกไม่สำเร็จ"); btn.disabled = false; });
+  })
+  .catch(e => {
+    console.error(e);
+    alert("เกิดข้อผิดพลาดในการบันทึก");
+    btn.disabled = false;
+    btn.innerText = "ยืนยันสั่งซื้อ";
+  });
 }
 window.onload = init;
 
