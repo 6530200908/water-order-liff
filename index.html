@@ -78,19 +78,16 @@ async function init() {
       renderProducts();
       
       const select = document.getElementById("locSelect");
-      // วนลูปแสดงสถานที่จาก Sheet โดยตรง (รวมคำว่า "อื่นๆ" ที่อยู่ใน Sheet ด้วย)
       res.locations.forEach(loc => {
         if(loc) select.innerHTML += `<option value="${loc}">${loc}</option>`;
       });
 
       if (res.customer) {
         document.getElementById("cusName").value = res.customer.name;
-        // ตรวจสอบว่าที่อยู่เดิมตรงกับตัวเลือกที่มีหรือไม่
         if (res.locations.includes(res.customer.address)) {
           select.value = res.customer.address;
-          toggleOther(res.customer.address); // เช็คว่าต้องเปิดช่อง textarea ไหม
+          toggleOther(res.customer.address);
         } else {
-          // กรณีเคยกรอกที่อยู่แปลกปลอมมา ให้เด้งไปที่ "อื่นๆ"
           select.value = "อื่นๆ";
           document.getElementById("cusAddress").style.display = "block";
           document.getElementById("cusAddress").value = res.customer.address;
@@ -106,10 +103,7 @@ function renderProducts() {
   const list = document.getElementById("product-list");
   list.innerHTML = products.map((p, i) => `
     <div class="product-card d-flex justify-content-between align-items-center">
-      <div>
-        <div class="fw-bold">${p.desc}</div>
-        <div class="text-info small">${p.price} ฿ / แพ็ค</div>
-      </div>
+      <div><div class="fw-bold">${p.desc}</div><div class="text-info small">${p.price} ฿ / แพ็ค</div></div>
       <div class="d-flex align-items-center gap-3">
         <button class="btn btn-sm btn-outline-light rounded-circle" onclick="updateQty(${i},-1)" style="width:32px; height:32px;">-</button>
         <span id="qty-${i}" class="fw-bold fs-5">0</span>
@@ -127,12 +121,11 @@ function updateQty(i, d) {
 }
 
 function toggleOther(val) {
-  // แก้ไข: ตรวจสอบจากค่าที่เลือก ถ้าตรงกับคำว่า "อื่นๆ" ให้เปิด Textarea
   document.getElementById("cusAddress").style.display = (val === "อื่นๆ") ? "block" : "none";
 }
 
 function openPayment() {
-  if(document.getElementById("total-price").innerText === "0") return alert("กรุณาเลือกน้ำดื่มอย่างน้อย 1 รายการครับ");
+  if(document.getElementById("total-price").innerText === "0") return alert("กรุณาเลือกน้ำดื่มอย่างน้อย 1 รายการ");
   document.getElementById("payment-ui").style.display = "block";
 }
 
@@ -150,53 +143,34 @@ function confirmOrder() {
   const btn = document.getElementById("btn-confirm");
   btn.disabled = true; btn.innerText = "กำลังบันทึกข้อมูล...";
 
-  // ดึงเฉพาะ Index ของสินค้าที่มีจำนวนมากกว่า 0
   const itemsInCart = Object.keys(cart).filter(i => cart[i] > 0);
-  
-  // สร้างรายการข้อความสำหรับ LINE Chat
   const itemListText = itemsInCart.map(i => `- ${products[i].desc} x ${cart[i]}`).join("\n");
   const totalPrice = document.getElementById("total-price").innerText;
 
-  // ส่วนสำคัญ: บังคับให้เป็น String ที่คั่นด้วยคอมม่าอย่างชัดเจนก่อนส่ง
   const orderData = {
     uid: currentUserId,
-    name: cusName,
-    address: finalAddr,
+    name: String(cusName),
+    address: String(finalAddr),
     items: itemsInCart.map(i => products[i].desc).join(", "),
-    amounts: itemsInCart.map(i => String(cart[i])).join(", "), // บังคับให้เป็น String แยกด้วยคอมม่า
-    total: totalPrice
+    amounts: itemsInCart.map(i => String(cart[i])).join(", "),
+    total: String(totalPrice)
   };
 
   fetch(GAS_API, {
     method: "POST",
-    mode: "no-cors", // เพิ่มโหมดนี้เพื่อป้องกันปัญหา CORS บางกรณี
-    cache: "no-cache",
-    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(orderData)
   })
-  // ... ส่วนที่เหลือเหมือนเดิม ...
   .then(res => res.json())
   .then(res => {
     if(res.status === "ok") {
       liff.sendMessages([{ 
         type: "text", 
-        text: `✅ สั่งซื้อสำเร็จ!\n` +
-              `เลขที่ออเดอร์: ${res.orderId}\n` +
-              `คุณ: ${orderData.name}\n` +
-              `รายการที่สั่ง:\n${itemListText}\n` +
-              `💰 ยอดรวม: ${orderData.total} ฿\n` +
-              `📍 สถานที่ส่ง: ${orderData.address}`
-      }]).then(() => {
-        liff.closeWindow();
-      }).catch((err) => {
-        console.error(err);
-        alert("บันทึกสำเร็จ! (แต่สิทธิ์ส่งข้อความไม่ครบ)");
-        liff.closeWindow();
-      });
+        text: `✅ สั่งซื้อสำเร็จ!\nเลขที่ออเดอร์: ${res.orderId}\nคุณ: ${orderData.name}\nรายการที่สั่ง:\n${itemListText}\n💰 ยอดรวม: ${orderData.total} ฿\n📍 สถานที่ส่ง: ${orderData.address}`
+      }]).finally(() => liff.closeWindow());
     }
   })
   .catch(e => {
-    alert("เกิดข้อผิดพลาดในการบันทึก กรุณาลองใหม่");
+    alert("การบันทึกอาจใช้เวลาสักครู่ โปรดตรวจสอบในหน้าประวัติสั่งซื้อ");
     btn.disabled = false;
     btn.innerText = "ยืนยันการสั่งซื้อ";
   });
