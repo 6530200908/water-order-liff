@@ -68,11 +68,13 @@
     orderId = params.get("order_id");
 
     if (!orderId) {
-      alert("ไม่พบเลขออเดอร์");
+      document.getElementById("orderText").innerText =
+        "⚠️ ไม่พบเลขออเดอร์ กรุณาเข้าผ่านลิงก์จากแชท";
     } else {
       document.getElementById("orderText").innerText =
         "เลขออเดอร์: " + orderId;
     }
+
 
     // init LIFF
     liff.init({ liffId: LIFF_ID });
