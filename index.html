@@ -142,7 +142,6 @@ function closePayment() {
 
 function confirmOrder() {
   const loc = document.getElementById("locSelect").value;
-  // ถ้าเลือก "อื่นๆ" ให้เอาค่าจาก textarea ถ้าเลือกสถานที่อื่น ให้เอาค่าจาก dropdown
   const finalAddr = (loc === "อื่นๆ") ? document.getElementById("cusAddress").value : loc;
   const cusName = document.getElementById("cusName").value;
   
@@ -151,23 +150,31 @@ function confirmOrder() {
   const btn = document.getElementById("btn-confirm");
   btn.disabled = true; btn.innerText = "กำลังบันทึกข้อมูล...";
 
+  // ดึงเฉพาะ Index ของสินค้าที่มีจำนวนมากกว่า 0
   const itemsInCart = Object.keys(cart).filter(i => cart[i] > 0);
+  
+  // สร้างรายการข้อความสำหรับ LINE Chat
   const itemListText = itemsInCart.map(i => `- ${products[i].desc} x ${cart[i]}`).join("\n");
   const totalPrice = document.getElementById("total-price").innerText;
 
+  // ส่วนสำคัญ: บังคับให้เป็น String ที่คั่นด้วยคอมม่าอย่างชัดเจนก่อนส่ง
   const orderData = {
     uid: currentUserId,
     name: cusName,
     address: finalAddr,
     items: itemsInCart.map(i => products[i].desc).join(", "),
-    amounts: itemsInCart.map(i => cart[i]).join(", "),
+    amounts: itemsInCart.map(i => String(cart[i])).join(", "), // บังคับให้เป็น String แยกด้วยคอมม่า
     total: totalPrice
   };
 
   fetch(GAS_API, {
     method: "POST",
+    mode: "no-cors", // เพิ่มโหมดนี้เพื่อป้องกันปัญหา CORS บางกรณี
+    cache: "no-cache",
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(orderData)
   })
+  // ... ส่วนที่เหลือเหมือนเดิม ...
   .then(res => res.json())
   .then(res => {
     if(res.status === "ok") {
