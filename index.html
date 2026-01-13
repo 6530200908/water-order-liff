@@ -61,7 +61,6 @@
   </div>
 
 <script>
-// *** เปลี่ยน URL ตรงนี้เป็น Apps Script ของคุณ ***
 const GAS_API = "https://script.google.com/macros/s/AKfycbwTselqbeuzCyFu3ez4KARv1nG9_k-7f_Yl72OeU9jeBvFitmQBgRxlmfLkQnC7gEoo5A/exec"; 
 let products = [], cart = {}, currentUserId = "";
 
@@ -79,14 +78,19 @@ async function init() {
       renderProducts();
       
       const select = document.getElementById("locSelect");
-      res.locations.forEach(loc => select.innerHTML += `<option value="${loc}">${loc}</option>`);
-      select.innerHTML += `<option value="อื่นๆ">อื่นๆ</option>`;
+      // วนลูปแสดงสถานที่จาก Sheet โดยตรง (รวมคำว่า "อื่นๆ" ที่อยู่ใน Sheet ด้วย)
+      res.locations.forEach(loc => {
+        if(loc) select.innerHTML += `<option value="${loc}">${loc}</option>`;
+      });
 
       if (res.customer) {
         document.getElementById("cusName").value = res.customer.name;
+        // ตรวจสอบว่าที่อยู่เดิมตรงกับตัวเลือกที่มีหรือไม่
         if (res.locations.includes(res.customer.address)) {
           select.value = res.customer.address;
-        } else if (res.customer.address) {
+          toggleOther(res.customer.address); // เช็คว่าต้องเปิดช่อง textarea ไหม
+        } else {
+          // กรณีเคยกรอกที่อยู่แปลกปลอมมา ให้เด้งไปที่ "อื่นๆ"
           select.value = "อื่นๆ";
           document.getElementById("cusAddress").style.display = "block";
           document.getElementById("cusAddress").value = res.customer.address;
@@ -123,6 +127,7 @@ function updateQty(i, d) {
 }
 
 function toggleOther(val) {
+  // แก้ไข: ตรวจสอบจากค่าที่เลือก ถ้าตรงกับคำว่า "อื่นๆ" ให้เปิด Textarea
   document.getElementById("cusAddress").style.display = (val === "อื่นๆ") ? "block" : "none";
 }
 
@@ -137,6 +142,7 @@ function closePayment() {
 
 function confirmOrder() {
   const loc = document.getElementById("locSelect").value;
+  // ถ้าเลือก "อื่นๆ" ให้เอาค่าจาก textarea ถ้าเลือกสถานที่อื่น ให้เอาค่าจาก dropdown
   const finalAddr = (loc === "อื่นๆ") ? document.getElementById("cusAddress").value : loc;
   const cusName = document.getElementById("cusName").value;
   
@@ -145,7 +151,6 @@ function confirmOrder() {
   const btn = document.getElementById("btn-confirm");
   btn.disabled = true; btn.innerText = "กำลังบันทึกข้อมูล...";
 
-  // เตรียมรายละเอียดสินค้าสำหรับ Chat LINE
   const itemsInCart = Object.keys(cart).filter(i => cart[i] > 0);
   const itemListText = itemsInCart.map(i => `- ${products[i].desc} x ${cart[i]}`).join("\n");
   const totalPrice = document.getElementById("total-price").innerText;
@@ -178,7 +183,7 @@ function confirmOrder() {
         liff.closeWindow();
       }).catch((err) => {
         console.error(err);
-        alert("บันทึกสำเร็จ! (แต่ไม่สามารถส่งข้อความเข้าแชทได้เนื่องจากสิทธิ์ไม่ครบ)");
+        alert("บันทึกสำเร็จ! (แต่สิทธิ์ส่งข้อความไม่ครบ)");
         liff.closeWindow();
       });
     }
