@@ -96,23 +96,38 @@
     });
 
     // ส่งสลิป
-    document.getElementById("sendBtn").addEventListener("click", async () => {
-      document.getElementById("sendBtn").disabled = true;
+  document.getElementById("sendBtn").addEventListener("click", async () => {
+  document.getElementById("sendBtn").disabled = true;
 
-      const payload = {
-        order_id: orderId,
-        slip_image: imageBase64
-      };
+  const payload = {
+    order_id: orderId,
+    slip_image: imageBase64
+  };
 
-      await fetch(WEBHOOK_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      });
-
-      alert("✅ ส่งสลิปเรียบร้อย");
-      liff.closeWindow();
+  try {
+    await fetch(WEBHOOK_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
     });
+
+    // ✅ ส่งข้อความเข้า LINE chat
+    await liff.sendMessages([
+      {
+        type: "text",
+        text: "📤 อัปโหลดสลิปเรียบร้อยแล้ว\nระบบกำลังตรวจสอบการชำระเงินค่ะ 🙏"
+      }
+    ]);
+
+    liff.closeWindow();
+
+  } catch (err) {
+    alert("❌ เกิดข้อผิดพลาด กรุณาลองใหม่");
+    document.getElementById("sendBtn").disabled = false;
+  }
+});
+
+    
   </script>
 </body>
 </html>
