@@ -61,7 +61,7 @@
   </div>
 
 <script>
-const GAS_API = "https://script.google.com/macros/s/AKfycbw-4Oz0k-XYZVypd9O7NxxYOJabu2ikch90-j2_aeUF8u6PToahfDn4nfuKK-ZiX5FyRQ/exec"; 
+const GAS_API = "https://script.google.com/macros/s/AKfycbzHio3j1BhFOJyYT7STS-9go3XKvBRMwL_KiNuzgi0NuRmP5KO9_yb2qfnR7UbDmSUA7g/exec"; 
 let products = [], cart = {}, currentUserId = "";
 
 async function init() {
@@ -163,14 +163,23 @@ function confirmOrder() {
   .then(res => res.json())
   .then(res => {
     if(res.status === "ok") {
+      // ลิงก์โฟลเดอร์สำหรับแนบสลิป
+      const uploadUrl = "https://drive.google.com/drive/u/0/folders/11zO0i3j9X03C0aGtDjm7xTARuaarIF4h";
+      
       liff.sendMessages([{ 
         type: "text", 
-        text: `✅ สั่งซื้อสำเร็จ!\nเลขที่ออเดอร์: ${res.orderId}\nคุณ: ${orderData.name}\nรายการที่สั่ง:\n${itemListText}\n💰 ยอดรวม: ${orderData.total} ฿\n📍 สถานที่ส่ง: ${orderData.address}`
+        text: `✅ สั่งซื้อสำเร็จ!\n` +
+              `เลขที่ออเดอร์: ${res.orderId}\n` +
+              `คุณ: ${orderData.name}\n` +
+              `💰 ยอดรวม: ${orderData.total} ฿\n\n` +
+              `⚠️ กรุณาแนบสลิปโอนเงินที่ลิงก์ด้านล่าง:\n` +
+              `${uploadUrl}\n\n` +
+              `*กรุณาตั้งชื่อไฟล์สลิปเป็นเลขที่ออเดอร์ของคุณ เพื่อความรวดเร็วในการตรวจสอบครับ`
       }]).finally(() => liff.closeWindow());
     }
   })
   .catch(e => {
-    alert("การบันทึกอาจใช้เวลาสักครู่ โปรดตรวจสอบในหน้าประวัติสั่งซื้อ");
+    alert("เกิดข้อผิดพลาดในการบันทึกข้อมูล");
     btn.disabled = false;
     btn.innerText = "ยืนยันการสั่งซื้อ";
   });
