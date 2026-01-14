@@ -7,27 +7,106 @@
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        body { background: #1a1d21; color: white; padding: 20px; }
-        .t-item { position: relative; padding-left: 35px; margin-bottom: 25px; color: #666; }
-        .t-item.active { color: #0dcaf0; font-weight: bold; }
-        .t-item.done { color: #fff; }
-        .t-icon { position: absolute; left: 0; top: 0; width: 20px; height: 20px; border-radius: 50%; border: 2px solid #444; background: #1a1d21; }
-        .done .t-icon { background: #0dcaf0; border-color: #0dcaf0; }
-        .active .t-icon { border-color: #0dcaf0; box-shadow: 0 0 10px #0dcaf0; }
+        :root { --accent: #0dcaf0; --bg-card: #2c3036; }
+        body { background: #1a1d21; color: white; padding: 25px; font-family: -apple-system, sans-serif; }
+        
+        /* การ์ดข้อมูลออเดอร์ */
+        .order-info-card {
+            background: var(--bg-card);
+            border-radius: 20px;
+            padding: 20px;
+            margin-bottom: 30px;
+            border: 1px solid #3e444d;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+        .order-id { font-size: 1.4rem; font-weight: 800; color: var(--accent); margin-bottom: 5px; }
+        .order-items { font-size: 1.1rem; color: #ffffff; line-height: 1.5; }
+        .label-text { color: #adb5bd; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+
+        /* Timeline ดีไซน์ใหม่ */
+        .timeline-container { padding: 10px 5px; }
+        .t-item { position: relative; padding-left: 45px; margin-bottom: 35px; color: #6c757d; font-size: 1.1rem; transition: all 0.3s; }
+        .t-item:last-child { margin-bottom: 0; }
+        
+        /* เส้นเชื่อมระหว่างจุด */
+        .t-item::after {
+            content: '';
+            position: absolute;
+            left: 11px;
+            top: 25px;
+            width: 2px;
+            height: calc(100% + 15px);
+            background: #3e444d;
+        }
+        .t-item:last-child::after { display: none; }
+
+        /* ไอคอนวงกลม */
+        .t-icon {
+            position: absolute;
+            left: 0;
+            top: 2px;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border: 2px solid #444;
+            background: #1a1d21;
+            z-index: 2;
+        }
+
+        /* สถานะที่สำเร็จแล้ว (Done) */
+        .t-item.done { color: #ffffff; }
+        .done .t-icon { background: var(--accent); border-color: var(--accent); }
+        .done::after { background: var(--accent); }
+
+        /* สถานะปัจจุบัน (Active) */
+        .t-item.active { color: var(--accent); font-weight: bold; font-size: 1.25rem; }
+        .active .t-icon { 
+            border-color: var(--accent); 
+            background: var(--accent);
+            box-shadow: 0 0 15px rgba(13, 202, 240, 0.6);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+
+        #loader { margin-top: 100px; }
     </style>
 </head>
 <body>
-    <div id="loader" class="text-center mt-5"><div class="spinner-border text-info"></div></div>
+    <div id="loader" class="text-center">
+        <div class="spinner-border text-info" style="width: 3rem; height: 3rem;"></div>
+        <div class="mt-3 text-info">กำลังตรวจสอบสถานะ...</div>
+    </div>
+
     <div id="content" style="display:none;">
-        <h4 class="mb-4">📦 สถานะล่าสุด</h4>
-        <div id="timeline-box"></div>
-        <hr>
-        <div class="small text-muted">ออเดอร์: <span id="o-id"></span></div>
-        <div class="small text-muted">รายการ: <span id="o-items"></span></div>
+        <h3 class="fw-bold mb-4 text-white">📦 ติดตามออเดอร์</h3>
+        
+        <div class="order-info-card">
+            <div class="mb-3">
+                <div class="label-text">Order ID</div>
+                <div id="o-id" class="order-id">---</div>
+            </div>
+            <div>
+                <div class="label-text">รายการสินค้า</div>
+                <div id="o-items" class="order-items">---</div>
+            </div>
+        </div>
+
+        <div class="timeline-container" id="timeline-box"></div>
+        
+        <div class="text-center mt-5">
+            <button onclick="liff.closeWindow()" class="btn btn-outline-secondary rounded-pill px-4">ปิดหน้าต่าง</button>
+        </div>
     </div>
 
 <script>
+// ใส่ URL API ของคุณที่นี่
 const GAS_API = "https://script.google.com/macros/s/AKfycbyRTDZ3jsh3n0ggI2bguAvVbnxYfIFS1ckr7X3Fp1NIWaGAwq-8Hssw6baFCqwVwea2sw/exec"; 
+
 async function init() {
     await liff.init({ liffId: "2008821220-URtBKHjL" });
     if(!liff.isLoggedIn()){ liff.login(); return; }
@@ -37,7 +116,15 @@ async function init() {
     .then(res => res.json())
     .then(res => {
         document.getElementById("loader").style.display = "none";
-        if(!res.order) { document.body.innerHTML = "<div class='text-center mt-5'>ไม่พบข้อมูล</div>"; return; }
+        if(!res.order) { 
+            document.body.innerHTML = `
+                <div class='text-center mt-5'>
+                    <h5 class='text-muted'>ไม่พบข้อมูลออเดอร์ล่าสุด</h5>
+                    <button onclick='liff.closeWindow()' class='btn btn-info mt-3'>กลับหน้าหลัก</button>
+                </div>`; 
+            return; 
+        }
+
         document.getElementById("content").style.display = "block";
         document.getElementById("o-id").innerText = res.order.id;
         document.getElementById("o-items").innerText = res.order.items;
@@ -46,12 +133,20 @@ async function init() {
         const mainSteps = res.statusMaster.filter(s => !s.id.includes('.'));
         const activeIdx = mainSteps.findIndex(s => s.desc === res.order.status);
 
+        box.innerHTML = ""; // ล้างข้อมูลเดิม
         mainSteps.forEach((s, i) => {
             const div = document.createElement("div");
-            div.className = `t-item ${i < activeIdx ? 'done' : (i === activeIdx ? 'active' : '')}`;
+            let state = "";
+            if (i < activeIdx) state = "done";
+            else if (i === activeIdx) state = "active";
+            
+            div.className = `t-item ${state}`;
             div.innerHTML = `<div class="t-icon"></div>${s.desc}`;
             box.appendChild(div);
         });
+    })
+    .catch(err => {
+        document.getElementById("loader").innerHTML = "<div class='text-danger'>เกิดข้อผิดพลาดในการโหลดข้อมูล</div>";
     });
 }
 window.onload = init;
