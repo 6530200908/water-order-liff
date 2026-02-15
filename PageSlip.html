@@ -12,12 +12,12 @@
   <div id="loader"><div class="spinner-border text-info"></div></div>
 
   <div id="page-slip">
-    <div class="order-card text-center">
-      <h4 class="fw-bold mb-3">📤 อัปโหลดสลิป</h4>
-      <p id="slip-order-text" class="text-info"></p>
+    <div class="order-card text-center shadow-sm p-4 bg-dark rounded-4">
+      <h4 class="fw-bold mb-3 text-white">📤 อัปโหลดสลิป</h4>
+      <p id="slip-order-text" class="text-info bg-black p-2 rounded small"></p>
       <input type="file" accept="image/*" id="slipInput" class="form-control mb-3">
-      <img id="preview" class="slip-preview mx-auto">
-      <button class="btn btn-success w-100 p-3 fw-bold mt-4" id="sendBtn" disabled onclick="uploadSlip()">ส่งสลิปโอนเงิน</button>
+      <img id="preview" class="slip-preview mx-auto mb-3 img-fluid rounded" style="display:none; border: 2px dashed #0dcaf0;">
+      <button class="btn btn-success w-100 p-3 fw-bold mt-2" id="sendBtn" disabled onclick="uploadSlip()">ส่งสลิปโอนเงิน</button>
     </div>
   </div>
 
