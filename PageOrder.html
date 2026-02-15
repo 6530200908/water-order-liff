@@ -18,24 +18,76 @@
     <div id="product-list"></div>
     <div class="sticky-footer">
       <div class="d-flex justify-content-between mb-2 fs-5">
-        <span>ยอดรวม</span>
+        <span>ยอดรวมทั้งสิ้น</span>
         <span class="fw-bold text-info"><span id="total-price">0</span> ฿</span>
       </div>
-      <button class="btn btn-info w-100 p-3 fw-bold" onclick="openPayment()">ไปหน้าชำระเงิน</button>
+      <button class="btn btn-info w-100 p-3 fw-bold rounded-3" onclick="openPayment()">ไปหน้าชำระเงิน</button>
     </div>
   </div>
 
   <div id="payment-ui" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.9); z-index:1000; padding:20px;">
-    <div class="modal-card bg-white p-4 rounded-4">
+    <div class="modal-card bg-white p-4 rounded-4 shadow-lg mx-auto" style="max-width:500px;">
       <h5 class="text-center fw-bold mb-4">ข้อมูลจัดส่ง</h5>
-      <input type="text" id="cusName" class="form-control mb-3" placeholder="ชื่อผู้รับ">
+      <input type="text" id="cusName" class="form-control mb-3" placeholder="ระบุชื่อผู้รับ">
       <select id="locSelect" class="form-select mb-3" onchange="toggleOther(this.value)"></select>
       <textarea id="cusAddress" class="form-control mb-4" rows="3" placeholder="ที่อยู่เพิ่มเติม" style="display:none;"></textarea>
-      <button id="btn-confirm" class="btn btn-info w-100 p-3 fw-bold" onclick="confirmOrder()">ยืนยันการสั่งซื้อ</button>
+      <button id="btn-confirm" class="btn btn-info w-100 p-3 fw-bold rounded-3" onclick="confirmOrder()">ยืนยันการสั่งซื้อ</button>
       <button class="btn btn-link w-100 text-muted" onclick="closePayment()">แก้ไขรายการ</button>
     </div>
   </div>
+
   <script src="Config.js"></script>
-  <script src="ScriptOrder.js"></script>
+  <script>
+    let currentUserId = "", products = [], cart = {};
+    async function init() {
+      try {
+        await liff.init({ liffId: CONFIG.LIFF_ID_ORDER });
+        if (!liff.isLoggedIn()) { liff.login(); return; }
+        const profile = await liff.getProfile();
+        currentUserId = profile.userId;
+        const res = await fetch(`${CONFIG.GAS_API}?uid=${currentUserId}`).then(r => r.json());
+        products = res.products;
+        renderProducts();
+        const select = document.getElementById("locSelect");
+        select.innerHTML = '<option value="">-- เลือกสถานที่ --</option>';
+        res.locations.forEach(loc => select.innerHTML += `<option value="${loc}">${loc}</option>`);
+        select.innerHTML += '<option value="อื่นๆ">อื่นๆ...</option>';
+        document.getElementById("cusName").value = res.customer ? res.customer.name : profile.displayName;
+      } catch (e) { console.error(e); }
+      finally { document.getElementById("loader").style.display = "none"; }
+    }
+    function renderProducts() {
+      document.getElementById("product-list").innerHTML = products.map((p, i) => `
+        <div class="product-card d-flex justify-content-between align-items-center p-3 mb-2 bg-dark rounded-3">
+          <div><div class="fw-bold">${p.desc}</div><div class="text-info small">${p.price} ฿</div></div>
+          <div class="d-flex align-items-center gap-3">
+            <button class="btn btn-sm btn-outline-light rounded-circle" onclick="updateQty(${i},-1)">-</button>
+            <span id="qty-${i}" class="fw-bold">0</span>
+            <button class="btn btn-sm btn-outline-info rounded-circle" onclick="updateQty(${i},1)">+</button>
+          </div>
+        </div>`).join("");
+    }
+    function updateQty(i, d) {
+      cart[i] = Math.max(0, (cart[i] || 0) + d);
+      document.getElementById(`qty-${i}`).innerText = cart[i];
+      let total = 0;
+      Object.keys(cart).forEach(k => { total += cart[k] * products[k].price; });
+      document.getElementById("total-price").innerText = total;
+    }
+    function toggleOther(v) { document.getElementById("cusAddress").style.display = (v === "อื่นๆ") ? "block" : "none"; }
+    function openPayment() { if(document.getElementById("total-price").innerText === "0") return alert("เลือกน้ำก่อนครับ"); document.getElementById("payment-ui").style.display = "block"; }
+    function closePayment() { document.getElementById("payment-ui").style.display = "none"; }
+    function confirmOrder() {
+      const loc = document.getElementById("locSelect").value;
+      const addr = (loc === "อื่นๆ") ? document.getElementById("cusAddress").value : loc;
+      const orderData = { uid: currentUserId, name: document.getElementById("cusName").value, address: addr, items: Object.keys(cart).filter(i => cart[i] > 0).map(i => products[i].desc).join(", "), amounts: Object.keys(cart).filter(i => cart[i] > 0).map(i => String(cart[i])).join(", "), total: document.getElementById("total-price").innerText };
+      document.getElementById("btn-confirm").disabled = true;
+      fetch(CONFIG.GAS_API, { method: "POST", body: JSON.stringify(orderData) })
+        .then(r => r.json()).then(res => {
+          liff.sendMessages([{ type: "text", text: `✅ สั่งสำเร็จ!\nออเดอร์: ${res.orderId}` }]).finally(() => liff.closeWindow());
+        });
+    }
+    window.onload = init;
+  </script>
 </body>
 </html>
