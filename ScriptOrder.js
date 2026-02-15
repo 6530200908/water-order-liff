@@ -1,22 +1,26 @@
 let currentUserId = "", products = [], cart = {};
 
 async function init() {
-  await liff.init({ liffId: CONFIG.LIFF_ID_ORDER });
-  if (!liff.isLoggedIn()) { liff.login(); return; }
-  const profile = await liff.getProfile();
-  currentUserId = profile.userId;
+  try {
+    await liff.init({ liffId: CONFIG.LIFF_ID_ORDER });
+    if (!liff.isLoggedIn()) { liff.login(); return; }
+    const profile = await liff.getProfile();
+    currentUserId = profile.userId;
 
-  fetch(`${CONFIG.GAS_API}?uid=${currentUserId}`)
-    .then(res => res.json()).then(res => {
-      document.getElementById("loader").style.display = "none";
-      products = res.products;
-      renderProducts();
-      const select = document.getElementById("locSelect");
-      select.innerHTML = '<option value="">-- เลือกสถานที่ --</option>';
-      res.locations.forEach(loc => select.innerHTML += `<option value="${loc}">${loc}</option>`);
-      select.innerHTML += '<option value="อื่นๆ">อื่นๆ...</option>';
-      document.getElementById("cusName").value = res.customer ? res.customer.name : profile.displayName;
-    });
+    const res = await fetch(`${CONFIG.GAS_API}?uid=${currentUserId}`).then(r => r.json());
+    products = res.products;
+    renderProducts();
+    
+    const select = document.getElementById("locSelect");
+    select.innerHTML = '<option value="">-- เลือกสถานที่ --</option>';
+    res.locations.forEach(loc => select.innerHTML += `<option value="${loc}">${loc}</option>`);
+    select.innerHTML += '<option value="อื่นๆ">อื่นๆ...</option>';
+    document.getElementById("cusName").value = res.customer ? res.customer.name : profile.displayName;
+  } catch (err) {
+    console.error(err);
+  } finally {
+    document.getElementById("loader").style.display = "none";
+  }
 }
 
 function renderProducts() {
@@ -45,6 +49,7 @@ function closePayment() { document.getElementById("payment-ui").style.display = 
 
 function confirmOrder() {
   const loc = document.getElementById("locSelect").value;
+  if(!loc) return alert("กรุณาเลือกสถานที่");
   const addr = (loc === "อื่นๆ") ? document.getElementById("cusAddress").value : loc;
   const orderData = {
     uid: currentUserId,
