@@ -6,6 +6,7 @@ const CONFIG = {
   LIFF_ID_ORDER: "2008821220-C8oqqBvB",
   LIFF_ID_STATUS: "2008821220-URtBKHjL",
   LIFF_ID_SLIP: "2008821220-NqDJdKS0",
+  LIFF_ID_DRIVER: "2008821220-M2Bqp8AG"
   
   // URL สำหรับส่งสลิป (ถ้ามี)
   WEBHOOK_SLIP: "https://amarin-650200908-drinking-water-bot.hf.space/webhook/upload-slip"
