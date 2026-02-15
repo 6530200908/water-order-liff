@@ -11,15 +11,51 @@
 <body>
   <div id="loader"><div class="spinner-border text-info"></div></div>
   <div class="container mt-5">
-    <div class="order-card text-center p-4 bg-dark rounded-4">
-      <h4 class="fw-bold mb-3 text-white">📤 ส่งหลักฐานการโอน</h4>
-      <p id="slip-order-text" class="text-info small"></p>
+    <div class="order-card text-center p-4 bg-dark rounded-4 shadow-sm">
+      <h4 class="fw-bold mb-3">📤 อัปโหลดสลิป</h4>
+      <p id="slip-order-text" class="text-info bg-black p-2 rounded small"></p>
       <input type="file" accept="image/*" id="slipInput" class="form-control mb-3">
-      <img id="preview" class="img-fluid rounded mb-3" style="display:none; border: 2px dashed #0dcaf0;">
-      <button class="btn btn-success w-100 p-3 fw-bold" id="sendBtn" disabled onclick="uploadSlip()">ยืนยันส่งสลิป</button>
+      <img id="preview" class="img-fluid rounded mb-3 mx-auto" style="display:none; border: 2px dashed #0dcaf0;">
+      <button class="btn btn-success w-100 p-3 fw-bold" id="sendBtn" disabled onclick="uploadSlip()">ส่งสลิปโอนเงิน</button>
     </div>
   </div>
+
   <script src="Config.js"></script>
-  <script src="ScriptSlip.js"></script>
+  <script>
+    let imageBase64 = "", orderIdFromUrl = "";
+    async function init() {
+      const urlParams = new URLSearchParams(window.location.search);
+      orderIdFromUrl = urlParams.get('order_id');
+      try {
+        await liff.init({ liffId: CONFIG.LIFF_ID_SLIP });
+        if (!liff.isLoggedIn()) { liff.login(); return; }
+        if(orderIdFromUrl) document.getElementById("slip-order-text").innerText = "ออเดอร์: " + orderIdFromUrl;
+
+        document.getElementById("slipInput").onchange = e => {
+          const reader = new FileReader();
+          reader.onload = () => {
+            imageBase64 = reader.result;
+            const img = document.getElementById("preview");
+            img.src = imageBase64; img.style.display = "block";
+            document.getElementById("sendBtn").disabled = false;
+          };
+          reader.readAsDataURL(e.target.files[0]);
+        };
+      } catch (e) { console.error(e); }
+      finally { document.getElementById("loader").style.display = "none"; }
+    }
+    async function uploadSlip() {
+      document.getElementById("sendBtn").disabled = true;
+      try {
+        await fetch(CONFIG.WEBHOOK_SLIP, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ order_id: orderIdFromUrl, slip_image: imageBase64 })
+        });
+        liff.sendMessages([{ type: "text", text: "✅ ส่งสลิปเรียบร้อยแล้วค่ะ" }]).finally(() => liff.closeWindow());
+      } catch (err) { alert("เกิดข้อผิดพลาด"); document.getElementById("sendBtn").disabled = false; }
+    }
+    window.onload = init;
+  </script>
 </body>
 </html>
