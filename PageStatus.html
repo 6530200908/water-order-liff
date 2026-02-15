@@ -13,12 +13,45 @@
   <div id="page-status" class="container mt-3">
     <h3 class="fw-bold mb-4 text-info">📦 ติดตามออเดอร์</h3>
     <div class="order-card p-3 mb-4 bg-dark rounded-4 shadow-sm">
-        <div class="small text-muted">ORDER ID: <span id="o-id" class="text-info fw-bold">---</span></div>
-        <div id="o-items" class="fw-bold mt-2 text-white">---</div>
+        <div class="small text-muted mb-1">ORDER ID</div>
+        <div id="o-id" class="h4 fw-bold text-info">---</div>
+        <div class="small text-muted mt-3 mb-1">รายการสินค้า</div>
+        <div id="o-items" class="fw-bold">---</div>
     </div>
-    <div id="timeline-box"></div> 
+    <div id="timeline-box" class="mt-4"></div> 
   </div>
+
   <script src="Config.js"></script>
-  <script src="ScriptStatus.js"></script>
+  <script>
+    async function init() {
+      try {
+        await liff.init({ liffId: CONFIG.LIFF_ID_STATUS });
+        if (!liff.isLoggedIn()) { liff.login(); return; }
+        const profile = await liff.getProfile();
+        const res = await fetch(`${CONFIG.GAS_API}?type=status&uid=${profile.userId}`).then(r => r.json());
+        
+        if(!res.order) { 
+          document.getElementById("page-status").innerHTML = "<p class='text-center mt-5 text-muted'>ไม่พบข้อมูลออเดอร์</p>"; 
+          return; 
+        }
+        document.getElementById("o-id").innerText = res.order.id;
+        document.getElementById("o-items").innerText = res.order.items;
+        
+        const box = document.getElementById("timeline-box");
+        box.innerHTML = ""; 
+        const steps = res.statusMaster.filter(s => !s.id.includes('.'));
+        const activeIdx = steps.findIndex(s => s.desc === res.order.status);
+        
+        steps.forEach((s, i) => {
+          const div = document.createElement("div");
+          div.className = `t-item ${i < activeIdx ? 'done' : (i === activeIdx ? 'active' : '')}`;
+          div.innerHTML = `<div class="t-icon"></div><div class="t-text">${s.desc}</div>`;
+          box.appendChild(div);
+        });
+      } catch (e) { console.error(e); }
+      finally { document.getElementById("loader").style.display = "none"; }
+    }
+    window.onload = init;
+  </script>
 </body>
 </html>
