@@ -3,31 +3,27 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>รายการจัดส่งน้ำ</title>
+  <title>รายการจัดส่ง</title>
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="Styles.css">
 </head>
 <body>
   <div id="loader"><div class="spinner-border text-info"></div></div>
-
-  <div id="page-driver" class="container mt-3">
+  <div class="container mt-3">
     <h3 class="fw-bold text-info mb-4">🚚 รายการรอจัดส่ง</h3>
-    <div id="driver-order-list">
-      </div>
+    <div id="driver-order-list"></div>
   </div>
-
-  <div id="upload-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:1000; padding:20px; overflow-y:auto;">
-    <div class="modal-card shadow-lg bg-white p-4 rounded-4 text-dark">
-      <h5 class="fw-bold mb-3">📸 ยืนยันการส่งสินค้า</h5>
+  <div id="upload-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:1000; padding:20px;">
+    <div class="modal-card bg-white p-4 rounded-4 text-dark">
+      <h5 class="fw-bold mb-3">📸 ยืนยันการส่ง</h5>
       <p id="modal-order-id" class="small text-muted"></p>
       <input type="file" accept="image/*" id="driverSlipInput" class="form-control mb-3">
-      <img id="driver-preview" class="img-fluid rounded-3 mb-3" style="display:none; border:2px dashed #0dcaf0;">
+      <img id="driver-preview" class="img-fluid rounded mb-3" style="display:none;">
       <button id="btn-submit-delivery" class="btn btn-success w-100 p-3 fw-bold" disabled onclick="submitDelivery()">ยืนยันส่งสำเร็จ</button>
       <button class="btn btn-link w-100 text-muted mt-2" onclick="closeUploadModal()">ยกเลิก</button>
     </div>
   </div>
-
   <script src="Config.js"></script>
   <script src="ScriptDriver.js"></script>
 </body>
