@@ -10,18 +10,14 @@
 </head>
 <body>
   <div id="loader"><div class="spinner-border text-info"></div></div>
-
-  <div id="page-status">
-    <h3 class="fw-bold mb-4">📦 ติดตามออเดอร์</h3>
-    <div class="order-card">
-        <div class="small text-muted mb-1">ORDER ID</div>
-        <div id="o-id" class="h4 fw-bold text-info">---</div>
-        <div class="small text-muted mt-3 mb-1">รายการสินค้า</div>
-        <div id="o-items" class="fw-bold">---</div>
+  <div id="page-status" class="container mt-3">
+    <h3 class="fw-bold mb-4 text-info">📦 ติดตามออเดอร์</h3>
+    <div class="order-card p-3 mb-4 bg-dark rounded-4 shadow-sm">
+        <div class="small text-muted">ORDER ID: <span id="o-id" class="text-info fw-bold">---</span></div>
+        <div id="o-items" class="fw-bold mt-2 text-white">---</div>
     </div>
-    <div id="timeline-box" class="mt-4"></div>
+    <div id="timeline-box"></div> 
   </div>
-
   <script src="Config.js"></script>
   <script src="ScriptStatus.js"></script>
 </body>
