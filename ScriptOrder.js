@@ -25,12 +25,12 @@ async function init() {
 
 function renderProducts() {
   document.getElementById("product-list").innerHTML = products.map((p, i) => `
-    <div class="product-card d-flex justify-content-between align-items-center">
-      <div><div class="fw-bold">${p.desc}</div><div class="text-info small">${p.price} ฿</div></div>
+    <div class="product-card d-flex justify-content-between align-items-center p-3 mb-2 bg-dark rounded-3">
+      <div><div class="fw-bold">${p.desc}</div><div class="text-info">${p.price} ฿</div></div>
       <div class="d-flex align-items-center gap-3">
-        <button class="btn btn-sm btn-outline-light rounded-circle" onclick="updateQty(${i},-1)">-</button>
-        <span id="qty-${i}" class="fw-bold">0</span>
-        <button class="btn btn-sm btn-outline-info rounded-circle" onclick="updateQty(${i},1)">+</button>
+        <button class="btn btn-sm btn-outline-light" onclick="updateQty(${i},-1)">-</button>
+        <span id="qty-${i}">0</span>
+        <button class="btn btn-sm btn-outline-info" onclick="updateQty(${i},1)">+</button>
       </div>
     </div>`).join("");
 }
@@ -59,7 +59,6 @@ function confirmOrder() {
     amounts: Object.keys(cart).filter(i => cart[i] > 0).map(i => String(cart[i])).join(", "),
     total: document.getElementById("total-price").innerText
   };
-
   document.getElementById("btn-confirm").disabled = true;
   fetch(CONFIG.GAS_API, { method: "POST", body: JSON.stringify(orderData) })
     .then(res => res.json()).then(res => {
