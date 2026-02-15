@@ -10,33 +10,31 @@
 </head>
 <body>
   <div id="loader"><div class="spinner-border text-info"></div></div>
-
-  <div id="page-order" style="padding-bottom: 120px;">
-    <div class="d-flex justify-content-between align-items-center mb-4">
+  <div id="page-order" class="container" style="padding-bottom: 120px;">
+    <div class="d-flex justify-content-between align-items-center my-4">
       <h4 class="fw-bold m-0 text-info">🛒 สั่งน้ำดื่ม</h4>
       <button onclick="window.location.href='PageStatus.html'" class="btn btn-sm btn-outline-info rounded-pill">ประวัติ</button>
     </div>
     <div id="product-list"></div>
     <div class="sticky-footer">
       <div class="d-flex justify-content-between mb-2 fs-5">
-        <span>ยอดรวมทั้งสิ้น</span>
+        <span>ยอดรวม</span>
         <span class="fw-bold text-info"><span id="total-price">0</span> ฿</span>
       </div>
-      <button class="btn btn-info w-100 p-3 fw-bold rounded-3" onclick="openPayment()">ไปหน้าชำระเงิน</button>
+      <button class="btn btn-info w-100 p-3 fw-bold" onclick="openPayment()">ไปหน้าชำระเงิน</button>
     </div>
   </div>
 
-  <div id="payment-ui">
-    <div class="modal-card shadow-lg">
+  <div id="payment-ui" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.9); z-index:1000; padding:20px;">
+    <div class="modal-card bg-white p-4 rounded-4">
       <h5 class="text-center fw-bold mb-4">ข้อมูลจัดส่ง</h5>
-      <input type="text" id="cusName" class="form-control mb-3" placeholder="ระบุชื่อผู้รับ">
+      <input type="text" id="cusName" class="form-control mb-3" placeholder="ชื่อผู้รับ">
       <select id="locSelect" class="form-select mb-3" onchange="toggleOther(this.value)"></select>
       <textarea id="cusAddress" class="form-control mb-4" rows="3" placeholder="ที่อยู่เพิ่มเติม" style="display:none;"></textarea>
-      <button id="btn-confirm" class="btn btn-info w-100 p-3 fw-bold rounded-3" onclick="confirmOrder()">ยืนยันการสั่งซื้อ</button>
+      <button id="btn-confirm" class="btn btn-info w-100 p-3 fw-bold" onclick="confirmOrder()">ยืนยันการสั่งซื้อ</button>
       <button class="btn btn-link w-100 text-muted" onclick="closePayment()">แก้ไขรายการ</button>
     </div>
   </div>
-
   <script src="Config.js"></script>
   <script src="ScriptOrder.js"></script>
 </body>
