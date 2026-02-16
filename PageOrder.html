@@ -80,11 +80,45 @@
     function confirmOrder() {
       const loc = document.getElementById("locSelect").value;
       const addr = (loc === "อื่นๆ") ? document.getElementById("cusAddress").value : loc;
-      const orderData = { uid: currentUserId, name: document.getElementById("cusName").value, address: addr, items: Object.keys(cart).filter(i => cart[i] > 0).map(i => products[i].desc).join(", "), amounts: Object.keys(cart).filter(i => cart[i] > 0).map(i => String(cart[i])).join(", "), total: document.getElementById("total-price").innerText };
+      const cusName = document.getElementById("cusName").value;
+      const totalPrice = document.getElementById("total-price").innerText;
+
+      // สร้างรายการสินค้าเพื่อใช้ส่งในข้อความสรุป
+      const itemsDetail = Object.keys(cart)
+        .filter(i => cart[i] > 0)
+        .map(i => `- ${products[i].desc} x ${cart[i]}`)
+        .join("\n");
+
+      const orderData = { 
+        uid: currentUserId, 
+        name: cusName, 
+        address: addr, 
+        items: Object.keys(cart).filter(i => cart[i] > 0).map(i => products[i].desc).join(", "), 
+        amounts: Object.keys(cart).filter(i => cart[i] > 0).map(i => String(cart[i])).join(", "), 
+        total: totalPrice 
+      };
+
       document.getElementById("btn-confirm").disabled = true;
+      document.getElementById("btn-confirm").innerText = "กำลังบันทึก...";
+
       fetch(CONFIG.GAS_API, { method: "POST", body: JSON.stringify(orderData) })
-        .then(r => r.json()).then(res => {
-          liff.sendMessages([{ type: "text", text: `✅ สั่งสำเร็จ!\nออเดอร์: ${res.orderId}` }]).finally(() => liff.closeWindow());
+        .then(r => r.json())
+        .then(res => {
+          // สร้างข้อความตอบกลับแบบละเอียด
+          const msg = `💧 สั่งซื้อน้ำดื่มสำเร็จ!\n\n` +
+                      `เลขที่ออเดอร์: ${res.orderId}\n` +
+                      `ผู้รับ: ${cusName}\n` +
+                      `สถานที่ส่ง: ${addr}\n\n` +
+                      `รายการสินค้า:\n${itemsDetail}\n\n` +
+                      `ยอดรวมทั้งสิ้น: ${totalPrice} ฿`;
+
+          liff.sendMessages([{ type: "text", text: msg }])
+            .finally(() => liff.closeWindow());
+        })
+        .catch(err => {
+          alert("เกิดข้อผิดพลาดในการสั่งซื้อ");
+          document.getElementById("btn-confirm").disabled = false;
+          document.getElementById("btn-confirm").innerText = "ยืนยันการสั่งซื้อ";
         });
     }
     window.onload = init;
