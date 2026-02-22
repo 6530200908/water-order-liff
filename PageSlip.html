@@ -39,7 +39,7 @@
 
     async function init() {
       const urlParams = new URLSearchParams(window.location.search);
-      orderIdFromUrl = urlParams.get('orderId');
+      orderIdFromUrl = urlParams.get('order_id');
 
       try {
         await liff.init({ liffId: CONFIG.LIFF_ID_SLIP });
