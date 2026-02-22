@@ -53,7 +53,7 @@
       slip_image: imageBase64
     };
   try {
-    await fetch(CONFIG., {
+    await fetch(CONFIG.WEBHOOK_SLIP, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload)
