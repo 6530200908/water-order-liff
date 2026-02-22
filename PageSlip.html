@@ -45,13 +45,19 @@
       finally { document.getElementById("loader").style.display = "none"; }
     }
     async function uploadSlip() {
-      document.getElementById("sendBtn").disabled = true;
-      try {
-        await fetch(CONFIG.WEBHOOK_SLIP, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ order_id: orderIdFromUrl, slip_image: imageBase64 })
-        });
+     document.getElementById("sendBtn").addEventListener("click", async () => {
+     document.getElementById("sendBtn").disabled = true;
+
+    const payload = {
+      order_id: orderId,
+      slip_image: imageBase64
+    };
+  try {
+    await fetch(CONFIG., {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
         liff.sendMessages([{ type: "text", text: "✅ ส่งสลิปเรียบร้อยแล้ว" }]).finally(() => liff.closeWindow());
       } catch (err) { alert("เกิดข้อผิดพลาด"); document.getElementById("sendBtn").disabled = false; }
     }
