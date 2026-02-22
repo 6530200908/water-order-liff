@@ -52,7 +52,7 @@
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ order_id: orderIdFromUrl, slip_image: imageBase64 })
         });
-        liff.sendMessages([{ type: "text", text: "✅ ส่งสลิปเรียบร้อยแล้วค่ะ" }]).finally(() => liff.closeWindow());
+        liff.sendMessages([{ type: "text", text: "✅ ส่งสลิปเรียบร้อยแล้ว" }]).finally(() => liff.closeWindow());
       } catch (err) { alert("เกิดข้อผิดพลาด"); document.getElementById("sendBtn").disabled = false; }
     }
     window.onload = init;
