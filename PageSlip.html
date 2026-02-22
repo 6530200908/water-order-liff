@@ -39,7 +39,7 @@
 
     async function init() {
       const urlParams = new URLSearchParams(window.location.search);
-      orderIdFromUrl = urlParams.get('order_id');
+      orderIdFromUrl = urlParams.get('orderId');
 
       try {
         await liff.init({ liffId: CONFIG.LIFF_ID_SLIP });
@@ -68,7 +68,7 @@
       }
     }
 
-    function handleFile(e) {
+   function handleFile(e) {
       const file = e.target.files[0];
       if (!file) return;
 
