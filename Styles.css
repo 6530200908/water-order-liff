@@ -1,20 +1,46 @@
-:root { --main-bg: #1a1d21; --card-bg: #2c3036; --accent: #0dcaf0; }
-body { background-color: var(--main-bg); color: white; padding: 15px; font-family: sans-serif; }
-#loader { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--main-bg); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+:root { 
+  --main-bg: #121416; 
+  --card-bg: #1e2125; 
+  --accent: #0dcaf0; 
+  --text-primary: #ffffff;
+  --text-secondary: #adb5bd; /* สีเทาอ่อน */
+}
 
-.order-card, .product-card { background: var(--card-bg); border: 1px solid #3e444d; border-radius: 16px; padding: 15px; margin-bottom: 12px; }
-.sticky-footer { position: fixed; bottom: 0; left: 0; width: 100%; background: var(--main-bg); padding: 20px; border-top: 1px solid #333; z-index: 100; }
+body { 
+  background-color: var(--main-bg); 
+  color: var(--text-primary); 
+  padding: 15px; 
+  font-family: 'Sarabun', sans-serif; 
+}
 
-#payment-ui { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 1000; padding: 20px; }
-.modal-card { background: white; color: #333; border-radius: 24px; padding: 25px; max-width: 500px; margin: auto; }
+/* แก้ไข Input ให้ตัวหนังสือสีขาวและมองเห็นชัด */
+.form-control, .form-select { 
+  background-color: #2b3035 !important; 
+  color: #ffffff !important; 
+  border: 1px solid #495057 !important; 
+}
 
-/* Timeline Status */
-.t-item { position: relative; padding-left: 45px; margin-bottom: 35px; color: #6c757d; }
-.t-item::after { content: ''; position: absolute; left: 11px; top: 25px; width: 2px; height: calc(100% + 15px); background: #3e444d; }
-.t-item.done { color: #fff; }
-.t-icon { position: absolute; left: 0; top: 2px; width: 24px; height: 24px; border-radius: 50%; border: 2px solid #444; background: #1a1d21; z-index: 2; }
-.done .t-icon, .active .t-icon { background: var(--accent); border-color: var(--accent); }
-.active .t-icon { box-shadow: 0 0 15px var(--accent); animation: pulse 2s infinite; }
-@keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.2); } }
+.form-control:focus {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 0.25rem rgba(13, 202, 240, 0.25) !important;
+}
 
-.slip-preview { max-width: 100%; border-radius: 12px; margin-top: 15px; display: none; border: 2px dashed var(--accent); }
+/* ปรับสี Label และหัวข้อจิ๋วให้สว่างขึ้น */
+label, .small.text-muted { 
+  color: #dee2e6 !important; 
+  font-weight: 300;
+  margin-bottom: 4px;
+  display: block;
+}
+
+/* สีตัวเลขและชื่อสินค้าในหน้า Admin */
+.text-info { color: #0dcaf0 !important; }
+
+/* Modal ชำระเงิน (กรณีพื้นหลังขาว ให้ตัวหนังสือดำ / กรณีพื้นหลังดำ ให้ตัวหนังสือขาว) */
+.modal-card { 
+  background: #212529; 
+  color: white; 
+  border-radius: 24px; 
+  padding: 25px; 
+  border: 1px solid #343a40;
+}
