@@ -40,21 +40,50 @@
   <script>
     let currentUserId = "", products = [], cart = {};
     async function init() {
-      try {
-        await liff.init({ liffId: CONFIG.LIFF_ID_ORDER });
-        if (!liff.isLoggedIn()) { liff.login(); return; }
-        const profile = await liff.getProfile();
-        currentUserId = profile.userId;
-        const res = await fetch(`${CONFIG.GAS_API}?uid=${currentUserId}`).then(r => r.json());
-        products = res.products;
-        renderProducts();
-        const select = document.getElementById("locSelect");
-        select.innerHTML = '<option value="">-- เลือกสถานที่ --</option>';
-        res.locations.forEach(loc => select.innerHTML += `<option value="${loc}">${loc}</option>`);
-        document.getElementById("cusName").value = res.customer ? res.customer.name : profile.displayName;
-      } catch (e) { console.error(e); }
-      finally { document.getElementById("loader").style.display = "none"; }
+  try {
+    await liff.init({ liffId: CONFIG.LIFF_ID_ORDER });
+    if (!liff.isLoggedIn()) { liff.login(); return; }
+    const profile = await liff.getProfile();
+    currentUserId = profile.userId;
+
+    // ดึงข้อมูลจาก GAS รวมถึงข้อมูลลูกค้าเดิม
+    const res = await fetch(`${CONFIG.GAS_API}?uid=${currentUserId}`).then(r => r.json());
+    products = res.products;
+    renderProducts();
+
+    // จัดการข้อมูลสถานที่ส่ง (Dropdown)
+    const select = document.getElementById("locSelect");
+    select.innerHTML = '<option value="">-- เลือกสถานที่ --</option>';
+    res.locations.forEach(loc => select.innerHTML += `<option value="${loc}">${loc}</option>`);
+    select.innerHTML += '<option value="อื่นๆ">📍 อื่นๆ (ระบุพิกัด GPS)</option>';
+
+    // --- ส่วนที่ดึงข้อมูลเดิมมาใส่ให้ ---
+    if (res.customer) {
+      document.getElementById("cusName").value = res.customer.name || profile.displayName;
+      
+      // ถ้าสถานที่เดิมไม่ได้อยู่ใน list มาตรฐาน ให้เลือก "อื่นๆ" และใส่ที่อยู่/พิกัดเดิม
+      const isStandardLoc = res.locations.includes(res.customer.address);
+      if (res.customer.address && !isStandardLoc) {
+        select.value = "อื่นๆ";
+        handleLocationChange("อื่นๆ");
+        document.getElementById("cusAddress").value = res.customer.address;
+        if (res.customer.gps) {
+          document.getElementById("gpsData").value = res.customer.gps;
+          document.getElementById("gpsStatus").innerText = "✅ ใช้พิกัดเดิมที่เคยบันทึกไว้";
+          document.getElementById("gpsStatus").className = "small text-center mb-2 text-success";
+        }
+      } else {
+        select.value = res.customer.address || "";
+      }
+    } else {
+      document.getElementById("cusName").value = profile.displayName;
     }
+  } catch (e) { 
+    console.error(e); 
+  } finally { 
+    document.getElementById("loader").style.display = "none"; 
+  }
+}
     function renderProducts() {
       document.getElementById("product-list").innerHTML = products.map((p, i) => `
         <div class="product-card d-flex justify-content-between align-items-center p-3 mb-2 bg-dark rounded-3">
