@@ -2,45 +2,30 @@
   --main-bg: #121416; 
   --card-bg: #1e2125; 
   --accent: #0dcaf0; 
-  --text-primary: #ffffff;
-  --text-secondary: #adb5bd; /* สีเทาอ่อน */
+  --text-bright: #ffffff;
+  --text-muted: #adb5bd;
 }
 
-body { 
-  background-color: var(--main-bg); 
-  color: var(--text-primary); 
-  padding: 15px; 
-  font-family: 'Sarabun', sans-serif; 
-}
+body { background-color: var(--main-bg); color: var(--text-bright); font-family: 'Sarabun', sans-serif; padding: 15px; }
 
-/* แก้ไข Input ให้ตัวหนังสือสีขาวและมองเห็นชัด */
+/* แก้ไขช่อง Input ทั้งหมด */
 .form-control, .form-select { 
   background-color: #2b3035 !important; 
   color: #ffffff !important; 
   border: 1px solid #495057 !important; 
 }
 
-.form-control:focus {
-  border-color: var(--accent) !important;
-  box-shadow: 0 0 0 0.25rem rgba(13, 202, 240, 0.25) !important;
-}
-
-/* ปรับสี Label และหัวข้อจิ๋วให้สว่างขึ้น */
+/* ปรับสี Label ให้สว่างขึ้น */
 label, .small.text-muted { 
   color: #dee2e6 !important; 
   font-weight: 300;
-  margin-bottom: 4px;
   display: block;
+  margin-bottom: 5px;
 }
 
-/* สีตัวเลขและชื่อสินค้าในหน้า Admin */
-.text-info { color: #0dcaf0 !important; }
+.admin-card { background: var(--card-bg); border-radius: 15px; border: 1px solid #343a40; margin-bottom: 15px; padding: 15px; }
+#map { height: 250px; width: 100%; border-radius: 12px; margin-bottom: 10px; border: 1px solid var(--accent); }
 
-/* Modal ชำระเงิน (กรณีพื้นหลังขาว ให้ตัวหนังสือดำ / กรณีพื้นหลังดำ ให้ตัวหนังสือขาว) */
-.modal-card { 
-  background: #212529; 
-  color: white; 
-  border-radius: 24px; 
-  padding: 25px; 
-  border: 1px solid #343a40;
-}
+/* ปุ่มและ UI */
+.btn-success { background-color: #198754; border: none; }
+.text-info { color: var(--accent) !important; }
