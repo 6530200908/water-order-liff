@@ -51,7 +51,6 @@
         const select = document.getElementById("locSelect");
         select.innerHTML = '<option value="">-- เลือกสถานที่ --</option>';
         res.locations.forEach(loc => select.innerHTML += `<option value="${loc}">${loc}</option>`);
-        select.innerHTML += '<option value="อื่นๆ">อื่นๆ...</option>';
         document.getElementById("cusName").value = res.customer ? res.customer.name : profile.displayName;
       } catch (e) { console.error(e); }
       finally { document.getElementById("loader").style.display = "none"; }
