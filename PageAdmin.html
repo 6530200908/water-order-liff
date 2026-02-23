@@ -18,7 +18,7 @@
       <button onclick="saveAllToSheet()" id="btn-save-all" class="btn btn-success fw-bold px-4">บันทึกทั้งหมด</button>
     </div>
     <div id="admin-product-list"></div>
-    <div class="admin-card text-center p-4 border-dashed" style="border: 2px dashed #444; cursor:pointer;" onclick="addNewProduct()">
+    <div class="admin-card text-center p-4" style="border: 2px dashed #444; cursor:pointer;" onclick="addNewProduct()">
       <div class="text-info fs-1">+</div>
       <div class="text-white-50">เพิ่มสินค้าใหม่</div>
     </div>
@@ -27,14 +27,14 @@
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <script src="Config.js"></script>
   <script>
-    let products = [], currentAdminId = "Unknown";
+    let products = [], currentAdminUid = "Unknown";
 
     async function init() {
       try {
         await liff.init({ liffId: CONFIG.LIFF_ID_ADMIN });
         if (liff.isLoggedIn()) {
           const profile = await liff.getProfile();
-          currentAdminId = profile.userId;
+          currentAdminUid = profile.userId; // เก็บ ID คนแก้
         }
         const res = await fetch(`${CONFIG.GAS_API}?type=admin_get_products`).then(r => r.json());
         products = res.products || [];
@@ -49,7 +49,7 @@
         <div class="admin-card">
           <div class="row g-2">
             <div class="col-12 mb-2">
-              <label>ชื่อสินค้า</label>
+              <label>ชื่อสินค้า/รายละเอียด</label>
               <input type="text" class="form-control fw-bold text-info" value="${p.desc}" onchange="updateLocalData(${i},'desc',this.value)">
             </div>
             <div class="col-6">
@@ -71,11 +71,15 @@
       const btn = document.getElementById("btn-save-all");
       btn.disabled = true; btn.innerText = "กำลังเซฟ...";
       try {
-        const res = await fetch(CONFIG.GAS_API, {
+        await fetch(CONFIG.GAS_API, {
           method: "POST",
-          body: JSON.stringify({ type: "admin_sync_all_products", adminUid: currentAdminId, data: products })
-        }).then(r => r.json());
-        if(res.status === "success") alert("บันทึกสต็อกและประวัติการแก้แล้ว!");
+          body: JSON.stringify({ 
+            type: "admin_sync_all_products", 
+            adminUid: currentAdminUid, // ส่ง ID ไปบันทึก Log
+            data: products 
+          })
+        });
+        alert("บันทึกสำเร็จและลงบันทึกประวัติในชีท editlog เรียบร้อย!");
       } catch (e) { alert("ล้มเหลว"); }
       finally { btn.disabled = false; btn.innerText = "บันทึกทั้งหมด"; }
     }
