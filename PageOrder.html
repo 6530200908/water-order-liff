@@ -76,50 +76,55 @@
     function toggleOther(v) { document.getElementById("cusAddress").style.display = (v === "อื่นๆ") ? "block" : "none"; }
     function openPayment() { if(document.getElementById("total-price").innerText === "0") return alert("เลือกน้ำก่อนครับ"); document.getElementById("payment-ui").style.display = "block"; }
     function closePayment() { document.getElementById("payment-ui").style.display = "none"; }
-    function confirmOrder() {
-      const loc = document.getElementById("locSelect").value;
-      const addr = (loc === "อื่นๆ") ? document.getElementById("cusAddress").value : loc;
-      const cusName = document.getElementById("cusName").value;
-      const totalPrice = document.getElementById("total-price").innerText;
+  function confirmOrder() {
+  const loc = document.getElementById("locSelect").value;
+  const gps = document.getElementById("gpsData").value;
+  const extra = document.getElementById("cusAddress").value;
+  const cusName = document.getElementById("cusName").value;
 
-      // สร้างรายการสินค้าเพื่อใช้ส่งในข้อความสรุป
-      const itemsDetail = Object.keys(cart)
-        .filter(i => cart[i] > 0)
-        .map(i => `- ${products[i].desc} x ${cart[i]}`)
-        .join("\n");
+  if (!loc) return alert("กรุณาเลือกสถานที่ส่ง");
+  if (loc === "อื่นๆ" && !gps) return alert("กรุณากดดึงพิกัด GPS ก่อนยืนยันครับ");
 
-      const orderData = { 
-        uid: currentUserId, 
-        name: cusName, 
-        address: addr, 
-        items: Object.keys(cart).filter(i => cart[i] > 0).map(i => products[i].desc).join(", "), 
-        amounts: Object.keys(cart).filter(i => cart[i] > 0).map(i => String(cart[i])).join(", "), 
-        total: totalPrice 
-      };
+  // แยกเก็บ: locat เก็บข้อความ, gps เก็บพิกัด
+  const finalAddr = (loc === "อื่นๆ") ? extra : loc; 
+  const gpsValue = (loc === "อื่นๆ") ? gps : ""; // ถ้าไม่ใช่ "อื่นๆ" ให้เป็นค่าว่าง
+  const totalPrice = document.getElementById("total-price").innerText;
 
-      document.getElementById("btn-confirm").disabled = true;
-      document.getElementById("btn-confirm").innerText = "กำลังบันทึก...";
+  const itemsDetail = Object.keys(cart)
+    .filter(i => cart[i] > 0)
+    .map(i => `- ${products[i].desc} x ${cart[i]}`)
+    .join("\n");
 
-      fetch(CONFIG.GAS_API, { method: "POST", body: JSON.stringify(orderData) })
-        .then(r => r.json())
-        .then(res => {
-          // สร้างข้อความตอบกลับแบบละเอียด
-          const msg = `💧 สั่งซื้อน้ำดื่มสำเร็จ!\n\n` +
-                      `เลขที่ออเดอร์: ${res.orderId}\n` +
-                      `ผู้รับ: ${cusName}\n` +
-                      `สถานที่ส่ง: ${addr}\n\n` +
-                      `รายการสินค้า:\n${itemsDetail}\n\n` +
-                      `ยอดรวมทั้งสิ้น: ${totalPrice} ฿`;
+  const orderData = { 
+    uid: currentUserId, 
+    name: cusName, 
+    address: finalAddr, 
+    gps: gpsValue, // ส่งค่า GPS แยกไป
+    items: Object.keys(cart).filter(i => cart[i] > 0).map(i => products[i].desc).join(", "), 
+    amounts: Object.keys(cart).filter(i => cart[i] > 0).map(i => String(cart[i])).join(", "), 
+    total: totalPrice 
+  };
 
-          liff.sendMessages([{ type: "text", text: msg }])
-            .finally(() => liff.closeWindow());
-        })
-        .catch(err => {
-          alert("เกิดข้อผิดพลาดในการสั่งซื้อ");
-          document.getElementById("btn-confirm").disabled = false;
-          document.getElementById("btn-confirm").innerText = "ยืนยันการสั่งซื้อ";
-        });
-    }
+  document.getElementById("btn-confirm").disabled = true;
+  document.getElementById("btn-confirm").innerText = "กำลังบันทึกออเดอร์...";
+
+  fetch(CONFIG.GAS_API, { method: "POST", body: JSON.stringify(orderData) })
+    .then(r => r.json())
+    .then(res => {
+      const msg = `💧 สั่งซื้อสำเร็จ!\n\n` +
+                  `เลขที่ออเดอร์: ${res.orderId}\n` +
+                  `ผู้รับ: ${cusName}\n` +
+                  `สถานที่ส่ง: ${finalAddr}\n` +
+                  (gpsValue ? `พิกัด GPS: บันทึกแล้ว\n` : "") +
+                  `รวมทั้งสิ้น: ${totalPrice} ฿`;
+
+      liff.sendMessages([{ type: "text", text: msg }]).finally(() => liff.closeWindow());
+    })
+    .catch(() => {
+      alert("เกิดข้อผิดพลาด");
+      document.getElementById("btn-confirm").disabled = false;
+    });
+}
     window.onload = init;
   </script>
 </body>
