@@ -3,13 +3,25 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>สั่งน้ำดื่ม</title>
+  <title>สั่งน้ำดื่ม - ระบบปักหมุด</title>
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="stylesheet" href="Styles.css">
+  <style>
+    #map { 
+      height: 250px; 
+      width: 100%; 
+      border-radius: 12px; 
+      margin-bottom: 10px; 
+      border: 2px solid #0dcaf0;
+    }
+    .modal-card { max-height: 90vh; overflow-y: auto; }
+  </style>
 </head>
 <body>
   <div id="loader"><div class="spinner-border text-info"></div></div>
+  
   <div id="page-order" class="container" style="padding-bottom: 120px;">
     <div class="d-flex justify-content-between align-items-center my-4">
       <h4 class="fw-bold m-0 text-info">🛒 สั่งน้ำดื่ม</h4>
@@ -25,19 +37,21 @@
     </div>
   </div>
 
-  <div id="payment-ui" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.9); z-index:1000; padding:20px; overflow-y: auto;">
+  <div id="payment-ui" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.9); z-index:1000; padding:20px;">
     <div class="modal-card bg-white p-4 rounded-4 shadow-lg mx-auto" style="max-width:500px;">
-      <h5 class="text-center fw-bold mb-4 text-dark">ข้อมูลจัดส่ง</h5>
+      <h5 class="text-center fw-bold mb-4">ข้อมูลจัดส่ง</h5>
+      <label class="small text-muted">ชื่อผู้รับ</label>
       <input type="text" id="cusName" class="form-control mb-3" placeholder="ระบุชื่อผู้รับ">
       
+      <label class="small text-muted">สถานที่ส่ง</label>
       <select id="locSelect" class="form-select mb-3" onchange="handleLocationChange(this.value)"></select>
       
-      <div id="gps-section" style="display:none;" class="p-3 border rounded-3 mb-3 bg-light">
-        <button type="button" id="btn-gps" class="btn btn-outline-primary w-100 mb-2" onclick="getLocation()">
-          📍 กดเพื่อส่งพิกัด GPS ปัจจุบัน
-        </button>
-        <p id="gpsStatus" class="small text-center mb-2 text-muted">ยังไม่ได้ระบุพิกัด</p>
-        <input type="hidden" id="gpsData"> <textarea id="cusAddress" class="form-control" rows="3" placeholder="ระบุรายละเอียดที่อยู่เพิ่มเติม (เช่น บ้านสีขาวข้างร้านโชห่วย)"></textarea>
+      <div id="gps-section" style="display:none;">
+        <label class="small text-muted mb-2 text-primary">📍 จิ้มที่แผนที่เพื่อปักหมุดจุดส่งน้ำ</label>
+        <div id="map"></div>
+        <p id="gpsStatus" class="small text-center mb-2 text-muted">ยังไม่ได้ปักหมุด</p>
+        <input type="hidden" id="gpsData">
+        <textarea id="cusAddress" class="form-control mb-3" rows="2" placeholder="ที่อยู่เพิ่มเติม (เช่น ตึกแถวสีครีม ชั้น 1)"></textarea>
       </div>
 
       <button id="btn-confirm" class="btn btn-info w-100 p-3 fw-bold rounded-3" onclick="confirmOrder()">ยืนยันการสั่งซื้อ</button>
@@ -45,9 +59,10 @@
     </div>
   </div>
 
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="Config.js"></script>
   <script>
-    let currentUserId = "", products = [], cart = {};
+    let currentUserId = "", products = [], cart = {}, map, marker;
 
     async function init() {
       try {
@@ -63,7 +78,7 @@
         const select = document.getElementById("locSelect");
         select.innerHTML = '<option value="">-- เลือกสถานที่ --</option>';
         res.locations.forEach(loc => select.innerHTML += `<option value="${loc}">${loc}</option>`);
-        select.innerHTML += '<option value="อื่นๆ">📍 อื่นๆ (ระบุพิกัด GPS)</option>';
+        select.innerHTML += '<option value="อื่นๆ">📍 อื่นๆ (ปักหมุดแผนที่เอง)</option>';
 
         if (res.customer) {
           document.getElementById("cusName").value = res.customer.name || profile.displayName;
@@ -74,8 +89,8 @@
             document.getElementById("cusAddress").value = res.customer.address;
             if (res.customer.gps) {
               document.getElementById("gpsData").value = res.customer.gps;
-              document.getElementById("gpsStatus").innerText = "✅ ใช้พิกัดเดิมที่เคยบันทึกไว้";
-              document.getElementById("gpsStatus").className = "small text-center mb-2 text-success";
+              document.getElementById("gpsStatus").innerText = "✅ มีข้อมูลพิกัดเดิมแล้ว (เลือกใหม่ได้)";
+              // ถ้ามีพิกัดเดิม จะไปรอโหลดใน initMap
             }
           } else {
             select.value = res.customer.address || "";
@@ -87,13 +102,57 @@
       finally { document.getElementById("loader").style.display = "none"; }
     }
 
+    function handleLocationChange(v) {
+      const section = document.getElementById("gps-section");
+      if (v === "อื่นๆ") {
+        section.style.display = "block";
+        setTimeout(initMap, 300); // ให้เวลา UI วาดรูปก่อนโหลดแผนที่
+      } else {
+        section.style.display = "none";
+      }
+    }
+
+    function initMap() {
+      if (map) {
+        map.invalidateSize();
+        return;
+      }
+      
+      // พิกัดเริ่มต้น (ถ้ามีของเดิมให้ไปที่นั่น ถ้าไม่มีไปกรุงเทพ)
+      let startLat = 13.7563, startLng = 100.5018;
+      const oldGps = document.getElementById("gpsData").value;
+      if (oldGps) {
+        const parts = oldGps.split(',');
+        startLat = parseFloat(parts[0]);
+        startLng = parseFloat(parts[1]);
+      }
+
+      map = L.map('map').setView([startLat, startLng], 16);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+      if (oldGps) {
+        marker = L.marker([startLat, startLng]).addTo(map);
+      }
+
+      map.on('click', function(e) {
+        const lat = e.latlng.lat;
+        const lng = e.latlng.lng;
+        if (marker) marker.setLatLng(e.latlng);
+        else marker = L.marker(e.latlng).addTo(map);
+        
+        document.getElementById("gpsData").value = `${lat},${lng}`;
+        document.getElementById("gpsStatus").innerText = `📍 ปักหมุดเรียบร้อย: ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+        document.getElementById("gpsStatus").className = "small text-center mb-2 text-success fw-bold";
+      });
+    }
+
     function renderProducts() {
       document.getElementById("product-list").innerHTML = products.map((p, i) => `
-        <div class="product-card d-flex justify-content-between align-items-center p-3 mb-2 bg-dark rounded-3">
-          <div><div class="fw-bold text-white">${p.desc}</div><div class="text-info small">${p.price} ฿</div></div>
+        <div class="product-card d-flex justify-content-between align-items-center p-3 mb-2 bg-dark rounded-3 text-white">
+          <div><div class="fw-bold">${p.desc}</div><div class="text-info small">${p.price} ฿</div></div>
           <div class="d-flex align-items-center gap-3">
             <button class="btn btn-sm btn-outline-light rounded-circle" onclick="updateQty(${i},-1)">-</button>
-            <span id="qty-${i}" class="fw-bold text-white">0</span>
+            <span id="qty-${i}" class="fw-bold">0</span>
             <button class="btn btn-sm btn-outline-info rounded-circle" onclick="updateQty(${i},1)">+</button>
           </div>
         </div>`).join("");
@@ -107,29 +166,11 @@
       document.getElementById("total-price").innerText = total;
     }
 
-    // ฟังก์ชันเปิด-ปิดส่วน GPS
-    function handleLocationChange(v) { 
-      document.getElementById("gps-section").style.display = (v === "อื่นๆ") ? "block" : "none"; 
+    function openPayment() { 
+      if(document.getElementById("total-price").innerText === "0") return alert("เลือกน้ำก่อนครับ"); 
+      document.getElementById("payment-ui").style.display = "block"; 
     }
-
-    // ฟังก์ชันดึงพิกัดจากมือถือ
-    function getLocation() {
-      const status = document.getElementById("gpsStatus");
-      if (navigator.geolocation) {
-        status.innerText = "กำลังค้นหาพิกัด...";
-        navigator.geolocation.getCurrentPosition((pos) => {
-          const val = `${pos.coords.latitude},${pos.coords.longitude}`;
-          document.getElementById("gpsData").value = val;
-          status.innerText = "✅ บันทึกพิกัดเรียบร้อยแล้ว";
-          status.className = "small text-center mb-2 text-success";
-        }, (err) => {
-          status.innerText = "❌ กรุณาเปิด GPS และอนุญาตสิทธิ์";
-          status.className = "small text-center mb-2 text-danger";
-        });
-      }
-    }
-
-    function openPayment() { if(document.getElementById("total-price").innerText === "0") return alert("เลือกน้ำก่อนครับ"); document.getElementById("payment-ui").style.display = "block"; }
+    
     function closePayment() { document.getElementById("payment-ui").style.display = "none"; }
 
     function confirmOrder() {
@@ -139,24 +180,19 @@
       const cusName = document.getElementById("cusName").value;
 
       if (!loc) return alert("กรุณาเลือกสถานที่ส่ง");
-      if (loc === "อื่นๆ" && !gps) return alert("กรุณากดดึงพิกัด GPS ก่อนยืนยันครับ");
+      if (loc === "อื่นๆ" && !gps) return alert("กรุณาปักหมุดในแผนที่ก่อนครับ");
 
-      const finalAddr = (loc === "อื่นๆ") ? extra : loc; 
+      const finalAddr = (loc === "อื่นๆ") ? extra : loc;
       const gpsValue = (loc === "อื่นๆ") ? gps : "";
       const totalPrice = document.getElementById("total-price").innerText;
 
-      const itemsDetail = Object.keys(cart)
-        .filter(i => cart[i] > 0)
-        .map(i => `- ${products[i].desc} x ${cart[i]}`)
-        .join("\n");
+      const itemsDetail = Object.keys(cart).filter(i => cart[i] > 0)
+        .map(i => `- ${products[i].desc} x ${cart[i]}`).join("\n");
 
       const orderData = { 
-        uid: currentUserId, 
-        name: cusName, 
-        address: finalAddr, 
-        gps: gpsValue, 
-        items: Object.keys(cart).filter(i => cart[i] > 0).map(i => products[i].desc).join(", "), 
-        amounts: Object.keys(cart).filter(i => cart[i] > 0).map(i => String(cart[i])).join(", "), 
+        uid: currentUserId, name: cusName, address: finalAddr, gps: gpsValue,
+        items: Object.keys(cart).filter(i => cart[i] > 0).map(i => products[i].desc).join(", "),
+        amounts: Object.keys(cart).filter(i => cart[i] > 0).map(i => String(cart[i])).join(", "),
         total: totalPrice 
       };
 
@@ -166,21 +202,15 @@
       fetch(CONFIG.GAS_API, { method: "POST", body: JSON.stringify(orderData) })
         .then(r => r.json())
         .then(res => {
-          const msg = `💧 สั่งซื้อสำเร็จ!\n\n` +
-                      `เลขที่ออเดอร์: ${res.orderId}\n` +
-                      `ผู้รับ: ${cusName}\n` +
-                      `สถานที่ส่ง: ${finalAddr}\n` +
-                      (gpsValue ? `พิกัด GPS: บันทึกแล้ว\n` : "") +
-                      `รวมทั้งสิ้น: ${totalPrice} ฿`;
-
+          const msg = `💧 สั่งซื้อสำเร็จ!\nออเดอร์: ${res.orderId}\nผู้รับ: ${cusName}\nที่ส่ง: ${finalAddr}\n${gpsValue ? '📍 บันทึกพิกัดแล้ว\n' : ''}รวม: ${totalPrice} ฿`;
           liff.sendMessages([{ type: "text", text: msg }]).finally(() => liff.closeWindow());
         })
         .catch(() => {
           alert("เกิดข้อผิดพลาด");
           document.getElementById("btn-confirm").disabled = false;
-          document.getElementById("btn-confirm").innerText = "ยืนยันการสั่งซื้อ";
         });
     }
+
     window.onload = init;
   </script>
 </body>
