@@ -3,27 +3,25 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ติดตามออเดอร์</title>
+  <title>สถานะออเดอร์</title>
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="Styles.css">
 </head>
 <body>
-  <div id="loader" style="position:fixed; inset:0; background:rgba(0,0,0,0.8); display:flex; align-items:center; justify-content:center; z-index:1000;">
-    <div class="spinner-border text-info"></div>
-  </div>
-
-  <div id="page-status" class="container mt-3">
-    <h3 class="fw-bold mb-4 text-info">📦 ติดตามออเดอร์</h3>
+  <div id="page-status">
+    <h4 class="fw-bold mb-4 mt-2">📦 ติดตามออเดอร์</h4>
     
-    <div class="order-card shadow-sm">
-        <div class="small text-muted mb-1">ORDER ID</div>
-        <div id="o-id" class="h4 fw-bold text-info">---</div>
-        <div class="small text-muted mt-3 mb-1">รายการสินค้า</div>
-        <div id="o-items" class="fw-bold">---</div>
+    <div class="order-card shadow">
+        <div class="small text-muted mb-1 fw-bold">ORDER ID</div>
+        <div id="o-id" class="h4 fw-bold">ORD-XXXXXXXX</div>
+        
+        <div class="small text-muted mt-4 mb-1 fw-bold">รายการสินค้า</div>
+        <div id="o-items" class="h5 fw-normal">กำลังโหลด...</div>
     </div>
 
-    <div id="timeline-box"></div> 
+    <div id="timeline-box" class="mt-5">
+        </div>
   </div>
 
   <script src="Config.js"></script>
@@ -33,47 +31,28 @@
         await liff.init({ liffId: CONFIG.LIFF_ID_STATUS });
         if (!liff.isLoggedIn()) { liff.login(); return; }
         const profile = await liff.getProfile();
-        
-        // ดึงข้อมูลจาก Google Sheets
         const res = await fetch(`${CONFIG.GAS_API}?type=status&uid=${profile.userId}`).then(r => r.json());
         
-        if(!res.order) { 
-          document.getElementById("page-status").innerHTML = "<p class='text-center mt-5 text-muted'>ยังไม่มีออเดอร์ในขณะนี้</p>"; 
-          return; 
+        if(!res.order) {
+           document.getElementById("page-status").innerHTML = "<div class='text-center mt-5 text-muted'>ไม่พบข้อมูลออเดอร์</div>";
+           return;
         }
 
         document.getElementById("o-id").innerText = res.order.id;
         document.getElementById("o-items").innerText = res.order.items;
         
         const box = document.getElementById("timeline-box");
-        box.innerHTML = ""; 
-
-        // รายการสถานะจากชีท Status
-        const steps = res.statusMaster; 
-        // หาว่าตอนนี้ออเดอร์อยู่ที่ขั้นตอนไหน (เทียบตัวอักษร)
+        const steps = res.statusMaster;
         const activeIdx = steps.findIndex(s => s.desc.trim() === res.order.status.trim());
-        
-        steps.forEach((s, i) => {
-          const div = document.createElement("div");
-          
-          let statusClass = "";
-          if (i < activeIdx) statusClass = "done";
-          else if (i === activeIdx) statusClass = "active";
 
-          div.className = `t-item ${statusClass}`;
-          div.innerHTML = `
+        box.innerHTML = steps.map((s, i) => `
+          <div class="t-item ${i < activeIdx ? 'done' : (i === activeIdx ? 'active' : '')}">
             <div class="t-icon"></div>
             <div class="t-text">${s.desc}</div>
-          `;
-          box.appendChild(div);
-        });
+          </div>
+        `).join("");
 
-      } catch (e) { 
-        console.error(e);
-        alert("เกิดข้อผิดพลาดในการโหลดข้อมูล");
-      } finally { 
-        document.getElementById("loader").style.display = "none"; 
-      }
+      } catch (e) { console.error(e); }
     }
     window.onload = init;
   </script>
