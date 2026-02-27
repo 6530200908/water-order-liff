@@ -5,5 +5,6 @@ const CONFIG = {
   LIFF_ID_SLIP: "2008821220-NqDJdKS0",
   LIFF_ID_DRIVER: "2008821220-M2Bqp8AG",
   LIFF_ID_ADMIN: "2008821220-ePnWMlu9",
+  LIFF_ID_HISTORY:"2008821220-DC2vs4n2",
   WEBHOOK_SLIP: "https://amarin-650200908-drinking-water-bot.hf.space/webhook/upload-slip2"
 };
