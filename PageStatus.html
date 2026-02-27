@@ -9,69 +9,73 @@
   <link rel="stylesheet" href="Styles.css">
 </head>
 <body>
-  <div id="loader"><div class="spinner-border text-info"></div></div>
+  <div id="loader" style="position:fixed; inset:0; background:rgba(0,0,0,0.8); display:flex; align-items:center; justify-content:center; z-index:1000;">
+    <div class="spinner-border text-info"></div>
+  </div>
+
   <div id="page-status" class="container mt-3">
     <h3 class="fw-bold mb-4 text-info">📦 ติดตามออเดอร์</h3>
-    <div class="order-card p-3 mb-4 bg-dark rounded-4 shadow-sm">
+    
+    <div class="order-card shadow-sm">
         <div class="small text-muted mb-1">ORDER ID</div>
         <div id="o-id" class="h4 fw-bold text-info">---</div>
         <div class="small text-muted mt-3 mb-1">รายการสินค้า</div>
         <div id="o-items" class="fw-bold">---</div>
     </div>
-    <div id="timeline-box" class="mt-4"></div> 
+
+    <div id="timeline-box"></div> 
   </div>
 
   <script src="Config.js"></script>
   <script>
-  async function init() {
-    try {
-      await liff.init({ liffId: CONFIG.LIFF_ID_STATUS });
-      if (!liff.isLoggedIn()) { liff.login(); return; }
-      const profile = await liff.getProfile();
-      const res = await fetch(`${CONFIG.GAS_API}?type=status&uid=${profile.userId}`).then(r => r.json());
-      
-      if(!res.order) { 
-        document.getElementById("page-status").innerHTML = "<div class='text-center mt-5 text-muted'>🚚 ไม่พบข้อมูลออเดอร์ล่าสุดของคุณ</div>"; 
-        return; 
-      }
-      
-      document.getElementById("o-id").innerText = res.order.id;
-      document.getElementById("o-items").innerText = res.order.items;
-      
-      const box = document.getElementById("timeline-box");
-      box.innerHTML = ""; 
-      
-      // ดึงสถานะหลัก (Master Status)
-      const steps = res.statusMaster;
-      // หาตำแหน่งสถานะปัจจุบันของออเดอร์
-      const activeIdx = steps.findIndex(s => s.desc === res.order.status);
-      
-      steps.forEach((s, i) => {
-        const item = document.createElement("div");
-        // i < activeIdx = ผ่านไปแล้ว (done)
-        // i === activeIdx = กำลังทำอยู่ (active)
-        let statusClass = "";
-        if (i < activeIdx) statusClass = "done";
-        else if (i === activeIdx) statusClass = "active";
+    async function init() {
+      try {
+        await liff.init({ liffId: CONFIG.LIFF_ID_STATUS });
+        if (!liff.isLoggedIn()) { liff.login(); return; }
+        const profile = await liff.getProfile();
+        
+        // ดึงข้อมูลจาก Google Sheets
+        const res = await fetch(`${CONFIG.GAS_API}?type=status&uid=${profile.userId}`).then(r => r.json());
+        
+        if(!res.order) { 
+          document.getElementById("page-status").innerHTML = "<p class='text-center mt-5 text-muted'>ยังไม่มีออเดอร์ในขณะนี้</p>"; 
+          return; 
+        }
 
-        item.className = `timeline-item ${statusClass}`;
-        item.innerHTML = `
-          <div class="timeline-dot"></div>
-          <div class="timeline-content">
-            <div class="status-name">${s.desc}</div>
-            ${i === activeIdx ? `<div class="status-time">อัปเดตเมื่อ: ${res.order.time}</div>` : ""}
-          </div>
-        `;
-        box.appendChild(item);
-      });
-    } catch (e) { 
-      console.error(e); 
-      alert("ไม่สามารถโหลดข้อมูลได้");
-    } finally { 
-      document.getElementById("loader").style.display = "none"; 
+        document.getElementById("o-id").innerText = res.order.id;
+        document.getElementById("o-items").innerText = res.order.items;
+        
+        const box = document.getElementById("timeline-box");
+        box.innerHTML = ""; 
+
+        // รายการสถานะจากชีท Status
+        const steps = res.statusMaster; 
+        // หาว่าตอนนี้ออเดอร์อยู่ที่ขั้นตอนไหน (เทียบตัวอักษร)
+        const activeIdx = steps.findIndex(s => s.desc.trim() === res.order.status.trim());
+        
+        steps.forEach((s, i) => {
+          const div = document.createElement("div");
+          
+          let statusClass = "";
+          if (i < activeIdx) statusClass = "done";
+          else if (i === activeIdx) statusClass = "active";
+
+          div.className = `t-item ${statusClass}`;
+          div.innerHTML = `
+            <div class="t-icon"></div>
+            <div class="t-text">${s.desc}</div>
+          `;
+          box.appendChild(div);
+        });
+
+      } catch (e) { 
+        console.error(e);
+        alert("เกิดข้อผิดพลาดในการโหลดข้อมูล");
+      } finally { 
+        document.getElementById("loader").style.display = "none"; 
+      }
     }
-  }
-  window.onload = init;
-</script>
+    window.onload = init;
+  </script>
 </body>
 </html>
