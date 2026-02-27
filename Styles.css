@@ -1,67 +1,93 @@
-/* --- Timeline สำหรับหน้าติดตามออเดอร์ --- */
-#timeline-box {
-    position: relative;
-    padding-left: 35px;
-    margin-top: 30px;
+:root { 
+  --main-bg: #121416; 
+  --card-bg: #1e2125; 
+  --accent: #0dcaf0; 
+  --text-bright: #ffffff;
+  --text-muted: #adb5bd;
 }
 
-/* เส้นแนวตั้งด้านหลัง */
+body { 
+  background-color: var(--main-bg); 
+  color: var(--text-bright) !important; 
+  font-family: 'Sarabun', sans-serif; 
+  padding: 15px; 
+}
+
+/* การ์ดแสดงข้อมูล */
+.order-card { 
+  background: var(--card-bg) !important; 
+  border-radius: 15px; 
+  border: 1px solid #343a40; 
+  padding: 20px; 
+  margin-bottom: 20px;
+  color: var(--text-bright) !important;
+}
+
+/* บังคับสีตัวอักษรให้อ่านออก */
+h3, h4, .h4, div, span, p {
+  color: var(--text-bright);
+}
+
+.text-muted {
+  color: var(--text-muted) !important;
+}
+
+/* --- ส่วนของ Timeline --- */
+#timeline-box {
+  position: relative;
+  padding-left: 35px;
+  margin-top: 25px;
+}
+
+/* เส้นแกนกลาง */
 #timeline-box::before {
-    content: '';
-    position: absolute;
-    left: 7px;
-    top: 5px;
-    bottom: 5px;
-    width: 2px;
-    background: #343a40; /* เส้นสีเข้มหลบหลัง */
+  content: '';
+  position: absolute;
+  left: 7px;
+  top: 5px;
+  bottom: 5px;
+  width: 2px;
+  background: #343a40; /* สีเส้นพื้นหลัง */
 }
 
 .t-item {
-    position: relative;
-    padding-bottom: 40px;
-    display: flex;
-    align-items: flex-start;
+  position: relative;
+  padding-bottom: 35px;
 }
 
-/* จุดวงกลมสถานะ */
 .t-icon {
-    position: absolute;
-    left: -35px;
-    width: 16px;
-    height: 16px;
-    background: #444; /* สีพื้นฐาน */
-    border-radius: 50%;
-    border: 3px solid var(--main-bg);
-    z-index: 2;
-    transition: 0.3s;
+  position: absolute;
+  left: -35px;
+  width: 16px;
+  height: 16px;
+  background: #444; /* สีสถานะที่ยังไม่ถึง */
+  border-radius: 50%;
+  border: 3px solid var(--main-bg);
+  z-index: 2;
 }
 
 .t-text {
-    font-size: 1rem;
-    color: var(--text-muted);
-    line-height: 1.2;
+  color: var(--text-muted) !important;
+  font-size: 1rem;
 }
 
-/* 1. สถานะที่สำเร็จแล้ว (Done) */
+/* สถานะที่ผ่านมาแล้ว */
 .t-item.done .t-icon {
-    background: var(--accent);
+  background: var(--accent);
 }
 .t-item.done .t-text {
-    color: var(--text-bright);
+  color: var(--text-bright) !important;
 }
 
-/* 2. สถานะปัจจุบัน (Active) */
+/* สถานะปัจจุบัน */
 .t-item.active .t-icon {
-    background: var(--accent);
-    box-shadow: 0 0 12px var(--accent); /* ไฟเรืองแสงตรงสถานะปัจจุบัน */
-    transform: scale(1.2);
+  background: var(--accent);
+  box-shadow: 0 0 12px var(--accent);
+  transform: scale(1.2);
 }
 .t-item.active .t-text {
-    color: var(--accent);
-    font-weight: bold;
+  color: var(--accent) !important;
+  font-weight: bold;
 }
 
-/* ซ่อนเส้นส่วนเกินของอันสุดท้าย */
-.t-item:last-child {
-    padding-bottom: 0;
-}
+.t-item:last-child { padding-bottom: 0; }
