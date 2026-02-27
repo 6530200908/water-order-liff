@@ -1,93 +1,95 @@
-:root { 
-  --main-bg: #121416; 
-  --card-bg: #1e2125; 
-  --accent: #0dcaf0; 
-  --text-bright: #ffffff;
-  --text-muted: #adb5bd;
+:root {
+  --main-bg: #121416;     /* พื้นหลังหลักดำสนิท */
+  --card-bg: #212529;     /* พื้นหลังการ์ดเทาเข้ม */
+  --accent: #0dcaf0;      /* สีฟ้า Cyan เน้นจุดสำคัญ */
+  --text-white: #ffffff;  /* ตัวหนังสือขาวบริสุทธิ์ */
+  --text-muted: #94a3b8;  /* ตัวหนังสือสีเทาสำหรับรายละเอียด */
 }
 
-body { 
-  background-color: var(--main-bg); 
-  color: var(--text-bright) !important; 
-  font-family: 'Sarabun', sans-serif; 
-  padding: 15px; 
+body {
+  background-color: var(--main-bg) !important;
+  color: var(--text-white) !important;
+  font-family: 'Sarabun', sans-serif;
+  margin: 0;
+  padding: 15px;
 }
 
-/* การ์ดแสดงข้อมูล */
-.order-card { 
-  background: var(--card-bg) !important; 
-  border-radius: 15px; 
-  border: 1px solid #343a40; 
-  padding: 20px; 
-  margin-bottom: 20px;
-  color: var(--text-bright) !important;
+/* การ์ดสรุปข้อมูลด้านบน */
+.order-card {
+  background: var(--card-bg) !important;
+  border-radius: 20px;
+  padding: 25px;
+  margin-bottom: 30px;
+  border: 1px solid #334155;
 }
 
-/* บังคับสีตัวอักษรให้อ่านออก */
-h3, h4, .h4, div, span, p {
-  color: var(--text-bright);
-}
+/* ปรับสีหัวข้อและ ID */
+.text-info, #o-id { color: var(--accent) !important; }
+.text-muted { color: var(--text-muted) !important; }
 
-.text-muted {
-  color: var(--text-muted) !important;
-}
-
-/* --- ส่วนของ Timeline --- */
+/* --- Timeline Section (แถบสถานะ) --- */
 #timeline-box {
   position: relative;
-  padding-left: 35px;
-  margin-top: 25px;
+  padding-left: 45px;
 }
 
-/* เส้นแกนกลาง */
+/* เส้นเชื่อมแนวตั้ง */
 #timeline-box::before {
   content: '';
   position: absolute;
-  left: 7px;
-  top: 5px;
-  bottom: 5px;
-  width: 2px;
-  background: #343a40; /* สีเส้นพื้นหลัง */
+  left: 20px;
+  top: 10px;
+  bottom: 10px;
+  width: 3px;
+  background: #334155; /* เส้นสีเทาเข้ม */
 }
 
 .t-item {
   position: relative;
-  padding-bottom: 35px;
+  padding-bottom: 50px;
 }
 
+/* จุดกลมๆ */
 .t-icon {
   position: absolute;
-  left: -35px;
-  width: 16px;
-  height: 16px;
-  background: #444; /* สีสถานะที่ยังไม่ถึง */
+  left: -35px; /* ปรับให้ตรงกับเส้น */
+  width: 24px;
+  height: 24px;
+  background: #1e293b;
+  border: 3px solid #334155;
   border-radius: 50%;
-  border: 3px solid var(--main-bg);
   z-index: 2;
 }
 
 .t-text {
-  color: var(--text-muted) !important;
-  font-size: 1rem;
+  font-size: 1.1rem;
+  color: #475569; /* สีเทาเข้มสำหรับสถานะที่ยังไม่ถึง */
+  padding-top: 2px;
 }
 
-/* สถานะที่ผ่านมาแล้ว */
-.t-item.done .t-icon {
-  background: var(--accent);
-}
-.t-item.done .t-text {
-  color: var(--text-bright) !important;
+/* เมื่อสถานะสำเร็จหรือปัจจุบัน (Active/Done) */
+.t-item.done .t-icon, .t-item.active .t-icon {
+  background: var(--accent) !important;
+  border-color: var(--accent) !important;
 }
 
-/* สถานะปัจจุบัน */
-.t-item.active .t-icon {
-  background: var(--accent);
-  box-shadow: 0 0 12px var(--accent);
-  transform: scale(1.2);
+.t-item.done .t-text, .t-item.active .t-text {
+  color: var(--text-white) !important;
 }
+
 .t-item.active .t-text {
   color: var(--accent) !important;
   font-weight: bold;
 }
 
-.t-item:last-child { padding-bottom: 0; }
+/* เอฟเฟกต์เรืองแสงที่จุดปัจจุบัน */
+.t-item.active .t-icon {
+  box-shadow: 0 0 15px var(--accent);
+}
+
+/* บังคับช่อง Input ให้เข้ม */
+.form-control {
+  background-color: #1e293b !important;
+  color: white !important;
+  border: 1px solid #334155 !important;
+}
