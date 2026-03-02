@@ -93,25 +93,66 @@
             list.innerHTML = "<div class='text-center mt-5'><p class='text-muted'>เย้! ไม่มีงานค้างแล้ว 🎉</p></div>"; 
             return; 
           }
-          list.innerHTML = res.orders.map(o => `
-            <div class="order-card p-3 mb-3 rounded-3 border-start border-info border-4 shadow-sm">
-              <div class="d-flex justify-content-between align-items-start mb-2">
-                <span class="badge bg-info text-dark">${o.order_id}</span>
-                <small class="text-muted" style="font-size: 0.7rem;">🕒 ${o.time}</small>
-              </div>
-              <div class="fw-bold text-white mb-1" style="font-size: 1.1rem;">👤 ${o.customer}</div>
-              <div class="text-info small mb-3">📍 ${o.locat}</div>
-              <div class="row g-2">
-                <div class="col-4">
-                  <a href="https://www.google.com/maps/search/?api=1&query=${o.gps}" class="btn btn-outline-secondary w-100 btn-sm py-2">🗺️ แผนที่</a>
-                </div>
-                <div class="col-8">
-                  <button class="btn btn-info w-100 btn-sm py-2 fw-bold text-dark" onclick="openUploadModal('${o.order_id}')">📷 ส่งงาน</button>
-                </div>
-              </div>
-            </div>`).join("");
-        }).finally(() => { document.getElementById("loader").style.display = "none"; });
-    }
+          list.innerHTML = res.orders.map(o => {
+  const collapseId = `detail-${String(o.order_id).replace(/[^a-zA-Z0-9_-]/g, "")}`;
+
+  return `
+  <div class="order-card p-3 mb-3 rounded-3 border-start border-info border-4 shadow-sm">
+    <div class="d-flex justify-content-between align-items-start mb-2">
+      <span class="badge bg-info text-dark">${o.order_id}</span>
+      <small class="text-muted" style="font-size: 0.7rem;">🕒 ${o.time}</small>
+    </div>
+
+    <div class="fw-bold text-white mb-1" style="font-size: 1.1rem;">👤 ${o.customer}</div>
+    <div class="text-info small mb-2">📍 ${o.locat}</div>
+
+    <!-- แถบสรุป -->
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <span class="badge bg-secondary">${o.status || "รอจัดส่ง"}</span>
+      <span class="fw-bold text-warning">💰 ${o.total || "-"}</span>
+    </div>
+
+    <!-- ปุ่มดูรายละเอียด -->
+    <button class="btn btn-outline-info w-100 btn-sm mb-2"
+      data-bs-toggle="collapse" data-bs-target="#${collapseId}">
+      🔽 ดูรายละเอียดออเดอร์
+    </button>
+
+    <!-- รายละเอียด -->
+    <div id="${collapseId}" class="collapse">
+      <div class="bg-black p-3 rounded-3 border border-secondary">
+        <div class="small text-white-50 mb-1">🧾 รายการสินค้า</div>
+        <div class="text-white small" style="white-space:pre-wrap;">
+          ${o.items ? o.items : "-"}
+        </div>
+
+        ${o.amount ? `
+          <div class="mt-2 small text-white-50">📦 จำนวน</div>
+          <div class="text-white small" style="white-space:pre-wrap;">${o.amount}</div>
+        ` : ""}
+
+        <div class="mt-2 small text-white-50">📌 พิกัด (ที่ลูกค้า)</div>
+        <div class="text-white small">${o.gps || "-"}</div>
+      </div>
+    </div>
+
+    <!-- ปุ่มแผนที่/ส่งงาน -->
+    <div class="row g-2 mt-2">
+      <div class="col-4">
+        <a href="https://www.google.com/maps/search/?api=1&query=${o.gps}"
+          class="btn btn-outline-secondary w-100 btn-sm py-2">
+          🗺️ แผนที่
+        </a>
+      </div>
+      <div class="col-8">
+        <button class="btn btn-info w-100 btn-sm py-2 fw-bold text-dark"
+          onclick="openUploadModal('${o.order_id}')">
+          📷 ส่งงาน
+        </button>
+      </div>
+    </div>
+  </div>`;
+}).join("");
 
     function openUploadModal(id) {
       currentOrderId = id;
