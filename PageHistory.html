@@ -8,12 +8,19 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="Styles.css">
   <style>
+    /* บังคับธีมมืดและตัวอักษรสว่าง */
+    body { background-color: #121416 !important; color: #ffffff !important; }
     .history-card {
-      background: var(--card-bg);
-      border: 1px solid #343a40;
+      background: #1e2125 !important;
+      border: 1px solid #343a40 !important;
       border-radius: 15px;
       padding: 15px;
       margin-bottom: 15px;
+    }
+    .empty-state {
+      margin-top: 100px;
+      text-align: center;
+      color: #adb5bd;
     }
     .status-badge {
       font-size: 0.75rem;
@@ -24,40 +31,54 @@
   </style>
 </head>
 <body>
-  <div id="loader"><div class="spinner-border text-info"></div></div>
+  <div id="loader" style="position:fixed; inset:0; background:rgba(0,0,0,0.8); display:flex; align-items:center; justify-content:center; z-index:1000;">
+    <div class="spinner-border text-info"></div>
+  </div>
   
   <div class="container mt-3">
-    <h4 class="fw-bold mb-4 text-info">📜 ประวัติการสั่งซื้อ</h4>
+    <h4 class="fw-bold mb-4" style="color: #0dcaf0;">📜 ประวัติการสั่งซื้อ</h4>
     <div id="history-list">
-      </div>
+        </div>
   </div>
 
   <script src="Config.js"></script>
   <script>
     async function init() {
       try {
-        await liff.init({ liffId: "2008821220-DC2vs4n2" }); // ใส่ LIFF ID สำหรับหน้าประวัติ
+        await liff.init({ liffId: CONFIG.LIFF_ID_HISTORY });
         if (!liff.isLoggedIn()) { liff.login(); return; }
         const profile = await liff.getProfile();
         
         const res = await fetch(`${CONFIG.GAS_API}?type=history&uid=${profile.userId}`).then(r => r.json());
         const list = document.getElementById("history-list");
         
+        // กรณีไม่มีข้อมูล
         if (!res.history || res.history.length === 0) {
-          list.innerHTML = "<div class='text-center mt-5 text-muted'>ยังไม่มีประวัติการสั่งซื้อ</div>";
+          list.innerHTML = `
+            <div class="empty-state">
+              <div style="font-size: 4rem; opacity: 0.3;">📦</div>
+              <h5 class="fw-bold mt-3" style="color: #ffffff;">ไม่พบประวัติการสั่งซื้อ</h5>
+              <p class="small">ระบบไม่พบออเดอร์ที่เชื่อมโยงกับ ID ของคุณ</p>
+              <div class="p-2 mt-4 rounded" style="background: #212529; border: 1px dashed #444;">
+                <span class="small text-muted">My UserID:</span><br>
+                <code style="color: #0dcaf0; word-break: break-all;">${profile.userId}</code>
+              </div>
+              <p class="small text-muted mt-2">(นำ ID นี้ไปเช็คในคอลัมน์ B ของชีต order)</p>
+            </div>`;
           return;
         }
 
+        // กรณีมีข้อมูล
         list.innerHTML = res.history.map(item => `
-          <div class="history-card">
-            <span class="status-badge bg-secondary text-white">${item.status}</span>
-            <div class="small text-info fw-bold mb-1">${item.order_id}</div>
-            <div class="fw-bold text-white">${item.bland}</div>
-            <div class="small text-muted mt-2">
-              จำนวน: ${item.amount} | ยอดรวม: <span class="text-success">฿${item.total}</span>
+          <div class="history-card shadow-sm">
+            <span class="status-badge bg-info text-dark fw-bold">${item.status}</span>
+            <div class="small fw-bold mb-1" style="color: #0dcaf0;">${item.order_id}</div>
+            <div class="fw-bold" style="color: #ffffff; font-size: 1.1rem;">${item.bland || 'ไม่ได้ระบุสินค้า'}</div>
+            <div class="small mt-2" style="color: #adb5bd;">
+              จำนวน: ${item.amount} | ยอดรวม: <span style="color: #2ecc71; font-weight: bold;">฿${item.total}</span>
             </div>
-            <hr style="border-color: #444;">
-            <div class="small text-muted" style="font-size: 0.7rem;">
+            <hr style="border-color: #343a40;">
+            <div class="small" style="font-size: 0.75rem; color: #6c757d;">
               📅 ${item.time}
             </div>
           </div>
@@ -65,6 +86,7 @@
 
       } catch (e) {
         console.error(e);
+        document.getElementById("history-list").innerHTML = "<div class='text-center mt-5 text-danger'>เกิดข้อผิดพลาดในการโหลดข้อมูล</div>";
       } finally {
         document.getElementById("loader").style.display = "none";
       }
