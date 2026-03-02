@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>จัดการสิทธิผู้ใช้งาน</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="Styles.css">
+  <style>
+    body { background-color: #121416 !important; color: white !important; }
+    .role-card { background: #1e2125 !important; border: 1px solid #343a40; border-radius: 15px; padding: 15px; margin-bottom: 10px; }
+    .btn-delete { color: #ff4d4d; cursor: pointer; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <div id="loader" style="position:fixed; inset:0; background:rgba(0,0,0,0.8); display:flex; align-items:center; justify-content:center; z-index:1000;">
+    <div class="spinner-border text-info"></div>
+  </div>
+
+  <div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h4 class="fw-bold m-0 text-info">🔐 จัดการสิทธิ</h4>
+      <button onclick="saveRoles()" id="btn-save" class="btn btn-success fw-bold">บันทึกทั้งหมด</button>
+    </div>
+
+    <div id="role-list"></div>
+
+    <div class="role-card text-center py-3" style="border: 2px dashed #444; cursor:pointer;" onclick="addRole()">
+      <div class="text-info">+ เพิ่มผู้ใช้งาน/สิทธิ</div>
+    </div>
+  </div>
+
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <script src="Config.js"></script>
+  <script>
+    let userRoles = [], currentAdminUid = "";
+
+    async function init() {
+      try {
+        await liff.init({ liffId: CONFIG.LIFF_ID_ADMIN });
+        if (!liff.isLoggedIn()) { liff.login(); return; }
+        const profile = await liff.getProfile();
+        currentAdminUid = profile.userId;
+
+        const res = await fetch(`${CONFIG.GAS_API}?type=admin_get_roles`).then(r => r.json());
+        userRoles = res.roles || [];
+        renderRoles();
+      } catch (e) { console.error(e); }
+      finally { document.getElementById("loader").style.display = "none"; }
+    }
+
+    function renderRoles() {
+      const list = document.getElementById("role-list");
+      list.innerHTML = userRoles.map((item, i) => `
+        <div class="role-card">
+          <div class="row align-items-center">
+            <div class="col-8">
+              <label class="small text-muted">UserID</label>
+              <input type="text" class="form-control bg-dark text-info border-0" value="${item.uid}" onchange="updateRoleData(${i}, 'uid', this.value)">
+            </div>
+            <div class="col-3">
+              <label class="small text-muted">สิทธิ</label>
+              <select class="form-select bg-dark text-white border-0" onchange="updateRoleData(${i}, 'role', this.value)">
+                <option value="Admin" ${item.role === 'Admin' ? 'selected' : ''}>Admin</option>
+                <option value="Staff" ${item.role === 'Staff' ? 'selected' : ''}>Staff</option>
+              </select>
+            </div>
+            <div class="col-1 text-end">
+              <span class="btn-delete" onclick="removeRole(${i})">✕</span>
+            </div>
+          </div>
+        </div>
+      `).join("");
+    }
+
+    function updateRoleData(i, f, v) { userRoles[i][f] = v; }
+    function addRole() { userRoles.push({ uid: "", role: "Staff" }); renderRoles(); }
+    function removeRole(i) { userRoles.splice(i, 1); renderRoles(); }
+
+    async function saveRoles() {
+      const btn = document.getElementById("btn-save");
+      btn.disabled = true; btn.innerText = "กำลังเซฟ...";
+      try {
+        await fetch(CONFIG.GAS_API, {
+          method: "POST",
+          body: JSON.stringify({ type: "admin_update_roles", adminUid: currentAdminUid, data: userRoles })
+        });
+        alert("อัปเดตสิทธิเรียบร้อย!");
+      } catch (e) { alert("ล้มเหลว"); }
+      finally { btn.disabled = false; btn.innerText = "บันทึกทั้งหมด"; }
+    }
+    window.onload = init;
+  </script>
+</body>
+</html>
