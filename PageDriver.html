@@ -7,76 +7,173 @@
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="Styles.css">
+  <style>
+    body { background-color: #121416 !important; color: #e0e0e0; }
+    .order-card {
+      background: #1e2125;
+      border: 1px solid #343a40;
+      transition: 0.3s;
+    }
+    .modal-card {
+      background: #1e2125 !important;
+      color: white;
+      border: 1px solid #3fbaf5;
+    }
+    .preview-container {
+      width: 100%;
+      height: 200px;
+      background: #000;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      border: 1px dashed #444;
+    }
+    #driver-preview {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+  </style>
 </head>
 <body>
-  <div id="loader"><div class="spinner-border text-info"></div></div>
-  <div class="container mt-3">
+  <div id="loader" style="position:fixed; inset:0; background:rgba(0,0,0,0.8); display:flex; align-items:center; justify-content:center; z-index:1001;">
+    <div class="spinner-border text-info"></div>
+  </div>
+
+  <div class="container mt-3" style="padding-bottom: 50px;">
     <h3 class="fw-bold text-info mb-4">🚚 รายการรอจัดส่ง</h3>
     <div id="driver-order-list"></div>
   </div>
 
-  <div id="upload-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:1000; padding:20px;">
-    <div class="modal-card bg-white p-4 rounded-4 shadow-lg mx-auto mt-5" style="max-width:500px; color:#333;">
-      <h5 class="fw-bold mb-3">📸 ยืนยันการส่งสินค้า</h5>
-      <p id="modal-order-id" class="small text-muted"></p>
-      <input type="file" accept="image/*" id="driverSlipInput" class="form-control mb-3">
-      <img id="driver-preview" class="img-fluid rounded mb-3" style="display:none;">
-      <button id="btn-submit-delivery" class="btn btn-success w-100 p-3 fw-bold" disabled onclick="submitDelivery()">ยืนยันส่งสำเร็จ</button>
-      <button class="btn btn-link w-100 text-muted mt-2" onclick="closeUploadModal()">ยกเลิก</button>
+  <div id="upload-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.9); z-index:1000; padding:20px; overflow-y: auto;">
+    <div class="modal-card p-4 rounded-4 shadow-lg mx-auto mt-2" style="max-width:450px;">
+      <h5 class="fw-bold mb-1 text-info">📸 ยืนยันการส่งสินค้า</h5>
+      <p id="modal-order-id" class="small text-muted mb-4"></p>
+      
+      <div class="mb-4">
+        <label class="form-label small text-white-50">หลักฐานการส่ง (ถ่ายภาพหรือเลือกไฟล์)</label>
+        <input type="file" accept="image/*" id="driverSlipInput" class="form-control bg-dark text-white border-secondary mb-2">
+        
+        <div class="preview-container mt-2">
+          <div id="preview-placeholder" class="text-muted small text-center p-3">ยังไม่ได้เลือกรูปภาพ<br>(แตะปุ่มด้านบนเพื่อถ่ายภาพ)</div>
+          <img id="driver-preview" style="display:none;">
+        </div>
+      </div>
+
+      <div class="bg-black p-3 rounded-3 mb-4 border border-secondary">
+        <div id="gps-status" class="small">🛰️ กำลังดึงพิกัด GPS...</div>
+      </div>
+
+      <div class="d-grid gap-2">
+        <button id="btn-submit-delivery" class="btn btn-info p-3 fw-bold text-dark" disabled onclick="submitDelivery()">✅ ยืนยันส่งสำเร็จ</button>
+        <button class="btn btn-link text-muted" onclick="closeUploadModal()">ยกเลิก</button>
+      </div>
     </div>
   </div>
 
   <script src="Config.js"></script>
   <script>
-    let currentOrderId = "", driverImageBase64 = "";
+    let currentOrderId = "", driverImageBase64 = "", currentGps = "";
+
     async function init() {
       try {
         await liff.init({ liffId: CONFIG.LIFF_ID_DRIVER });
         if (!liff.isLoggedIn()) { liff.login(); return; }
         loadDriverOrders();
-      } catch (e) { console.error(e); document.getElementById("loader").style.display = "none"; }
+      } catch (e) { console.error(e); }
     }
+
     function loadDriverOrders() {
       fetch(`${CONFIG.GAS_API}?type=driver_list`)
         .then(res => res.json()).then(res => {
           const list = document.getElementById("driver-order-list");
           if (!res.orders || res.orders.length === 0) { 
-            list.innerHTML = "<p class='text-center text-muted mt-5'>ไม่มีรายการที่ต้องส่ง</p>"; 
+            list.innerHTML = "<div class='text-center mt-5'><p class='text-muted'>เย้! ไม่มีงานค้างแล้ว 🎉</p></div>"; 
             return; 
           }
           list.innerHTML = res.orders.map(o => `
-            <div class="order-card p-3 mb-3 bg-dark rounded-3 border-start border-info border-4">
-              <div class="d-flex justify-content-between mb-2">
+            <div class="order-card p-3 mb-3 rounded-3 border-start border-info border-4 shadow-sm">
+              <div class="d-flex justify-content-between align-items-start mb-2">
                 <span class="badge bg-info text-dark">${o.order_id}</span>
-                <small class="text-muted">${o.time}</small>
+                <small class="text-muted" style="font-size: 0.7rem;">🕒 ${o.time}</small>
               </div>
-              <div class="fw-bold text-white mb-1">👤 ${o.customer}</div>
-              <div class="text-info small mb-2">📍 ${o.locat}</div>
-              <button class="btn btn-outline-info w-100 btn-sm fw-bold" onclick="openUploadModal('${o.order_id}')">📸 ส่งของเรียบร้อย</button>
+              <div class="fw-bold text-white mb-1" style="font-size: 1.1rem;">👤 ${o.customer}</div>
+              <div class="text-info small mb-3">📍 ${o.locat}</div>
+              <div class="row g-2">
+                <div class="col-4">
+                  <a href="https://www.google.com/maps/search/?api=1&query=${o.gps}" class="btn btn-outline-secondary w-100 btn-sm py-2">🗺️ แผนที่</a>
+                </div>
+                <div class="col-8">
+                  <button class="btn btn-info w-100 btn-sm py-2 fw-bold text-dark" onclick="openUploadModal('${o.order_id}')">📷 ส่งงาน</button>
+                </div>
+              </div>
             </div>`).join("");
         }).finally(() => { document.getElementById("loader").style.display = "none"; });
     }
+
     function openUploadModal(id) {
       currentOrderId = id;
-      document.getElementById("modal-order-id").innerText = "Order: " + id;
+      document.getElementById("modal-order-id").innerText = "เลขออเดอร์: " + id;
       document.getElementById("upload-modal").style.display = "block";
+      
+      // ดึงพิกัดทันที
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(pos => {
+          currentGps = `${pos.coords.latitude},${pos.coords.longitude}`;
+          document.getElementById("gps-status").innerHTML = `<span class="text-success">📍 พิกัดพร้อม: ${currentGps}</span>`;
+        }, err => {
+          document.getElementById("gps-status").innerHTML = `<span class="text-warning">⚠️ GPS ถูกปิดอยู่ (แต่ยังส่งงานได้)</span>`;
+        });
+      }
+
       document.getElementById("driverSlipInput").onchange = e => {
+        const file = e.target.files[0];
+        if (!file) return;
         const reader = new FileReader();
         reader.onload = () => {
           driverImageBase64 = reader.result;
           document.getElementById("driver-preview").src = driverImageBase64;
           document.getElementById("driver-preview").style.display = "block";
+          document.getElementById("preview-placeholder").style.display = "none";
           document.getElementById("btn-submit-delivery").disabled = false;
         };
-        reader.readAsDataURL(e.target.files[0]);
+        reader.readAsDataURL(file);
       };
     }
-    function closeUploadModal() { document.getElementById("upload-modal").style.display = "none"; }
+
+    function closeUploadModal() {
+      document.getElementById("upload-modal").style.display = "none";
+      // ล้างข้อมูลเดิม
+      document.getElementById("driverSlipInput").value = "";
+      document.getElementById("driver-preview").style.display = "none";
+      document.getElementById("preview-placeholder").style.display = "block";
+      document.getElementById("btn-submit-delivery").disabled = true;
+    }
+
     async function submitDelivery() {
       const btn = document.getElementById("btn-submit-delivery");
-      btn.disabled = true; btn.innerText = "กำลังบันทึก...";
-      fetch(CONFIG.GAS_API, { method: "POST", body: JSON.stringify({ type: "update_delivery", orderId: currentOrderId, image: driverImageBase64 }) })
-      .then(() => { alert("บันทึกสำเร็จ!"); closeUploadModal(); loadDriverOrders(); });
+      btn.disabled = true; btn.innerText = "กำลังอัปโหลด...";
+      
+      try {
+        const response = await fetch(CONFIG.GAS_API, {
+          method: "POST",
+          body: JSON.stringify({
+            type: "update_delivery",
+            orderId: currentOrderId,
+            image: driverImageBase64,
+            currentGps: currentGps
+          })
+        });
+        alert("บันทึกการจัดส่งสำเร็จ!");
+        closeUploadModal();
+        loadDriverOrders();
+      } catch (e) {
+        alert("เกิดข้อผิดพลาดในการบันทึก กรุณาลองใหม่");
+        btn.disabled = false;
+        btn.innerText = "✅ ยืนยันส่งสำเร็จ";
+      }
     }
     window.onload = init;
   </script>
