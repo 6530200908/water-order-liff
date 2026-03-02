@@ -36,7 +36,7 @@
   <script>
     async function init() {
       try {
-        await liff.init({ liffId: "YOUR_LIFF_ID_HISTORY" }); // ใส่ LIFF ID สำหรับหน้าประวัติ
+        await liff.init({ liffId: "2008821220-DC2vs4n2" }); // ใส่ LIFF ID สำหรับหน้าประวัติ
         if (!liff.isLoggedIn()) { liff.login(); return; }
         const profile = await liff.getProfile();
         
