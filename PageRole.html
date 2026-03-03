@@ -71,4 +71,37 @@
             </div>
             <div class="col-3">
               <label class="label-cyan">สิทธิการเข้าถึง</label>
-              <select class="form-select form-control-dark" onchange="updateRoleData(${i},
+              <select class="form-select form-control-dark" onchange="updateRoleData(${i}, 'role', this.value)">
+                <option value="Admin" ${item.role === 'Admin' ? 'selected' : ''}>Admin</option>
+                <option value="Staff" ${item.role === 'Staff' ? 'selected' : ''}>Staff</option>
+              </select>
+            </div>
+            <div class="col-1 text-end">
+              <span class="btn-delete" onclick="removeRole(${i})">✕</span>
+            </div>
+          </div>
+        </div>
+      `).join("");
+    }
+
+    function updateRoleData(i, f, v) { userRoles[i][f] = v; }
+    function addRole() { userRoles.push({ uid: "", role: "Staff" }); renderRoles(); }
+    function removeRole(i) { userRoles.splice(i, 1); renderRoles(); }
+
+    async function saveRoles() {
+      const btn = document.getElementById("btn-save");
+      btn.disabled = true; 
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> กำลังบันทึก...';
+      try {
+        const res = await fetch(CONFIG.GAS_API, {
+          method: "POST",
+          body: JSON.stringify({ type: "admin_update_roles", adminUid: currentAdminUid, data: userRoles })
+        }).then(r => r.json());
+        if(res.status === "success") { alert("✅ อัปเดตสิทธิผู้ใช้งานเรียบร้อยแล้ว!"); }
+        else { alert("⚠️ บันทึกล้มเหลว: " + (res.msg || "ลองใหม่อีกครั้ง")); }
+      } catch (e) { alert("❌ เกิดข้อผิดพลาดในการเชื่อมต่อ"); }
+      finally { btn.disabled = false; btn.innerText = "บันทึกทั้งหมด"; }
+    }
+  </script>
+</body>
+</html>
