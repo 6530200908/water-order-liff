@@ -11,7 +11,7 @@ const CONFIG = {
   // ตั้งค่าสิทธิการเข้าถึงแต่ละหน้าตรงนี้ที่เดียว
   PAGE_PERMISSIONS: {
     "SUMMARY_PAGE": ["Admin", "Staff"],  // หน้าสรุปยอด
-    "ADMIN_PAGE":   ["Admin", "Staff"],  // หน้าจัดการสต็อก
+    "STOCK_PAGE":   ["Admin", "Staff"],  // หน้าจัดการสต็อก
     "DRIVER_PAGE":  ["Admin", "Staff"],  // หน้ารายการจัดส่ง
     "ROLE_PAGE":    ["Admin"]           // หน้าจัดการสิทธิ (เฉพาะ Admin)
   }
