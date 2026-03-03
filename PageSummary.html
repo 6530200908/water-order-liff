@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>สรุปยอดการขาย</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body { background-color: #121416; color: white; font-family: sans-serif; }
+    .stat-card { background: #1e2125; border-radius: 15px; padding: 20px; border: 1px solid #343a40; }
+    .filter-section { background: #1e2125; padding: 20px; border-radius: 15px; margin-bottom: 20px; }
+    .table-dark { --bs-table-bg: #1e2125; }
+    .text-info-custom { color: #0dcaf0; }
+  </cite></style>
+</head>
+<body>
+  <div id="loader" style="position:fixed; inset:0; background:rgba(0,0,0,0.8); display:flex; align-items:center; justify-content:center; z-index:1000;">
+    <div class="spinner-border text-info"></div>
+  </div>
+
+  <div class="container mt-4">
+    <h4 class="fw-bold text-info-custom mb-4">📊 สรุปยอดและการจัดการข้อมูล</h4>
+
+    <div class="filter-section shadow-sm">
+      <div class="row g-3">
+        <div class="col-md-3">
+          <label class="small text-muted">ID ลูกค้า / ชื่อ</label>
+          <input type="text" id="filter-user" class="form-control bg-dark text-white border-secondary" placeholder="ระบุ UID หรือชื่อ..." oninput="applyFilters()">
+        </div>
+        <div class="col-md-3">
+          <label class="small text-muted">ยี่ห้อสินค้า</label>
+          <input type="text" id="filter-bland" class="form-control bg-dark text-white border-secondary" placeholder="เช่น สิงห์, คริสตัล..." oninput="applyFilters()">
+        </div>
+        <div class="col-md-3">
+          <label class="small text-muted">ตั้งแต่วันที่</label>
+          <input type="date" id="filter-start" class="form-control bg-dark text-white border-secondary" onchange="applyFilters()">
+        </div>
+        <div class="col-md-3">
+          <label class="small text-muted">ถึงวันที่</label>
+          <input type="date" id="filter-end" class="form-control bg-dark text-white border-secondary" onchange="applyFilters()">
+        </div>
+      </div>
+    </div>
+
+    <div class="row g-3 mb-4 text-center">
+      <div class="col-6 col-md-3">
+        <div class="stat-card">
+          <div class="small text-muted">จำนวนออเดอร์</div>
+          <h3 id="stat-count" class="fw-bold mt-1 text-info">0</h3>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="stat-card">
+          <div class="small text-muted">ยอดขายรวม</div>
+          <h3 id="stat-total" class="fw-bold mt-1 text-success">฿0</h3>
+        </div>
+      </div>
+    </div>
+
+    <div class="table-responsive">
+      <table class="table table-dark table-hover align-middle shadow-sm" style="font-size: 0.85rem;">
+        <thead class="table-secondary text-dark">
+          <tr>
+            <th>Order ID</th>
+            <th>ลูกค้า</th>
+            <th>สินค้า</th>
+            <th>ยอดเงิน</th>
+            <th>วันที่/เวลา</th>
+            <th>สถานะ</th>
+          </tr>
+        </thead>
+        <tbody id="table-body">
+          </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script src="Config.js"></script>
+  <script>
+    let allOrders = [];
+
+    async function init() {
+      try {
+        const res = await fetch(`${CONFIG.GAS_API}?type=admin_get_summary`).then(r => r.json());
+        allOrders = res.orders || [];
+        applyFilters();
+      } catch (e) { console.error(e); }
+      finally { document.getElementById("loader").style.display = "none"; }
+    }
+
+    function applyFilters() {
+      const userKey = document.getElementById("filter-user").value.toLowerCase();
+      const blandKey = document.getElementById("filter-bland").value.toLowerCase();
+      const startDate = document.getElementById("filter-start").value;
+      const endDate = document.getElementById("filter-end").value;
+
+      const filtered = allOrders.filter(o => {
+        const matchUser = o.uid.toLowerCase().includes(userKey) || o.customer.toLowerCase().includes(userKey);
+        const matchBland = o.bland.toLowerCase().includes(blandKey);
+        
+        // จัดการวันที่
+        const orderDate = new Date(o.time).toISOString().split('T')[0];
+        const matchStart = startDate ? orderDate >= startDate : true;
+        const matchEnd = endDate ? orderDate <= endDate : true;
+
+        return matchUser && matchBland && matchStart && matchEnd;
+      });
+
+      renderData(filtered);
+    }
+
+    function renderData(data) {
+      const tbody = document.getElementById("table-body");
+      let totalSales = 0;
+
+      tbody.innerHTML = data.map(o => {
+        totalSales += o.total;
+        const dateStr = new Date(o.time).toLocaleString('th-TH', { day:'2-digit', month:'2-digit', year:'2-digit', hour:'2-digit', minute:'2-digit' });
+        
+        return `
+          <tr>
+            <td class="text-info">${o.order_id}</td>
+            <td>${o.customer}<br><small class="text-muted">${o.uid.substring(0,8)}...</small></td>
+            <td>${o.bland}</td>
+            <td class="fw-bold text-success">฿${o.total.toLocaleString()}</td>
+            <td>${dateStr}</td>
+            <td><span class="badge ${getStatusClass(o.status)}">${o.status}</span></td>
+          </tr>
+        `;
+      }).join("");
+
+      document.getElementById("stat-count").innerText = data.length;
+      document.getElementById("stat-total").innerText = `฿${totalSales.toLocaleString()}`;
+    }
+
+    function getStatusClass(status) {
+      if (status.includes("ส่งสำเร็จ")) return "bg-success";
+      if (status.includes("ยกเลิก")) return "bg-danger";
+      return "bg-warning text-dark";
+    }
+
+    window.onload = init;
+  </script>
+</body>
+</html>
