@@ -8,6 +8,7 @@ const CONFIG = {
   LIFF_ID_HISTORY:"2008821220-DC2vs4n2",
   LIFF_ID_ROLE: "2008821220-5DyuuHwJ",
   WEBHOOK_SLIP: "https://amarin-650200908-drinking-water-bot.hf.space/webhook/upload-slip2",
+  WEBHOOK_Delivery: "https://amarin-650200908-drinking-water-bot.hf.space/webhook/delivery",
   // ตั้งค่าสิทธิการเข้าถึงแต่ละหน้าตรงนี้ที่เดียว
   PAGE_PERMISSIONS: {
     "SUMMARY_PAGE": ["Admin", "Staff"],  // หน้าสรุปยอด
