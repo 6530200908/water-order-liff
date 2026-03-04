@@ -353,27 +353,24 @@ document.getElementById("preview-placeholder").style.display="block"
 async function submitDelivery(){
 
 const btn=document.getElementById("btn-submit-delivery")
-
 const originalHtml=btn.innerHTML
 
 btn.disabled=true
-
-btn.innerHTML=
-'<span class="spinner-border spinner-border-sm"></span> กำลังบันทึก...'
-
+btn.innerHTML='<span class="spinner-border spinner-border-sm"></span> กำลังบันทึก...'
 
 try{
 
+// ตรวจว่ามีรูปหรือยัง
 if(!driverImageBase64){
-
 alert("กรุณาแนบรูปก่อน")
-
+btn.disabled=false
+btn.innerHTML=originalHtml
 return
-
 }
 
 
-await fetch(CONFIG.GAS_API,{
+// 1️⃣ ส่งข้อมูลไป Google Apps Script
+const gasRes = await fetch(CONFIG.GAS_API,{
 method:"POST",
 body:JSON.stringify({
 type:"update_delivery",
@@ -383,14 +380,18 @@ currentGps:currentGps
 })
 })
 
+if(!gasRes.ok){
+throw new Error("GAS update failed")
+}
 
+
+// 2️⃣ ส่งข้อมูลไป Webhook
 const payload={
 orderId:currentOrderId,
 image:driverImageBase64,
 gps:currentGps,
 time:new Date().toISOString()
 }
-
 
 const res=await fetch(CONFIG.WEBHOOK_Delivery,{
 method:"POST",
@@ -400,15 +401,12 @@ headers:{
 body:JSON.stringify(payload)
 })
 
-
 if(!res.ok){
-
 throw new Error("Webhook upload failed")
-
 }
 
 
-
+// 3️⃣ แจ้ง LINE
 try{
 
 await liff.sendMessages([
@@ -425,10 +423,10 @@ console.warn("sendMessages fail",e)
 }
 
 
+// 4️⃣ สำเร็จ
 alert("✅ บันทึกการจัดส่งสำเร็จ!")
 
 closeUploadModal()
-
 loadDriverOrders()
 
 }
@@ -436,7 +434,6 @@ loadDriverOrders()
 catch(err){
 
 console.error(err)
-
 alert("❌ เกิดข้อผิดพลาดในการส่งข้อมูล")
 
 }
