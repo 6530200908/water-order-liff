@@ -3,56 +3,94 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>สถานะออเดอร์</title>
-  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <title>สถานะออเดอร์ - Water Delivery</title>
+  
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="Styles.css">
 </head>
 <body>
-  <div id="page-status">
-    <h4 class="fw-bold mb-4 mt-2">📦 ติดตามออเดอร์</h4>
+
+  <div id="loader" style="position:fixed; inset:0; background:rgba(0,0,0,0.8); display:flex; align-items:center; justify-content:center; z-index:1000;">
+    <div class="spinner-border text-info"></div>
+  </div>
+
+  <div id="page-status" class="container mt-3 pb-5" style="display: none;">
+    <h4 class="fw-bold mb-4 mt-2 text-info">📦 ติดตามออเดอร์</h4>
     
     <div class="order-card shadow">
         <div class="small text-muted mb-1 fw-bold">ORDER ID</div>
-        <div id="o-id" class="h4 fw-bold">ORD-XXXXXXXX</div>
+        <div id="o-id" class="h4 fw-bold">กำลังโหลด...</div>
         
         <div class="small text-muted mt-4 mb-1 fw-bold">รายการสินค้า</div>
         <div id="o-items" class="h5 fw-normal">กำลังโหลด...</div>
     </div>
 
-    <div id="timeline-box" class="mt-5">
+    <div id="timeline-box">
         </div>
   </div>
 
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <script src="Config.js"></script>
   <script>
     async function init() {
       try {
         await liff.init({ liffId: CONFIG.LIFF_ID_STATUS });
         if (!liff.isLoggedIn()) { liff.login(); return; }
+        
         const profile = await liff.getProfile();
+        // ดึงข้อมูลสถานะล่าสุดจาก Google Apps Script
         const res = await fetch(`${CONFIG.GAS_API}?type=status&uid=${profile.userId}`).then(r => r.json());
         
+        const pageStatus = document.getElementById("page-status");
+        const loader = document.getElementById("loader");
+
         if(!res.order) {
-           document.getElementById("page-status").innerHTML = "<div class='text-center mt-5 text-muted'>ไม่พบข้อมูลออเดอร์</div>";
-           return;
+            pageStatus.innerHTML = `
+              <div class='text-center mt-5'>
+                <div class='fs-1 mb-3'>📭</div>
+                <div class='text-muted'>ไม่พบข้อมูลออเดอร์ล่าสุดของคุณ</div>
+                <button class='btn btn-outline-info btn-sm mt-3' onclick='location.reload()'>รีเฟรช</button>
+              </div>`;
+            pageStatus.style.display = "block";
+            loader.style.display = "none";
+            return;
         }
 
+        // แสดง ID และ รายการสินค้า
         document.getElementById("o-id").innerText = res.order.id;
         document.getElementById("o-items").innerText = res.order.items;
         
         const box = document.getElementById("timeline-box");
         const steps = res.statusMaster;
-        const activeIdx = steps.findIndex(s => s.desc.trim() === res.order.status.trim());
+        
+        // เปรียบเทียบสถานะปัจจุบันจาก DB กับรายการสถานะทั้งหมด
+        const currentStatus = res.order.status.trim();
+        const activeIdx = steps.findIndex(s => s.desc.trim() === currentStatus);
 
-        box.innerHTML = steps.map((s, i) => `
-          <div class="t-item ${i < activeIdx ? 'done' : (i === activeIdx ? 'active' : '')}">
-            <div class="t-icon"></div>
-            <div class="t-text">${s.desc}</div>
-          </div>
-        `).join("");
+        // Render Timeline
+        box.innerHTML = steps.map((s, i) => {
+            let stateClass = "";
+            // ถ้า Index น้อยกว่าปัจจุบัน = ทำเสร็จแล้ว (done)
+            if (i < activeIdx) stateClass = "done";
+            // ถ้า Index เท่ากับปัจจุบัน = กำลังทำ (active)
+            else if (i === activeIdx) stateClass = "active";
 
-      } catch (e) { console.error(e); }
+            return `
+              <div class="t-item ${stateClass}">
+                <div class="t-icon"></div>
+                <div class="t-text">${s.desc}</div>
+              </div>
+            `;
+        }).join("");
+
+        pageStatus.style.display = "block";
+        loader.style.display = "none";
+
+      } catch (e) { 
+        console.error(e);
+        alert("เกิดข้อผิดพลาดในการโหลดข้อมูล");
+      }
     }
     window.onload = init;
   </script>
