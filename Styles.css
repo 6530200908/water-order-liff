@@ -1,9 +1,9 @@
 :root {
-  --main-bg: #121416;
-  --card-bg: #212529;
-  --accent: #0dcaf0;
-  --text-white: #ffffff;
-  --text-muted: #94a3b8;
+  --main-bg: #0f172a;      /* ปรับพื้นหลังเป็นน้ำเงินเข้มจัดเพื่อให้สี Cyan เด่นขึ้น */
+  --card-bg: #1e293b;      /* พื้นหลังการ์ดให้สว่างกว่าพื้นหลังหลักเล็กน้อย */
+  --accent: #0dcaf0;       /* สีฟ้า Cyan สว่าง */
+  --text-white: #f8fafc;   /* ขาวนวล สบายตา */
+  --text-muted: #94a3b8;   /* เทาสว่าง (สำหรับรายละเอียดที่รองลงมา) */
   --border-color: #334155;
 }
 
@@ -11,48 +11,107 @@ body {
   background-color: var(--main-bg) !important;
   color: var(--text-white) !important;
   font-family: 'Sarabun', 'Chakra Petch', sans-serif;
-  padding: 15px;
+  padding: 20px;
+  line-height: 1.6;
 }
 
-/* ส่วนหัวข้อ Label ในหน้า Filter */
+/* --- Dashboard & Card UI --- */
+.order-card, .stat-card, .chart-box, .table-dark-custom {
+  background: var(--card-bg) !important;
+  border-radius: 16px;
+  padding: 24px;
+  margin-bottom: 24px;
+  border: 1px solid var(--border-color);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+}
+
 .label-cyan {
   color: var(--accent) !important;
-  font-weight: bold;
-  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  font-size: 0.8rem;
   margin-bottom: 8px;
   display: block;
 }
 
-/* ปรับช่อง Input ให้ตัวหนังสือขาวชัดเจน ไม่เทา */
+/* แก้ไข Input ให้ตัวหนังสือขาวชัดเจน */
 .form-control-dark {
-  background-color: #1e293b !important;
+  background-color: #0f172a !important;
   color: #ffffff !important;
   border: 1px solid var(--border-color) !important;
+  border-radius: 8px;
 }
 
-.form-control-dark:focus {
-  border-color: var(--accent) !important;
-  box-shadow: 0 0 0 0.25rem rgba(13, 202, 240, 0.25);
+/* --- หน้าติดตามออเดอร์ (Timeline) --- */
+#timeline-box {
+  position: relative;
+  padding-left: 50px;
+  margin-top: 30px;
 }
 
-/* Timeline ในหน้า Status */
-#timeline-box { position: relative; padding-left: 45px; margin-top: 20px; }
+/* เส้นเชื่อมแนวตั้ง (ปรับให้สว่างขึ้น) */
 #timeline-box::before {
-  content: ''; position: absolute; left: 20px; top: 10px; bottom: 10px;
-  width: 3px; background: var(--border-color); z-index: 1;
+  content: '';
+  position: absolute;
+  left: 22px;
+  top: 5px;
+  bottom: 5px;
+  width: 2px;
+  background: #334155;
 }
-.t-item { position: relative; padding-bottom: 50px; z-index: 2; }
+
+.t-item {
+  position: relative;
+  padding-bottom: 40px;
+}
+
+/* จุดสถานะปกติ */
 .t-icon {
-  position: absolute; left: -35px; width: 24px; height: 24px;
-  background: #1e293b; border: 3px solid var(--border-color); border-radius: 50%;
+  position: absolute;
+  left: -38px;
+  width: 20px;
+  height: 20px;
+  background: #0f172a;
+  border: 2px solid #475569;
+  border-radius: 50%;
+  z-index: 2;
+  transition: all 0.3s ease;
 }
 
-/* ตัวหนังสือสถานะที่ยังไม่ถึง ให้เป็นสีเทาสว่างแทนเทามืด */
-.t-text { font-size: 1.1rem; color: #cbd5e1; padding-top: 2px; }
-
-.t-item.done .t-icon, .t-item.active .t-icon {
-  background: var(--accent) !important; border-color: var(--accent) !important;
+/* ตัวหนังสือสถานะ (ปรับให้สว่างขึ้นเพื่อไม่ให้กลืนพื้นหลัง) */
+.t-text {
+  font-size: 1rem;
+  color: #64748b; /* สีเทาสว่างกว่าเดิม */
+  font-weight: 500;
+  transition: all 0.3s ease;
 }
-.t-item.done .t-text { color: var(--text-white) !important; }
-.t-item.active .t-text { color: var(--accent) !important; font-weight: bold; }
-.t-item.active .t-icon { box-shadow: 0 0 20px var(--accent); transform: scale(1.1); }
+
+/* สถานะที่สำเร็จแล้ว (Done) */
+.t-item.done .t-icon {
+  background: var(--accent) !important;
+  border-color: var(--accent) !important;
+}
+.t-item.done .t-text {
+  color: var(--text-white) !important;
+}
+
+/* สถานะปัจจุบัน (Active) */
+.t-item.active .t-icon {
+  background: var(--accent) !important;
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 15px var(--accent);
+  transform: scale(1.2);
+}
+.t-item.active .t-text {
+  color: var(--accent) !important;
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+
+/* ตาราง Dashboard */
+.table thead th {
+  background-color: rgba(13, 202, 240, 0.05) !important;
+  color: var(--accent) !important;
+  border-bottom: 2px solid var(--border-color);
+}
