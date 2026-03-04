@@ -4,96 +4,55 @@
   --accent: #0dcaf0;
   --text-white: #ffffff;
   --text-muted: #94a3b8;
+  --border-color: #334155;
 }
 
 body {
   background-color: var(--main-bg) !important;
   color: var(--text-white) !important;
-  font-family: 'Sarabun', sans-serif;
+  font-family: 'Sarabun', 'Chakra Petch', sans-serif;
   padding: 15px;
 }
 
-.order-card {
-  background: var(--card-bg) !important;
-  border-radius: 20px;
-  padding: 25px;
-  margin-bottom: 30px;
-  border: 1px solid #334155;
-}
-
-#o-id { color: var(--accent) !important; }
-
-/* --- Timeline Section --- */
-#timeline-box {
-  position: relative;
-  padding-left: 45px;
-  margin-top: 20px;
-}
-
-/* เส้นพื้นหลัง (เทา) */
-#timeline-box::before {
-  content: '';
-  position: absolute;
-  left: 20px;
-  top: 10px;
-  bottom: 10px;
-  width: 3px;
-  background: #334155;
-  z-index: 1;
-}
-
-.t-item {
-  position: relative;
-  padding-bottom: 50px;
-  z-index: 2;
-}
-
-/* จุดวงกลม */
-.t-icon {
-  position: absolute;
-  left: -35px;
-  width: 24px;
-  height: 24px;
-  background: #1e293b;
-  border: 3px solid #334155;
-  border-radius: 50%;
-  transition: 0.4s all ease;
-}
-
-.t-text {
-  font-size: 1.1rem;
-  color: #475569;
-  padding-top: 2px;
-  transition: 0.4s all ease;
-}
-
-/* --- สถานะ Active & Done (แสงสว่าง) --- */
-
-.t-item.done .t-icon, 
-.t-item.active .t-icon {
-  background: var(--accent) !important;
-  border-color: var(--accent) !important;
-}
-
-.t-item.done .t-text {
-  color: var(--text-white) !important;
-}
-
-.t-item.active .t-text {
+/* ส่วนหัวข้อ Label ในหน้า Filter */
+.label-cyan {
   color: var(--accent) !important;
   font-weight: bold;
-  text-shadow: 0 0 10px rgba(13, 202, 240, 0.3);
+  font-size: 0.85rem;
+  margin-bottom: 8px;
+  display: block;
 }
 
-/* เอฟเฟกต์เรืองแสงเฉพาะจุดปัจจุบัน */
-.t-item.active .t-icon {
-  box-shadow: 0 0 20px var(--accent);
-  transform: scale(1.1);
-}
-
-/* บังคับช่อง Input ให้เข้ม */
-.form-control {
+/* ปรับช่อง Input ให้ตัวหนังสือขาวชัดเจน ไม่เทา */
+.form-control-dark {
   background-color: #1e293b !important;
-  color: white !important;
-  border: 1px solid #334155 !important;
+  color: #ffffff !important;
+  border: 1px solid var(--border-color) !important;
 }
+
+.form-control-dark:focus {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 0.25rem rgba(13, 202, 240, 0.25);
+}
+
+/* Timeline ในหน้า Status */
+#timeline-box { position: relative; padding-left: 45px; margin-top: 20px; }
+#timeline-box::before {
+  content: ''; position: absolute; left: 20px; top: 10px; bottom: 10px;
+  width: 3px; background: var(--border-color); z-index: 1;
+}
+.t-item { position: relative; padding-bottom: 50px; z-index: 2; }
+.t-icon {
+  position: absolute; left: -35px; width: 24px; height: 24px;
+  background: #1e293b; border: 3px solid var(--border-color); border-radius: 50%;
+}
+
+/* ตัวหนังสือสถานะที่ยังไม่ถึง ให้เป็นสีเทาสว่างแทนเทามืด */
+.t-text { font-size: 1.1rem; color: #cbd5e1; padding-top: 2px; }
+
+.t-item.done .t-icon, .t-item.active .t-icon {
+  background: var(--accent) !important; border-color: var(--accent) !important;
+}
+.t-item.done .t-text { color: var(--text-white) !important; }
+.t-item.active .t-text { color: var(--accent) !important; font-weight: bold; }
+.t-item.active .t-icon { box-shadow: 0 0 20px var(--accent); transform: scale(1.1); }
