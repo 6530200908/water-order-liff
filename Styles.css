@@ -1,9 +1,10 @@
 :root {
-  --main-bg: #0f172a;      /* ปรับพื้นหลังเป็นน้ำเงินเข้มจัดเพื่อให้สี Cyan เด่นขึ้น */
-  --card-bg: #1e293b;      /* พื้นหลังการ์ดให้สว่างกว่าพื้นหลังหลักเล็กน้อย */
-  --accent: #0dcaf0;       /* สีฟ้า Cyan สว่าง */
-  --text-white: #f8fafc;   /* ขาวนวล สบายตา */
-  --text-muted: #94a3b8;   /* เทาสว่าง (สำหรับรายละเอียดที่รองลงมา) */
+  /* รักษาโทนเดิมแต่ปรับพื้นหลังให้ลึกขึ้นเพื่อขับตัวหนังสือ */
+  --main-bg: #0f172a;      
+  --card-bg: #1e293b;      
+  --accent: #0dcaf0;       /* Cyan สว่าง */
+  --text-white: #ffffff;   /* ขาวบริสุทธิ์ 100% เพื่อความชัดเจน */
+  --text-muted: #cbd5e1;   /* ปรับจาก 94a3b8 เป็น cbd5e1 (สว่างขึ้นมาก) */
   --border-color: #334155;
 }
 
@@ -22,25 +23,35 @@ body {
   padding: 24px;
   margin-bottom: 24px;
   border: 1px solid var(--border-color);
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3); /* เพิ่มเงาให้การ์ดลอยเด่น */
 }
 
-.label-cyan {
-  color: var(--accent) !important;
-  font-weight: 700;
+/* แก้ไขจุดที่บอกว่ามองไม่เห็น: พวก Label เล็กๆ ด้านบน */
+.label-cyan, .small.text-muted {
+  color: var(--accent) !important; 
+  font-weight: 700 !important;
   letter-spacing: 0.5px;
   text-transform: uppercase;
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   margin-bottom: 8px;
   display: block;
+  opacity: 1 !important; /* ป้องกันการโดนจางสีจาก Framework อื่น */
 }
 
-/* แก้ไข Input ให้ตัวหนังสือขาวชัดเจน */
+/* บังคับสีข้อความใน stat-card ให้ขาวชัดเจน */
+.stat-card .text-muted {
+  color: #e2e8f0 !important; /* สีขาวเทาสว่าง อ่านง่ายกว่าเทามืด */
+}
+
+/* แก้ไข Input ให้ตัวหนังสือขาวชัดเจนและขอบไม่กลืน */
 .form-control-dark {
   background-color: #0f172a !important;
   color: #ffffff !important;
-  border: 1px solid var(--border-color) !important;
+  border: 1px solid #475569 !important; /* ขอบสว่างขึ้นนิดนึง */
   border-radius: 8px;
+}
+.form-control-dark::placeholder {
+  color: #94a3b8 !important; /* ตัวหนังสือแนะนำในช่องค้นหาก็ต้องเห็นชัด */
 }
 
 /* --- หน้าติดตามออเดอร์ (Timeline) --- */
@@ -50,7 +61,7 @@ body {
   margin-top: 30px;
 }
 
-/* เส้นเชื่อมแนวตั้ง (ปรับให้สว่างขึ้น) */
+/* เส้นเชื่อมแนวตั้ง */
 #timeline-box::before {
   content: '';
   position: absolute;
@@ -73,16 +84,16 @@ body {
   width: 20px;
   height: 20px;
   background: #0f172a;
-  border: 2px solid #475569;
+  border: 2px solid #64748b; /* ขอบจุดสว่างขึ้น */
   border-radius: 50%;
   z-index: 2;
   transition: all 0.3s ease;
 }
 
-/* ตัวหนังสือสถานะ (ปรับให้สว่างขึ้นเพื่อไม่ให้กลืนพื้นหลัง) */
+/* ตัวหนังสือสถานะ: แก้ไขจุดที่กลืนหายไปกับพื้นหลัง */
 .t-text {
   font-size: 1rem;
-  color: #64748b; /* สีเทาสว่างกว่าเดิม */
+  color: #94a3b8; /* ปรับให้สว่างกว่าเดิม (จาก 64748b เป็น 94a3b8) */
   font-weight: 500;
   transition: all 0.3s ease;
 }
@@ -93,25 +104,32 @@ body {
   border-color: var(--accent) !important;
 }
 .t-item.done .t-text {
-  color: var(--text-white) !important;
+  color: #f1f5f9 !important; /* ขาวเกือบสนิท */
 }
 
 /* สถานะปัจจุบัน (Active) */
 .t-item.active .t-icon {
   background: var(--accent) !important;
   border-color: var(--accent) !important;
-  box-shadow: 0 0 15px var(--accent);
-  transform: scale(1.2);
+  box-shadow: 0 0 20px rgba(13, 202, 240, 0.6); /* เรืองแสงแรงขึ้น */
+  transform: scale(1.25);
 }
 .t-item.active .t-text {
   color: var(--accent) !important;
   font-weight: 700;
-  font-size: 1.1rem;
+  font-size: 1.15rem;
+  text-shadow: 0 0 10px rgba(13, 202, 240, 0.3); /* เพิ่มเงาเรืองแสงให้ตัวหนังสือ */
 }
 
-/* ตาราง Dashboard */
+/* ตาราง Dashboard: หัวตารางต้องเด่น */
 .table thead th {
-  background-color: rgba(13, 202, 240, 0.05) !important;
+  background-color: rgba(13, 202, 240, 0.1) !important; /* พื้นหลังหัวตารางจางๆ */
   color: var(--accent) !important;
-  border-bottom: 2px solid var(--border-color);
+  border-bottom: 2px solid var(--accent) !important;
+  font-weight: 800 !important;
+}
+
+.table tbody td {
+  color: #ffffff !important; /* ตัวเลขและชื่อในตารางต้องขาวชัด */
+  border-bottom: 1px solid #1e293b;
 }
