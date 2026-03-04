@@ -1,11 +1,11 @@
 :root {
-  /* รักษาโทนเดิมที่คุณใช้ */
-  --main-bg: #0f172a;      
-  --card-bg: #1e293b;      
+  /* 1. บังคับพื้นหลังเป็นสีดำสนิท เพื่อไม่ให้สีตัวหนังสือกลืน */
+  --main-bg: #000000;      
+  --card-bg: #111111;      /* การ์ดสีเทาเข้มเกือบดำเพื่อให้ดูมีมิติ */
   --accent: #0dcaf0;       
   --text-white: #ffffff;   
-  --text-muted: #cbd5e1;   /* สว่างขึ้นเพื่อให้อ่านออกบนพื้นหลังเข้ม */
-  --border-color: #334155;
+  --text-muted: #f8fafc;   /* เปลี่ยนจากเทาเป็นขาวนวล เพื่อให้ "ขวาบน" ไม่หาย */
+  --border-color: #222222;
 }
 
 body {
@@ -19,41 +19,43 @@ body {
 /* --- Dashboard & Card UI --- */
 .order-card, .stat-card, .chart-box, .table-dark-custom {
   background: var(--card-bg) !important;
-  border-radius: 16px;
+  border-radius: 12px;
   padding: 24px;
   margin-bottom: 24px;
   border: 1px solid var(--border-color);
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+  /* ลบเงาฟุ้งๆ ออกเพื่อให้ขอบการ์ดตัดกับพื้นหลังดำชัดๆ */
+  box-shadow: none; 
 }
 
-/* แก้จุดที่มองไม่เห็น: พวก Label เล็กๆ ด้านบน และ ขวาบนของ Stat Card */
+/* แก้จุดที่มองไม่เห็น: พวก Label และตัวหนังสือขวาบน */
 .label-cyan, .small.text-muted, .stat-card .text-muted {
   color: var(--accent) !important; 
-  font-weight: 700 !important;
-  letter-spacing: 0.5px;
+  font-weight: 800 !important; /* เพิ่มความหนาเป็นพิเศษ */
+  letter-spacing: 1px;
   text-transform: uppercase;
-  font-size: 0.85rem;
-  margin-bottom: 8px;
+  font-size: 0.9rem;
+  margin-bottom: 10px;
   display: block;
-  opacity: 1 !important; /* บังคับให้ไม่จาง */
+  opacity: 1 !important;
 }
 
-/* ตัวเลขสถิติ */
+/* ตัวเลขสถิติ (ต้องเด่นที่สุด) */
 .stat-value {
   color: #ffffff !important;
-  font-size: 2rem;
-  font-weight: 800;
+  font-size: 2.2rem;
+  font-weight: 900;
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
 }
 
-/* แก้ไข Input ให้ตัวหนังสือขาวชัดและขอบไม่กลืนพื้นหลัง */
+/* แก้ไข Input ให้ตัวหนังสือขาวจั๊วะ */
 .form-control-dark {
-  background-color: #0f172a !important;
+  background-color: #000000 !important;
   color: #ffffff !important;
-  border: 1px solid #475569 !important; 
-  border-radius: 8px;
+  border: 1px solid #444444 !important; 
+  border-radius: 6px;
 }
 .form-control-dark::placeholder {
-  color: #94a3b8 !important;
+  color: #888888 !important; /* Placeholder ให้เห็นลางๆ พอ */
 }
 
 /* --- หน้าติดตามออเดอร์ (Timeline) --- */
@@ -63,6 +65,7 @@ body {
   margin-top: 30px;
 }
 
+/* เส้นเชื่อมแนวตั้ง (ปรับให้สว่างขึ้นเพื่อให้เห็นเส้นในความมืด) */
 #timeline-box::before {
   content: '';
   position: absolute;
@@ -70,32 +73,30 @@ body {
   top: 5px;
   bottom: 5px;
   width: 2px;
-  background: #334155;
+  background: #333333;
 }
 
 .t-item {
   position: relative;
-  padding-bottom: 40px;
+  padding-bottom: 45px;
 }
 
 .t-icon {
   position: absolute;
   left: -38px;
-  width: 20px;
-  height: 20px;
-  background: #0f172a;
-  border: 2px solid #64748b; 
+  width: 22px;
+  height: 22px;
+  background: #000000;
+  border: 2px solid #555555; 
   border-radius: 50%;
   z-index: 2;
-  transition: all 0.3s ease;
 }
 
-/* ตัวหนังสือสถานะ: แก้ไขจุดที่กลืนหายไป */
+/* ตัวหนังสือสถานะ: บังคับสีให้สว่างขึ้นกว่าเดิม */
 .t-text {
-  font-size: 1rem;
-  color: #94a3b8 !important; /* สว่างขึ้นให้อ่านออกแม้ยังไม่ถึงสถานะนั้น */
+  font-size: 1.1rem;
+  color: #cccccc !important; /* เปลี่ยนจากเทามืดเป็นเทาสว่างเกือบขาว */
   font-weight: 500;
-  transition: all 0.3s ease;
 }
 
 /* สถานะที่สำเร็จแล้ว (Done) */
@@ -104,34 +105,33 @@ body {
   border-color: var(--accent) !important;
 }
 .t-item.done .t-text {
-  color: #f1f5f9 !important;
+  color: #ffffff !important;
 }
 
 /* สถานะปัจจุบัน (Active) */
 .t-item.active .t-icon {
   background: var(--accent) !important;
   border-color: var(--accent) !important;
-  box-shadow: 0 0 20px rgba(13, 202, 240, 0.6);
-  transform: scale(1.25);
+  box-shadow: 0 0 25px rgba(13, 202, 240, 0.8); /* เรืองแสงแรงๆ */
+  transform: scale(1.3);
 }
 .t-item.active .t-text {
   color: var(--accent) !important;
-  font-weight: 700;
-  font-size: 1.15rem;
-  text-shadow: 0 0 10px rgba(13, 202, 240, 0.3);
+  font-weight: 800;
+  font-size: 1.2rem;
+  text-shadow: 0 0 15px rgba(13, 202, 240, 0.5);
 }
 
 /* ตาราง Dashboard */
 .table thead th {
-  background-color: rgba(13, 202, 240, 0.1) !important;
+  background-color: #000000 !important;
   color: var(--accent) !important;
-  border-bottom: 2px solid var(--accent) !important;
-  font-weight: 800 !important;
-  text-transform: uppercase;
+  border-bottom: 3px solid var(--accent) !important; /* เส้นหนาขึ้น */
+  font-weight: 900 !important;
 }
 
 .table tbody td {
   color: #ffffff !important;
-  border-bottom: 1px solid #1e293b;
-  padding: 12px 8px;
+  border-bottom: 1px solid #222222;
+  padding: 15px 10px;
 }
