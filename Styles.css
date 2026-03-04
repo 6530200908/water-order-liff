@@ -1,10 +1,10 @@
 :root {
-  /* รักษาโทนเดิมแต่ปรับพื้นหลังให้ลึกขึ้นเพื่อขับตัวหนังสือ */
+  /* รักษาโทนเดิมที่คุณใช้ */
   --main-bg: #0f172a;      
   --card-bg: #1e293b;      
-  --accent: #0dcaf0;       /* Cyan สว่าง */
-  --text-white: #ffffff;   /* ขาวบริสุทธิ์ 100% เพื่อความชัดเจน */
-  --text-muted: #cbd5e1;   /* ปรับจาก 94a3b8 เป็น cbd5e1 (สว่างขึ้นมาก) */
+  --accent: #0dcaf0;       
+  --text-white: #ffffff;   
+  --text-muted: #cbd5e1;   /* สว่างขึ้นเพื่อให้อ่านออกบนพื้นหลังเข้ม */
   --border-color: #334155;
 }
 
@@ -23,11 +23,11 @@ body {
   padding: 24px;
   margin-bottom: 24px;
   border: 1px solid var(--border-color);
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3); /* เพิ่มเงาให้การ์ดลอยเด่น */
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
 }
 
-/* แก้ไขจุดที่บอกว่ามองไม่เห็น: พวก Label เล็กๆ ด้านบน */
-.label-cyan, .small.text-muted {
+/* แก้จุดที่มองไม่เห็น: พวก Label เล็กๆ ด้านบน และ ขวาบนของ Stat Card */
+.label-cyan, .small.text-muted, .stat-card .text-muted {
   color: var(--accent) !important; 
   font-weight: 700 !important;
   letter-spacing: 0.5px;
@@ -35,23 +35,25 @@ body {
   font-size: 0.85rem;
   margin-bottom: 8px;
   display: block;
-  opacity: 1 !important; /* ป้องกันการโดนจางสีจาก Framework อื่น */
+  opacity: 1 !important; /* บังคับให้ไม่จาง */
 }
 
-/* บังคับสีข้อความใน stat-card ให้ขาวชัดเจน */
-.stat-card .text-muted {
-  color: #e2e8f0 !important; /* สีขาวเทาสว่าง อ่านง่ายกว่าเทามืด */
+/* ตัวเลขสถิติ */
+.stat-value {
+  color: #ffffff !important;
+  font-size: 2rem;
+  font-weight: 800;
 }
 
-/* แก้ไข Input ให้ตัวหนังสือขาวชัดเจนและขอบไม่กลืน */
+/* แก้ไข Input ให้ตัวหนังสือขาวชัดและขอบไม่กลืนพื้นหลัง */
 .form-control-dark {
   background-color: #0f172a !important;
   color: #ffffff !important;
-  border: 1px solid #475569 !important; /* ขอบสว่างขึ้นนิดนึง */
+  border: 1px solid #475569 !important; 
   border-radius: 8px;
 }
 .form-control-dark::placeholder {
-  color: #94a3b8 !important; /* ตัวหนังสือแนะนำในช่องค้นหาก็ต้องเห็นชัด */
+  color: #94a3b8 !important;
 }
 
 /* --- หน้าติดตามออเดอร์ (Timeline) --- */
@@ -61,7 +63,6 @@ body {
   margin-top: 30px;
 }
 
-/* เส้นเชื่อมแนวตั้ง */
 #timeline-box::before {
   content: '';
   position: absolute;
@@ -77,23 +78,22 @@ body {
   padding-bottom: 40px;
 }
 
-/* จุดสถานะปกติ */
 .t-icon {
   position: absolute;
   left: -38px;
   width: 20px;
   height: 20px;
   background: #0f172a;
-  border: 2px solid #64748b; /* ขอบจุดสว่างขึ้น */
+  border: 2px solid #64748b; 
   border-radius: 50%;
   z-index: 2;
   transition: all 0.3s ease;
 }
 
-/* ตัวหนังสือสถานะ: แก้ไขจุดที่กลืนหายไปกับพื้นหลัง */
+/* ตัวหนังสือสถานะ: แก้ไขจุดที่กลืนหายไป */
 .t-text {
   font-size: 1rem;
-  color: #94a3b8; /* ปรับให้สว่างกว่าเดิม (จาก 64748b เป็น 94a3b8) */
+  color: #94a3b8 !important; /* สว่างขึ้นให้อ่านออกแม้ยังไม่ถึงสถานะนั้น */
   font-weight: 500;
   transition: all 0.3s ease;
 }
@@ -104,32 +104,34 @@ body {
   border-color: var(--accent) !important;
 }
 .t-item.done .t-text {
-  color: #f1f5f9 !important; /* ขาวเกือบสนิท */
+  color: #f1f5f9 !important;
 }
 
 /* สถานะปัจจุบัน (Active) */
 .t-item.active .t-icon {
   background: var(--accent) !important;
   border-color: var(--accent) !important;
-  box-shadow: 0 0 20px rgba(13, 202, 240, 0.6); /* เรืองแสงแรงขึ้น */
+  box-shadow: 0 0 20px rgba(13, 202, 240, 0.6);
   transform: scale(1.25);
 }
 .t-item.active .t-text {
   color: var(--accent) !important;
   font-weight: 700;
   font-size: 1.15rem;
-  text-shadow: 0 0 10px rgba(13, 202, 240, 0.3); /* เพิ่มเงาเรืองแสงให้ตัวหนังสือ */
+  text-shadow: 0 0 10px rgba(13, 202, 240, 0.3);
 }
 
-/* ตาราง Dashboard: หัวตารางต้องเด่น */
+/* ตาราง Dashboard */
 .table thead th {
-  background-color: rgba(13, 202, 240, 0.1) !important; /* พื้นหลังหัวตารางจางๆ */
+  background-color: rgba(13, 202, 240, 0.1) !important;
   color: var(--accent) !important;
   border-bottom: 2px solid var(--accent) !important;
   font-weight: 800 !important;
+  text-transform: uppercase;
 }
 
 .table tbody td {
-  color: #ffffff !important; /* ตัวเลขและชื่อในตารางต้องขาวชัด */
+  color: #ffffff !important;
   border-bottom: 1px solid #1e293b;
+  padding: 12px 8px;
 }
