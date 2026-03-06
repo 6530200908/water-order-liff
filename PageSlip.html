@@ -74,7 +74,7 @@
 
         // เริ่มนับถอยหลัง 15 นาทีจากเวลาที่เปิดหน้า
         // ถ้าจะให้แม่นจริง ควรส่ง expire_at มาจากระบบแทน
-        startCountdown(15);
+        startCountdown(60 * 60);
 
       } catch (err) {
         console.error("LIFF init error:", err);
