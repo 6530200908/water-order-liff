@@ -18,6 +18,16 @@
       <h4 class="fw-bold mb-3">📤 อัปโหลดสลิป</h4>
       <p id="slip-order-text" class="text-info bg-black p-2 rounded small"></p>
 
+      <!-- กล่องแสดงเวลาคงเหลือ -->
+      <div id="timerBox" class="alert alert-warning fw-bold py-2">
+        เวลาที่เหลือ: <span id="countdown">15:00</span>
+      </div>
+
+      <!-- ข้อความหมดเวลา -->
+      <div id="expiredBox" class="alert alert-danger fw-bold py-2" style="display:none;">
+        ⏰ หมดเวลาชำระเงินแล้ว กรุณาสั่งรายการใหม่
+      </div>
+
       <input type="file" accept="image/*" id="slipInput" class="form-control mb-3">
       <img id="preview" class="img-fluid rounded mb-3 mx-auto"
            style="display:none; border: 2px dashed #0dcaf0; max-height:300px;">
@@ -36,6 +46,9 @@
   <script>
     let imageBase64 = "";
     let orderIdFromUrl = "";
+    let expireAt = null;
+    let countdownInterval = null;
+    let isExpired = false;
 
     async function init() {
       const urlParams = new URLSearchParams(window.location.search);
@@ -59,6 +72,10 @@
 
         document.getElementById("slipInput").addEventListener("change", handleFile);
 
+        // เริ่มนับถอยหลัง 15 นาทีจากเวลาที่เปิดหน้า
+        // ถ้าจะให้แม่นจริง ควรส่ง expire_at มาจากระบบแทน
+        startCountdown(15);
+
       } catch (err) {
         console.error("LIFF init error:", err);
         alert("ไม่สามารถเปิดหน้าได้");
@@ -68,17 +85,72 @@
       }
     }
 
-   function handleFile(e) {
+    function startCountdown(durationInSeconds) {
+      expireAt = Date.now() + durationInSeconds * 1000;
+
+      updateCountdown();
+
+      countdownInterval = setInterval(() => {
+        updateCountdown();
+      }, 1000);
+    }
+
+    function updateCountdown() {
+      const now = Date.now();
+      const remainingMs = expireAt - now;
+
+      if (remainingMs <= 0) {
+        clearInterval(countdownInterval);
+        expireOrderUI();
+        return;
+      }
+
+      const totalSeconds = Math.floor(remainingMs / 1000);
+      const minutes = Math.floor(totalSeconds / 60);
+      const seconds = totalSeconds % 60;
+
+      document.getElementById("countdown").innerText =
+        `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    }
+
+    function expireOrderUI() {
+      isExpired = true;
+
+      document.getElementById("countdown").innerText = "00:00";
+      document.getElementById("timerBox").style.display = "none";
+      document.getElementById("expiredBox").style.display = "block";
+
+      const slipInput = document.getElementById("slipInput");
+      const sendBtn = document.getElementById("sendBtn");
+
+      slipInput.disabled = true;
+      sendBtn.disabled = true;
+      sendBtn.innerText = "หมดเวลาชำระเงิน";
+    }
+
+    function handleFile(e) {
+      if (isExpired) {
+        alert("หมดเวลาชำระเงินแล้ว");
+        e.target.value = "";
+        return;
+      }
+
       const file = e.target.files[0];
       if (!file) return;
 
       if (file.size > 5 * 1024 * 1024) {
         alert("ไฟล์ใหญ่เกิน 5MB กรุณาลดขนาดก่อนอัปโหลด");
+        e.target.value = "";
         return;
       }
 
       const reader = new FileReader();
       reader.onload = () => {
+        if (isExpired) {
+          alert("หมดเวลาชำระเงินแล้ว");
+          return;
+        }
+
         imageBase64 = reader.result;
 
         const img = document.getElementById("preview");
@@ -92,6 +164,11 @@
 
     async function uploadSlip() {
       const btn = document.getElementById("sendBtn");
+
+      if (isExpired) {
+        alert("หมดเวลาชำระเงินแล้ว ไม่สามารถส่งสลิปได้");
+        return;
+      }
 
       if (!imageBase64) {
         alert("กรุณาเลือกรูปก่อน");
