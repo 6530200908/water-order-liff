@@ -165,7 +165,7 @@
             const statusMap = [['สถานะ', 'จำนวน']];
             const sCounts = { 'สำเร็จ': 0, 'รอส่ง': 0, 'ยกเลิก': 0 };
             data.forEach(o => {
-                if(o.status === 'จัดส่งสำเร็จ') sCounts['สำเร็จ']++;
+                if(o.status === 'ส่งสำเร็จ') sCounts['สำเร็จ']++;
                 else if(o.status === 'รอจัดส่ง') sCounts['รอส่ง']++;
                 else if(o.status === 'ยกเลิก') sCounts['ยกเลิก']++;
             });
