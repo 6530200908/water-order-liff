@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Water Delivery Dashboard</title>
+    <title>Water Delivery Dashboard - Revenue Focus</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;700&family=Sarabun:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="Styles.css">
@@ -13,11 +13,11 @@
 
     <div id="loader">
         <div class="spinner-border text-info mb-2"></div>
-        <span class="text-info fw-bold">กำลังประมวลผล...</span>
+        <span class="text-info fw-bold">กำลังประมวลผลเม็ดเงิน...</span>
     </div>
 
     <div class="container mt-4">
-        <h3 class="fw-bold text-info mb-4">📊 สรุปภาพรวมการส่งน้ำ</h3>
+        <h3 class="fw-bold text-info mb-4">📊 สรุปภาพรวมและมูลค่าการส่งน้ำ</h3>
 
         <div class="order-card">
             <div class="row g-3">
@@ -29,15 +29,31 @@
         </div>
 
         <div class="row g-3 my-4 text-center">
-            <div class="col-md-3 col-6"><div class="stat-card"><span class="text-muted">ยอดรวม (สำเร็จ)</span><div id="stat-total" class="stat-value text-success">฿0</div></div></div>
-            <div class="col-md-3 col-6"><div class="stat-card"><span class="text-muted">ส่งสำเร็จ</span><div id="stat-success-count" class="stat-value text-white">0</div></div></div>
-            <div class="col-md-3 col-6"><div class="stat-card"><span class="text-muted">รอจัดส่ง</span><div id="stat-pending" class="stat-value text-warning">0</div></div></div>
-            <div class="col-md-3 col-6"><div class="stat-card"><span class="text-muted">ยกเลิก</span><div id="stat-cancel" class="stat-value text-danger">0</div></div></div>
+            <div class="col-md-3 col-6"><div class="stat-card"><span class="text-muted">ยอดเงินรับจริง (฿)</span><div id="stat-total" class="stat-value text-success">฿0</div></div></div>
+            <div class="col-md-3 col-6"><div class="stat-card"><span class="text-muted">ส่งสำเร็จ (ออเดอร์)</span><div id="stat-success-count" class="stat-value text-white">0</div></div></div>
+            <div class="col-md-3 col-6"><div class="stat-card"><span class="text-muted">รอจัดส่ง (ออเดอร์)</span><div id="stat-pending" class="stat-value text-warning">0</div></div></div>
+            <div class="col-md-3 col-6"><div class="stat-card"><span class="text-muted">ยกเลิก (ออเดอร์)</span><div id="stat-cancel" class="stat-value text-danger">0</div></div></div>
         </div>
 
         <div class="row g-4 mb-4">
-            <div class="col-md-6"><div class="chart-box"><div id="status-pie-chart" style="height:320px;"></div></div></div>
-            <div class="col-md-6"><div class="chart-box"><div id="bar-chart" style="height:320px;"></div></div></div>
+            <div class="col-md-4">
+                <div class="chart-box">
+                    <div class="label-cyan text-center mb-2">📦 สัดส่วนจำนวนออเดอร์</div>
+                    <div id="status-pie-chart" style="height:280px;"></div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="chart-box">
+                    <div class="label-cyan text-center mb-2">💰 สัดส่วนมูลค่าเงิน (บาท)</div>
+                    <div id="value-pie-chart" style="height:280px;"></div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="chart-box">
+                    <div class="label-cyan text-center mb-2">📈 จำนวนงานสำเร็จรายวัน</div>
+                    <div id="bar-chart" style="height:280px;"></div>
+                </div>
+            </div>
         </div>
 
         <div class="table-responsive shadow" style="background:#111; border-radius:15px; padding:15px;">
@@ -63,16 +79,18 @@
         }
 
         function renderDashboard(data) {
-            // 1. นับแยกสถานะจากข้อมูลที่กรองมาแล้ว
+            // 1. แยกกลุ่มข้อมูล
             const sSuccess = data.filter(o => o.status === 'ส่งสำเร็จ');
             const sPending = data.filter(o => o.status === 'รอจัดส่ง');
             const sCancel = data.filter(o => o.status === 'ยกเลิก');
             
-            // 2. คำนวณยอดเงิน (นับเฉพาะสำเร็จ)
-            const totalMoney = sSuccess.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
+            // 2. คำนวณมูลค่า (Value) ของแต่ละกลุ่ม
+            const vSuccess = sSuccess.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
+            const vPending = sPending.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
+            const vCancel = sCancel.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
 
-            // 3. อัปเดตตัวเลขในการ์ด (ให้ตรงกับจำนวนที่นับได้จริง)
-            document.getElementById("stat-total").innerText = "฿" + totalMoney.toLocaleString();
+            // 3. อัปเดตสถิติหน้าจอ
+            document.getElementById("stat-total").innerText = "฿" + vSuccess.toLocaleString();
             document.getElementById("stat-success-count").innerText = sSuccess.length.toLocaleString();
             document.getElementById("stat-pending").innerText = sPending.length.toLocaleString();
             document.getElementById("stat-cancel").innerText = sCancel.length.toLocaleString();
@@ -89,8 +107,8 @@
                 </tr>
             `).join("");
 
-            // 5. วาดกราฟวงกลม (บังคับแสดง 3 สถานะ)
-            drawPie(sSuccess.length, sPending.length, sCancel.length);
+            // 5. วาดกราฟทั้งหมด
+            drawPieCharts(sSuccess.length, sPending.length, sCancel.length, vSuccess, vPending, vCancel);
             drawBar(sSuccess);
         }
 
@@ -101,22 +119,30 @@
             return 'bg-secondary';
         }
 
-        function drawPie(c1, c2, c3) {
-            const pieData = google.visualization.arrayToDataTable([
-                ['สถานะ', 'จำนวน'],
-                ['สำเร็จ', c1],
-                ['รอส่ง', c2],
-                ['ยกเลิก', c3]
-            ]);
-
-            new google.visualization.PieChart(document.getElementById('status-pie-chart')).draw(pieData, {
+        function drawPieCharts(c1, c2, c3, v1, v2, v3) {
+            const commonOptions = {
                 backgroundColor: 'transparent',
-                colors: ['#20c997', '#ffc107', '#ff4d4d'], // เขียว เหลือง แดง
+                colors: ['#20c997', '#ffc107', '#ff4d4d'],
                 pieHole: 0.4,
-                chartArea: {width: '90%', height: '80%'},
-                legend: {textStyle: {color: '#fff'}, position: 'right'},
-                pieSliceTextStyle: {color: '#000', fontWeight: 'bold'}
-            });
+                chartArea: {width: '100%', height: '80%'},
+                legend: {textStyle: {color: '#fff', fontSize: 11}, position: 'bottom'},
+                pieSliceTextStyle: {color: '#000', fontWeight: 'bold'},
+                pieSliceBorderColor: "none"
+            };
+
+            // กราฟเทียบจำนวน (Count)
+            const countData = google.visualization.arrayToDataTable([
+                ['สถานะ', 'ออเดอร์'],
+                ['สำเร็จ', c1], ['รอส่ง', c2], ['ยกเลิก', c3]
+            ]);
+            new google.visualization.PieChart(document.getElementById('status-pie-chart')).draw(countData, commonOptions);
+
+            // กราฟเทียบมูลค่าเงิน (Value)
+            const valueData = google.visualization.arrayToDataTable([
+                ['สถานะ', 'มูลค่าเงิน'],
+                ['สำเร็จ', v1], ['รอส่ง', v2], ['ยกเลิก', v3]
+            ]);
+            new google.visualization.PieChart(document.getElementById('value-pie-chart')).draw(valueData, commonOptions);
         }
 
         function drawBar(successData) {
