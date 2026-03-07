@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="Styles.css">
     <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
 </head>
-<body style="background-color: #000000;">
+<body>
 
     <div id="loader" style="position:fixed; inset:0; background:rgba(0,0,0,0.9); display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:9999;">
         <div class="spinner-border text-info mb-2"></div>
@@ -19,7 +19,7 @@
     <div class="container mt-4 pb-5">
         <h3 class="fw-bold text-info mb-4">📊 Dashboard สรุปยอดขาย</h3>
 
-        <div class="order-card mb-4" style="background:#111; border-radius:15px; padding:20px; border:1px solid #222;">
+        <div class="order-card mb-4">
             <div class="row g-3">
                 <div class="col-md-3 col-6">
                     <label class="label-cyan">🔍 ค้นหาลูกค้า</label>
@@ -37,57 +37,68 @@
                     <label class="label-cyan">📅 ถึงวันที่</label>
                     <input type="date" id="filter-end" class="form-control form-control-dark" onchange="applyFilters()">
                 </div>
+                
+                <div class="col-12 mt-3">
+                    <label class="label-cyan mb-2">📌 ติ๊กเลือกสถานะที่ต้องการแสดง:</label>
+                    <div class="d-flex flex-wrap gap-4">
+                        <div class="form-check">
+                            <input class="form-check-input filter-status" type="checkbox" value="จัดส่งสำเร็จ" id="chk-success" checked onchange="applyFilters()">
+                            <label class="form-check-label text-success fw-bold" for="chk-success">จัดส่งสำเร็จ</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input filter-status" type="checkbox" value="รอจัดส่ง" id="chk-pending" checked onchange="applyFilters()">
+                            <label class="form-check-label text-warning fw-bold" for="chk-pending">รอจัดส่ง</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input filter-status" type="checkbox" value="ยกเลิก" id="chk-cancel" checked onchange="applyFilters()">
+                            <label class="form-check-label text-danger fw-bold" for="chk-cancel">ยกเลิก</label>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
         <div class="row g-3 mb-4 text-center">
             <div class="col-md-3 col-6">
-                <div class="p-3" style="background:#111; border-radius:15px; border:1px solid #222;">
-                    <div class="text-muted small fw-bold mb-1">ยอดขายรวม</div>
-                    <div id="stat-total" class="h4 fw-bold text-white">฿0</div>
+                <div class="stat-card">
+                    <div class="text-muted small fw-bold mb-1">ยอดขาย (สำเร็จ)</div>
+                    <div id="stat-total" class="stat-value text-success">฿0</div>
                 </div>
             </div>
             <div class="col-md-3 col-6">
-                <div class="p-3" style="background:#111; border-radius:15px; border:1px solid #222;">
-                    <div class="text-muted small fw-bold mb-1">สำเร็จ</div>
-                    <div id="stat-success" class="h4 fw-bold text-success">0</div>
+                <div class="stat-card">
+                    <div class="text-muted small fw-bold mb-1">จำนวนสำเร็จ</div>
+                    <div id="stat-success" class="stat-value">0</div>
                 </div>
             </div>
             <div class="col-md-3 col-6">
-                <div class="p-3" style="background:#111; border-radius:15px; border:1px solid #222;">
+                <div class="stat-card">
                     <div class="text-muted small fw-bold mb-1">รอจัดส่ง</div>
-                    <div id="stat-pending" class="h4 fw-bold text-warning">0</div>
+                    <div id="stat-pending" class="stat-value text-warning">0</div>
                 </div>
             </div>
             <div class="col-md-3 col-6">
-                <div class="p-3" style="background:#111; border-radius:15px; border:1px solid #222;">
+                <div class="stat-card">
                     <div class="text-muted small fw-bold mb-1">ยกเลิก</div>
-                    <div id="stat-cancel" class="h4 fw-bold text-danger">0</div>
+                    <div id="stat-cancel" class="stat-value text-danger">0</div>
                 </div>
             </div>
         </div>
 
         <div class="row g-4 mb-4">
             <div class="col-md-6">
-                <div class="p-3" style="background:#111; border-radius:15px; border:1px solid #222; min-height:350px;">
+                <div class="chart-box">
                     <div class="text-info fw-bold mb-3 text-center">สัดส่วนตามสถานะ</div>
                     <div id="status-pie-chart" style="width:100%; height:300px;"></div>
                 </div>
             </div>
             <div class="col-md-6">
-                <div class="p-3" style="background:#111; border-radius:15px; border:1px solid #222; min-height:350px;">
+                <div class="chart-box">
                     <div class="text-info fw-bold mb-3 text-center">ออเดอร์รายวัน (สำเร็จ)</div>
                     <div id="bar-chart" style="width:100%; height:300px;"></div>
                 </div>
             </div>
         </div>
-
-        <ul class="nav nav-tabs" id="orderTabs">
-            <li class="nav-item"><a class="nav-link active" href="#" onclick="switchTab('ทั้งหมด')">ทั้งหมด</a></li>
-            <li class="nav-item"><a class="nav-link" href="#" onclick="switchTab('จัดส่งสำเร็จ')">สำเร็จ</a></li>
-            <li class="nav-item"><a class="nav-link" href="#" onclick="switchTab('รอจัดส่ง')">รอส่ง</a></li>
-            <li class="nav-item"><a class="nav-link" href="#" onclick="switchTab('ยกเลิก')">ยกเลิก</a></li>
-        </ul>
 
         <div class="table-responsive shadow" style="background:#111; border-radius:15px; padding:15px; border:1px solid #222;">
             <table class="table table-dark table-hover m-0">
@@ -100,7 +111,6 @@
     <script src="Config.js"></script>
     <script>
         let allOrders = [];
-        let activeTab = 'ทั้งหมด';
         google.charts.load('current', {'packages':['corechart']});
 
         async function init() {
@@ -112,34 +122,19 @@
             finally { document.getElementById("loader").style.display = "none"; }
         }
 
-        function switchTab(tab) {
-            activeTab = tab;
-            document.querySelectorAll('.nav-link').forEach(el => el.classList.remove('active'));
-            event.target.classList.add('active');
-            applyFilters();
-        }
-
         function renderDashboard(data) {
             const tbody = document.getElementById("table-body");
             
-            // สถิติรวม (คำนวณจาก Data ทั้งหมดที่ดึงมา)
-            const stats = {
-                total: 0,
-                success: data.filter(o => o.status === 'จัดส่งสำเร็จ').length,
-                pending: data.filter(o => o.status === 'รอจัดส่ง').length,
-                cancel: data.filter(o => o.status === 'ยกเลิก').length,
-                money: data.filter(o => o.status === 'จัดส่งสำเร็จ').reduce((s, o) => s + (Number(o.total) || 0), 0)
-            };
+            // คำนวณสถิติจาก Data ที่ถูกกรองอยู่
+            const successOnly = data.filter(o => o.status === 'จัดส่งสำเร็จ');
+            const totalMoney = successOnly.reduce((s, o) => s + (Number(o.total) || 0), 0);
 
-            document.getElementById("stat-total").innerText = "฿" + stats.money.toLocaleString();
-            document.getElementById("stat-success").innerText = stats.success.toLocaleString();
-            document.getElementById("stat-pending").innerText = stats.pending.toLocaleString();
-            document.getElementById("stat-cancel").innerText = stats.cancel.toLocaleString();
+            document.getElementById("stat-total").innerText = "฿" + totalMoney.toLocaleString();
+            document.getElementById("stat-success").innerText = data.filter(o => o.status === 'จัดส่งสำเร็จ').length.toLocaleString();
+            document.getElementById("stat-pending").innerText = data.filter(o => o.status === 'รอจัดส่ง').length.toLocaleString();
+            document.getElementById("stat-cancel").innerText = data.filter(o => o.status === 'ยกเลิก').length.toLocaleString();
 
-            // กรองตาม Tab
-            const displayData = activeTab === 'ทั้งหมด' ? data : data.filter(o => o.status === activeTab);
-
-            tbody.innerHTML = displayData.map(o => `
+            tbody.innerHTML = data.map(o => `
                 <tr>
                     <td class="text-info fw-bold">${o.order_id}</td>
                     <td class="text-white">${o.customer}</td>
@@ -150,7 +145,7 @@
                 </tr>
             `).join("");
 
-            if(data.length > 0) renderCharts(data);
+            if(allOrders.length > 0) renderCharts(data);
         }
 
         function getStatusClass(s) {
@@ -160,15 +155,12 @@
             return 'bg-secondary';
         }
 
-        function renderCharts(data) {
-            // 1. Pie Chart: สถานะ
+        function renderCharts(filteredData) {
+            // Pie Chart สถานะ
             const statusMap = [['สถานะ', 'จำนวน']];
-            const sCounts = { 'สำเร็จ': 0, 'รอส่ง': 0, 'ยกเลิก': 0 };
-            data.forEach(o => {
-                if(o.status === 'ส่งสำเร็จ') sCounts['สำเร็จ']++;
-                else if(o.status === 'รอจัดส่ง') sCounts['รอส่ง']++;
-                else if(o.status === 'ยกเลิก') sCounts['ยกเลิก']++;
-            });
+            const sCounts = { 'สำเร็จ': filteredData.filter(o => o.status === 'จัดส่งสำเร็จ').length, 
+                              'รอส่ง': filteredData.filter(o => o.status === 'รอจัดส่ง').length, 
+                              'ยกเลิก': filteredData.filter(o => o.status === 'ยกเลิก').length };
             statusMap.push(['สำเร็จ', sCounts['สำเร็จ']], ['รอส่ง', sCounts['รอส่ง']], ['ยกเลิก', sCounts['ยกเลิก']]);
 
             new google.visualization.PieChart(document.getElementById('status-pie-chart')).draw(google.visualization.arrayToDataTable(statusMap), {
@@ -179,13 +171,13 @@
                 chartArea: {width: '90%', height: '80%'}
             });
 
-            // 2. Bar Chart: สำเร็จรายวัน
+            // Bar Chart วันที่
             const dayMap = {};
-            data.filter(o => o.status === 'จัดส่งสำเร็จ').forEach(o => {
+            filteredData.filter(o => o.status === 'จัดส่งสำเร็จ').forEach(o => {
                 const date = o.time.split(' ')[0].substring(0, 5);
                 dayMap[date] = (dayMap[date] || 0) + 1;
             });
-            const barData = [['วัน', 'ออเดอร์'], ...Object.entries(dayMap).slice(-7)];
+            const barData = [['วัน', 'รายการ'], ...Object.entries(dayMap).slice(-7)];
 
             new google.visualization.ColumnChart(document.getElementById('bar-chart')).draw(google.visualization.arrayToDataTable(barData), {
                 backgroundColor: 'transparent',
@@ -201,12 +193,18 @@
             const b = document.getElementById("filter-bland").value.toLowerCase();
             const s = document.getElementById("filter-start").value;
             const e = document.getElementById("filter-end").value;
+            const selectedStatuses = Array.from(document.querySelectorAll('.filter-status:checked')).map(cb => cb.value);
 
             const filtered = allOrders.filter(o => {
                 const [day, mon, year] = o.time.split(' ')[0].split('/');
                 const oDate = `${year}-${mon.padStart(2,'0')}-${day.padStart(2,'0')}`;
-                return (o.customer.toLowerCase().includes(u) || o.order_id.toLowerCase().includes(u)) && 
-                       o.bland.toLowerCase().includes(b) && (s ? oDate >= s : true) && (e ? oDate <= e : true);
+                
+                const matchesUser = (o.customer.toLowerCase().includes(u) || o.order_id.toLowerCase().includes(u));
+                const matchesBland = o.bland.toLowerCase().includes(b);
+                const matchesDate = (s ? oDate >= s : true) && (e ? oDate <= e : true);
+                const matchesStatus = selectedStatuses.includes(o.status);
+
+                return matchesUser && matchesBland && matchesDate && matchesStatus;
             });
             renderDashboard(filtered);
         }
