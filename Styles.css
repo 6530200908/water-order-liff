@@ -1,10 +1,10 @@
+/* Styles.css */
 :root {
-  /* พื้นหลังดำสนิทตามต้องการ */
   --main-bg: #000000;      
   --card-bg: #111111;      
   --accent: #0dcaf0;       
   --text-white: #ffffff;   
-  --text-muted: #f8fafc;   /* สีขาวนวลสำหรับ Label */
+  --text-muted: #f8fafc;   
   --border-color: #222222;
   --success: #20c997;
   --warning: #ffc107;
@@ -27,7 +27,6 @@ body {
   border: 1px solid var(--border-color);
 }
 
-/* แก้ไขจุดขวาบน: บังคับให้สว่าง ไม่ให้กลืนหาย */
 .stat-card .text-muted {
   color: var(--accent) !important; 
   font-weight: 800 !important;
@@ -44,7 +43,6 @@ body {
   font-weight: 600 !important;
 }
 
-/* หัวข้อสีฟ้า Cyan */
 .label-cyan {
   color: var(--accent) !important;
   font-weight: 800 !important;
@@ -55,7 +53,6 @@ body {
   display: block;
 }
 
-/* ตัวเลขสถิติ */
 .stat-value {
   color: #ffffff !important;
   font-size: 2rem;
@@ -194,4 +191,9 @@ body {
 
 .t-item.done .t-text {
   color: #ffffff !important;
+}
+
+#loader {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.95);
+    display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9999;
 }
