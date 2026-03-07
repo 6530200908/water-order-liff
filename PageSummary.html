@@ -17,44 +17,26 @@
     </div>
 
     <div class="container mt-4">
-        <h3 class="fw-bold text-info mb-4">📊 Dashboard สรุปยอดขาย</h3>
+        <h3 class="fw-bold text-info mb-4">📊 Dashboard สรุปยอดขาย (ทั้งหมด)</h3>
 
         <div class="order-card">
             <div class="row g-3">
                 <div class="col-md-3 col-6">
-                    <label class="label-cyan">🔍 ค้นหา</label>
-                    <input type="text" id="filter-user" class="form-control form-control-dark" placeholder="ชื่อ/UID..." oninput="applyFilters()">
+                    <label class="label-cyan">🔍 ค้นหาลูกค้า/ID</label>
+                    <input type="text" id="filter-user" class="form-control form-control-dark" placeholder="ระบุชื่อหรือ UID..." oninput="applyFilters()">
                 </div>
                 <div class="col-md-3 col-6">
-                    <label class="label-cyan">💧 ยี่ห้อ</label>
+                    <label class="label-cyan">💧 ยี่ห้อน้ำ</label>
                     <input type="text" id="filter-bland" class="form-control form-control-dark" placeholder="ระบุยี่ห้อ..." oninput="applyFilters()">
                 </div>
-                <div class="col-md-3 col-6"><label class="label-cyan">📅 เริ่ม</label><input type="date" id="filter-start" class="form-control form-control-dark" onchange="applyFilters()"></div>
-                <div class="col-md-3 col-6"><label class="label-cyan">📅 ถึง</label><input type="date" id="filter-end" class="form-control form-control-dark" onchange="applyFilters()"></div>
-                
-                <div class="col-12 mt-3">
-                    <label class="label-cyan mb-2">📌 เลือกสถานะที่จะดูในตารางและสถิติ:</label>
-                    <div class="d-flex flex-wrap gap-4">
-                        <div class="form-check">
-                            <input class="form-check-input filter-status" type="checkbox" value="จัดส่งสำเร็จ" id="chk-success" checked onchange="applyFilters()">
-                            <label class="form-check-label text-success fw-bold" for="chk-success">จัดส่งสำเร็จ</label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input filter-status" type="checkbox" value="รอจัดส่ง" id="chk-pending" checked onchange="applyFilters()">
-                            <label class="form-check-label text-warning fw-bold" for="chk-pending">รอจัดส่ง</label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input filter-status" type="checkbox" value="ยกเลิก" id="chk-cancel" checked onchange="applyFilters()">
-                            <label class="form-check-label text-danger fw-bold" for="chk-cancel">ยกเลิก</label>
-                        </div>
-                    </div>
-                </div>
+                <div class="col-md-3 col-6"><label class="label-cyan">📅 ตั้งแต่วันที่</label><input type="date" id="filter-start" class="form-control form-control-dark" onchange="applyFilters()"></div>
+                <div class="col-md-3 col-6"><label class="label-cyan">📅 ถึงวันที่</label><input type="date" id="filter-end" class="form-control form-control-dark" onchange="applyFilters()"></div>
             </div>
         </div>
 
         <div class="row g-3 my-4 text-center">
-            <div class="col-md-3 col-6"><div class="stat-card"><span class="text-muted">ยอดขายสำเร็จ</span><div id="stat-total" class="stat-value text-success">฿0</div></div></div>
-            <div class="col-md-3 col-6"><div class="stat-card"><span class="text-muted">รวมที่เลือก</span><div id="stat-count" class="stat-value text-white">0</div></div></div>
+            <div class="col-md-3 col-6"><div class="stat-card"><span class="text-muted">รายรับ (สำเร็จ)</span><div id="stat-total" class="stat-value text-success">฿0</div></div></div>
+            <div class="col-md-3 col-6"><div class="stat-card"><span class="text-muted">รายการทั้งหมด</span><div id="stat-count" class="stat-value text-white">0</div></div></div>
             <div class="col-md-3 col-6"><div class="stat-card"><span class="text-muted">รอจัดส่ง</span><div id="stat-pending" class="stat-value text-warning">0</div></div></div>
             <div class="col-md-3 col-6"><div class="stat-card"><span class="text-muted">ยกเลิก</span><div id="stat-cancel" class="stat-value text-danger">0</div></div></div>
         </div>
@@ -97,13 +79,14 @@
         function renderDashboard(data) {
             const tbody = document.getElementById("table-body");
             
-            // คำนวณสถิติ
+            // นับแยกสถานะให้ชัดเจนสำหรับกราฟวงกลม
             const sSuccess = data.filter(o => o.status === 'จัดส่งสำเร็จ');
             const sPending = data.filter(o => o.status === 'รอจัดส่ง');
             const sCancel = data.filter(o => o.status === 'ยกเลิก');
             
             const totalMoney = sSuccess.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
 
+            // อัปเดตตัวเลข Stats
             document.getElementById("stat-total").innerText = "฿" + totalMoney.toLocaleString();
             document.getElementById("stat-count").innerText = data.length.toLocaleString();
             document.getElementById("stat-pending").innerText = sPending.length.toLocaleString();
@@ -121,8 +104,10 @@
                 </tr>
             `).join("");
 
-            // วาดกราฟโดยส่งค่าสถิติที่นับได้ไป
-            renderCharts(sSuccess.length, sPending.length, sCancel.length, data);
+            // วาดกราฟวงกลม 3 สถานะ
+            drawPieChart(sSuccess.length, sPending.length, sCancel.length);
+            // วาดกราฟแท่งรายวัน
+            drawBarChart(data);
         }
 
         function getStatusClass(s) {
@@ -132,8 +117,7 @@
             return 'bg-secondary';
         }
 
-        function renderCharts(cSuccess, cPending, cCancel, filteredData) {
-            // กราฟวงกลม: แสดง 3 สถานะเสมอ
+        function drawPieChart(cSuccess, cPending, cCancel) {
             const pieData = google.visualization.arrayToDataTable([
                 ['สถานะ', 'จำนวน'],
                 ['จัดส่งสำเร็จ', cSuccess],
@@ -143,15 +127,15 @@
 
             new google.visualization.PieChart(document.getElementById('status-pie-chart')).draw(pieData, {
                 backgroundColor: 'transparent',
-                colors: ['#20c997', '#ffc107', '#ff4d4d'], // เขียว, เหลือง, แดง
+                colors: ['#20c997', '#ffc107', '#ff4d4d'],
                 pieHole: 0.4,
                 chartArea: {width: '90%', height: '80%'},
                 legend: {textStyle: {color: '#fff', fontSize: 12}, position: 'right'},
-                pieSliceTextStyle: {color: '#000', fontWeight: 'bold'},
                 pieSliceBorderColor: "none"
             });
+        }
 
-            // กราฟแท่งรายวัน (เฉพาะที่สำเร็จ)
+        function drawBarChart(filteredData) {
             const dayMap = {};
             filteredData.filter(o => o.status === 'จัดส่งสำเร็จ').forEach(o => {
                 const date = o.time.split(' ')[0].substring(0, 5);
@@ -175,9 +159,6 @@
             const s = document.getElementById("filter-start").value;
             const e = document.getElementById("filter-end").value;
             
-            // ดึงค่าจากปุ่มติ๊ก
-            const selectedStatuses = Array.from(document.querySelectorAll('.filter-status:checked')).map(cb => cb.value);
-
             const filtered = allOrders.filter(o => {
                 const [day, mon, year] = o.time.split(' ')[0].split('/');
                 const oDate = `${year}-${mon.padStart(2,'0')}-${day.padStart(2,'0')}`;
@@ -185,9 +166,8 @@
                 const matchesText = o.customer.toLowerCase().includes(u) || o.order_id.toLowerCase().includes(u);
                 const matchesBland = o.bland.toLowerCase().includes(b);
                 const matchesDate = (s ? oDate >= s : true) && (e ? oDate <= e : true);
-                const matchesStatus = selectedStatuses.includes(o.status);
 
-                return matchesText && matchesBland && matchesDate && matchesStatus;
+                return matchesText && matchesBland && matchesDate;
             });
 
             renderDashboard(filtered);
