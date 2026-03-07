@@ -30,7 +30,7 @@
 
         <div class="row g-3 my-4 text-center">
             <div class="col-md-3 col-6"><div class="stat-card"><span class="text-muted">ยอดรวม (สำเร็จ)</span><div id="stat-total" class="stat-value text-success">฿0</div></div></div>
-            <div class="col-md-3 col-6"><div class="stat-card"><span class="text-muted">จัดส่งสำเร็จ</span><div id="stat-success-count" class="stat-value text-white">0</div></div></div>
+            <div class="col-md-3 col-6"><div class="stat-card"><span class="text-muted">ส่งสำเร็จ</span><div id="stat-success-count" class="stat-value text-white">0</div></div></div>
             <div class="col-md-3 col-6"><div class="stat-card"><span class="text-muted">รอจัดส่ง</span><div id="stat-pending" class="stat-value text-warning">0</div></div></div>
             <div class="col-md-3 col-6"><div class="stat-card"><span class="text-muted">ยกเลิก</span><div id="stat-cancel" class="stat-value text-danger">0</div></div></div>
         </div>
@@ -64,7 +64,7 @@
 
         function renderDashboard(data) {
             // 1. นับแยกสถานะจากข้อมูลที่กรองมาแล้ว
-            const sSuccess = data.filter(o => o.status === 'จัดส่งสำเร็จ');
+            const sSuccess = data.filter(o => o.status === 'ส่งสำเร็จ');
             const sPending = data.filter(o => o.status === 'รอจัดส่ง');
             const sCancel = data.filter(o => o.status === 'ยกเลิก');
             
@@ -95,7 +95,7 @@
         }
 
         function getStatusClass(s) {
-            if(s === 'จัดส่งสำเร็จ') return 'bg-success-subtle';
+            if(s === 'ส่งสำเร็จ') return 'bg-success-subtle';
             if(s === 'รอจัดส่ง') return 'bg-warning-subtle';
             if(s === 'ยกเลิก') return 'bg-danger-subtle';
             return 'bg-secondary';
