@@ -174,42 +174,82 @@
     function closePayment() { document.getElementById("payment-ui").style.display = "none"; }
 
     function confirmOrder() {
-      const loc = document.getElementById("locSelect").value;
-      const gps = document.getElementById("gpsData").value;
-      const extra = document.getElementById("cusAddress").value;
-      const cusName = document.getElementById("cusName").value;
+    const loc = document.getElementById("locSelect").value;
+    const gps = document.getElementById("gpsData").value;
+    const extra = document.getElementById("cusAddress").value;
+    const cusName = document.getElementById("cusName").value;
 
-      if (!loc) return alert("กรุณาเลือกสถานที่ส่ง");
-      if (loc === "อื่นๆ" && !gps) return alert("กรุณาปักหมุดในแผนที่ก่อนครับ");
+    if (!loc) return alert("กรุณาเลือกสถานที่ส่ง");
+    if (loc === "อื่นๆ" && !gps) return alert("กรุณาปักหมุดในแผนที่ก่อนครับ");
 
-      const finalAddr = (loc === "อื่นๆ") ? extra : loc;
-      const gpsValue = (loc === "อื่นๆ") ? gps : "";
-      const totalPrice = document.getElementById("total-price").innerText;
+    const finalAddr = (loc === "อื่นๆ") ? extra : loc;
+    const gpsValue = (loc === "อื่นๆ") ? gps : "";
+    const totalPrice = document.getElementById("total-price").innerText;
 
-      const itemsDetail = Object.keys(cart).filter(i => cart[i] > 0)
-        .map(i => `- ${products[i].desc} x ${cart[i]}`).join("\n");
+    // รายละเอียดสินค้าสำหรับส่งในข้อความ
+    const itemsDetail = Object.keys(cart)
+        .filter(i => cart[i] > 0)
+        .map(i => `- ${products[i].desc} x ${cart[i]}`)
+        .join("\n");
 
-      const orderData = { 
-        uid: currentUserId, name: cusName, address: finalAddr, gps: gpsValue,
+    const orderData = { 
+        uid: currentUserId, 
+        name: cusName, 
+        address: finalAddr, 
+        gps: gpsValue,
         items: Object.keys(cart).filter(i => cart[i] > 0).map(i => products[i].desc).join(", "),
         amounts: Object.keys(cart).filter(i => cart[i] > 0).map(i => String(cart[i])).join(", "),
         total: totalPrice 
-      };
+    };
 
-      document.getElementById("btn-confirm").disabled = true;
-      document.getElementById("btn-confirm").innerText = "กำลังบันทึก...";
+    document.getElementById("btn-confirm").disabled = true;
+    document.getElementById("btn-confirm").innerText = "กำลังบันทึก...";
 
-      fetch(CONFIG.GAS_API, { method: "POST", body: JSON.stringify(orderData) })
+    fetch(CONFIG.GAS_API, { method: "POST", body: JSON.stringify(orderData) })
         .then(r => r.json())
         .then(res => {
-          const msg = `💧 สั่งซื้อสำเร็จ!\nออเดอร์: ${res.orderId}\nผู้รับ: ${cusName}\nที่ส่ง: ${finalAddr}\n${gpsValue ? '📍 บันทึกพิกัดแล้ว\n' : ''}รวม: ${totalPrice} ฿`;
-          liff.sendMessages([{ type: "text", text: msg }]).finally(() => liff.closeWindow());
+            // --- เริ่มส่วนการส่ง Message พร้อม QR Code ---
+            
+            // 1. กำหนดเลขพร้อมเพย์ของคุณที่นี่ (เบอร์โทร หรือ เลขบัตรประชาชน)
+            const promptpayID = "0812345678"; 
+            
+            // 2. สร้างลิงก์ QR Code ตามยอดเงินจริง
+            const qrUrl = `https://promptpay.io/${promptpayID}/${totalPrice}.png`;
+
+            // 3. เตรียมชุดข้อความ
+            const orderSummary = `💧 สั่งซื้อสำเร็จ!\nเลขที่ออเดอร์: ${res.orderId}\nผู้รับ: ${cusName}\nรายการ:\n${itemsDetail}\nรวมทั้งสิ้น: ${totalPrice} ฿\n\n📌 ที่ส่ง: ${finalAddr}\n${gpsValue ? '📍 บันทึกพิกัด GPS เรียบร้อย' : ''}`;
+
+            const messages = [
+                {
+                    type: "text",
+                    text: orderSummary
+                },
+                {
+                    type: "image",
+                    originalContentUrl: qrUrl,
+                    previewImageUrl: qrUrl
+                },
+                {
+                    type: "text",
+                    text: `📱 มียอดชำระ ${totalPrice} บาท\nโอนเงินแล้วรบกวนส่งสลิปแจ้งแอดมินด้วยนะครับ ขอบคุณครับ!`
+                }
+            ];
+
+            // 4. ส่งเข้า LINE Chat
+            liff.sendMessages(messages)
+                .then(() => liff.closeWindow())
+                .catch((err) => {
+                    console.error(err);
+                    alert("บันทึกสำเร็จ แต่ไม่สามารถส่งภาพ QR เข้าแชทได้");
+                    liff.closeWindow();
+                });
         })
         .catch(() => {
-          alert("เกิดข้อผิดพลาด");
-          document.getElementById("btn-confirm").disabled = false;
+            alert("เกิดข้อผิดพลาดในการบันทึก");
+            document.getElementById("btn-confirm").disabled = false;
+            document.getElementById("btn-confirm").innerText = "ยืนยันการสั่งซื้อ";
         });
-    }
+}
 
     window.onload = init;
   </script>
