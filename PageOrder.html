@@ -63,6 +63,7 @@
   <script src="Config.js"></script>
   <script>
     let currentUserId = "", products = [], cart = {}, map, marker;
+    let dbPromptpayID = ""; // เพิ่มตัวแปรเก็บเลขพร้อมเพย์จากชีต
 
     async function init() {
       try {
@@ -73,6 +74,7 @@
 
         const res = await fetch(`${CONFIG.GAS_API}?uid=${currentUserId}`).then(r => r.json());
         products = res.products;
+        dbPromptpayID = res.promptpayID; // รับค่าพร้อมเพย์จาก GAS
         renderProducts();
 
         const select = document.getElementById("locSelect");
@@ -90,7 +92,6 @@
             if (res.customer.gps) {
               document.getElementById("gpsData").value = res.customer.gps;
               document.getElementById("gpsStatus").innerText = "✅ มีข้อมูลพิกัดเดิมแล้ว (เลือกใหม่ได้)";
-              // ถ้ามีพิกัดเดิม จะไปรอโหลดใน initMap
             }
           } else {
             select.value = res.customer.address || "";
@@ -106,19 +107,14 @@
       const section = document.getElementById("gps-section");
       if (v === "อื่นๆ") {
         section.style.display = "block";
-        setTimeout(initMap, 300); // ให้เวลา UI วาดรูปก่อนโหลดแผนที่
+        setTimeout(initMap, 300);
       } else {
         section.style.display = "none";
       }
     }
 
     function initMap() {
-      if (map) {
-        map.invalidateSize();
-        return;
-      }
-      
-      // พิกัดเริ่มต้น (ถ้ามีของเดิมให้ไปที่นั่น ถ้าไม่มีไปกรุงเทพ)
+      if (map) { map.invalidateSize(); return; }
       let startLat = 13.7563, startLng = 100.5018;
       const oldGps = document.getElementById("gpsData").value;
       if (oldGps) {
@@ -126,20 +122,14 @@
         startLat = parseFloat(parts[0]);
         startLng = parseFloat(parts[1]);
       }
-
       map = L.map('map').setView([startLat, startLng], 16);
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-
-      if (oldGps) {
-        marker = L.marker([startLat, startLng]).addTo(map);
-      }
-
+      if (oldGps) { marker = L.marker([startLat, startLng]).addTo(map); }
       map.on('click', function(e) {
         const lat = e.latlng.lat;
         const lng = e.latlng.lng;
         if (marker) marker.setLatLng(e.latlng);
         else marker = L.marker(e.latlng).addTo(map);
-        
         document.getElementById("gpsData").value = `${lat},${lng}`;
         document.getElementById("gpsStatus").innerText = `📍 ปักหมุดเรียบร้อย: ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
         document.getElementById("gpsStatus").className = "small text-center mb-2 text-success fw-bold";
@@ -174,82 +164,65 @@
     function closePayment() { document.getElementById("payment-ui").style.display = "none"; }
 
     function confirmOrder() {
-    const loc = document.getElementById("locSelect").value;
-    const gps = document.getElementById("gpsData").value;
-    const extra = document.getElementById("cusAddress").value;
-    const cusName = document.getElementById("cusName").value;
+      const loc = document.getElementById("locSelect").value;
+      const gps = document.getElementById("gpsData").value;
+      const extra = document.getElementById("cusAddress").value;
+      const cusName = document.getElementById("cusName").value;
 
-    if (!loc) return alert("กรุณาเลือกสถานที่ส่ง");
-    if (loc === "อื่นๆ" && !gps) return alert("กรุณาปักหมุดในแผนที่ก่อนครับ");
+      if (!loc) return alert("กรุณาเลือกสถานที่ส่ง");
+      if (loc === "อื่นๆ" && !gps) return alert("กรุณาปักหมุดในแผนที่ก่อนครับ");
 
-    const finalAddr = (loc === "อื่นๆ") ? extra : loc;
-    const gpsValue = (loc === "อื่นๆ") ? gps : "";
-    const totalPrice = document.getElementById("total-price").innerText;
+      const finalAddr = (loc === "อื่นๆ") ? extra : loc;
+      const gpsValue = (loc === "อื่นๆ") ? gps : "";
+      const totalPrice = document.getElementById("total-price").innerText;
 
-    // รายละเอียดสินค้าสำหรับส่งในข้อความ
-    const itemsDetail = Object.keys(cart)
-        .filter(i => cart[i] > 0)
-        .map(i => `- ${products[i].desc} x ${cart[i]}`)
-        .join("\n");
+      const itemsDetail = Object.keys(cart)
+          .filter(i => cart[i] > 0)
+          .map(i => `- ${products[i].desc} x ${cart[i]}`)
+          .join("\n");
 
-    const orderData = { 
-        uid: currentUserId, 
-        name: cusName, 
-        address: finalAddr, 
-        gps: gpsValue,
-        items: Object.keys(cart).filter(i => cart[i] > 0).map(i => products[i].desc).join(", "),
-        amounts: Object.keys(cart).filter(i => cart[i] > 0).map(i => String(cart[i])).join(", "),
-        total: totalPrice 
-    };
+      const orderData = { 
+          uid: currentUserId, 
+          name: cusName, 
+          address: finalAddr, 
+          gps: gpsValue,
+          items: Object.keys(cart).filter(i => cart[i] > 0).map(i => products[i].desc).join(", "),
+          amounts: Object.keys(cart).filter(i => cart[i] > 0).map(i => String(cart[i])).join(", "),
+          total: totalPrice 
+      };
 
-    document.getElementById("btn-confirm").disabled = true;
-    document.getElementById("btn-confirm").innerText = "กำลังบันทึก...";
+      document.getElementById("btn-confirm").disabled = true;
+      document.getElementById("btn-confirm").innerText = "กำลังบันทึก...";
 
-    fetch(CONFIG.GAS_API, { method: "POST", body: JSON.stringify(orderData) })
-        .then(r => r.json())
-        .then(res => {
-            // --- เริ่มส่วนการส่ง Message พร้อม QR Code ---
-            
-            // 1. กำหนดเลขพร้อมเพย์ของคุณที่นี่ (เบอร์โทร หรือ เลขบัตรประชาชน)
-            const promptpayID = "0812345678"; 
-            
-            // 2. สร้างลิงก์ QR Code ตามยอดเงินจริง
-            const qrUrl = `https://promptpay.io/${promptpayID}/${totalPrice}.png`;
+      fetch(CONFIG.GAS_API, { method: "POST", body: JSON.stringify(orderData) })
+          .then(r => r.json())
+          .then(res => {
+              // ใช้ dbPromptpayID ที่ดึงมาจาก Google Sheet
+              const promptpayID = dbPromptpayID || "0000000000"; 
+              const qrUrl = `https://promptpay.io/${promptpayID}/${totalPrice}.png`;
 
-            // 3. เตรียมชุดข้อความ
-            const orderSummary = `💧 สั่งซื้อสำเร็จ!\nเลขที่ออเดอร์: ${res.orderId}\nผู้รับ: ${cusName}\nรายการ:\n${itemsDetail}\nรวมทั้งสิ้น: ${totalPrice} ฿\n\n📌 ที่ส่ง: ${finalAddr}\n${gpsValue ? '📍 บันทึกพิกัด GPS เรียบร้อย' : ''}`;
+              const orderSummary = `💧 สั่งซื้อสำเร็จ!\nเลขที่ออเดอร์: ${res.orderId}\nผู้รับ: ${cusName}\nรายการ:\n${itemsDetail}\nรวมทั้งสิ้น: ${totalPrice} ฿\n\n📌 ที่ส่ง: ${finalAddr}\n${gpsValue ? '📍 บันทึกพิกัด GPS เรียบร้อย' : ''}`;
 
-            const messages = [
-                {
-                    type: "text",
-                    text: orderSummary
-                },
-                {
-                    type: "image",
-                    originalContentUrl: qrUrl,
-                    previewImageUrl: qrUrl
-                },
-                {
-                    type: "text",
-                    text: `📱 มียอดชำระ ${totalPrice} บาท\nโอนเงินแล้วรบกวนส่งสลิปแจ้งแอดมินด้วยนะครับ ขอบคุณครับ!`
-                }
-            ];
+              const messages = [
+                  { type: "text", text: orderSummary },
+                  { type: "image", originalContentUrl: qrUrl, previewImageUrl: qrUrl },
+                  { type: "text", text: `📱 มียอดชำระ ${totalPrice} บาท\nโอนเงินแล้วรบกวนส่งสลิปแจ้งแอดมินด้วยนะครับ ขอบคุณครับ!` }
+              ];
 
-            // 4. ส่งเข้า LINE Chat
-            liff.sendMessages(messages)
-                .then(() => liff.closeWindow())
-                .catch((err) => {
-                    console.error(err);
-                    alert("บันทึกสำเร็จ แต่ไม่สามารถส่งภาพ QR เข้าแชทได้");
-                    liff.closeWindow();
-                });
-        })
-        .catch(() => {
-            alert("เกิดข้อผิดพลาดในการบันทึก");
-            document.getElementById("btn-confirm").disabled = false;
-            document.getElementById("btn-confirm").innerText = "ยืนยันการสั่งซื้อ";
-        });
-}
+              liff.sendMessages(messages)
+                  .then(() => liff.closeWindow())
+                  .catch((err) => {
+                      console.error(err);
+                      alert("บันทึกสำเร็จ แต่ส่งข้อความเข้าแชทไม่ได้");
+                      liff.closeWindow();
+                  });
+          })
+          .catch(() => {
+              alert("เกิดข้อผิดพลาดในการบันทึก");
+              document.getElementById("btn-confirm").disabled = false;
+              document.getElementById("btn-confirm").innerText = "ยืนยันการสั่งซื้อ";
+          });
+    }
 
     window.onload = init;
   </script>
