@@ -141,7 +141,6 @@
             const e = document.getElementById("filter-end").value;
 
             const filtered = allOrders.filter(o => {
-                // 1. จัดการข้อมูลวันที่ (แปลง DD/MM/YYYY เป็น YYYY-MM-DD)
                 let oDate = "";
                 if (o.time) {
                     const dateParts = o.time.split(' ')[0].split('/');
@@ -150,7 +149,6 @@
                     }
                 }
 
-                // 2. Logic การเช็ค Filter
                 const matchUser = !u || String(o.customer || "").toLowerCase().includes(u) || String(o.order_id || "").toLowerCase().includes(u);
                 const matchBland = !b || String(o.bland || "").toLowerCase().includes(b);
                 const matchStart = !s || (oDate && oDate >= s);
