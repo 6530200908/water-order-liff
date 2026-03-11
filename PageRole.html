@@ -3,28 +3,27 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>จัดการสิทธิผู้ใช้งาน - Water Delivery</title>
+  <title>จัดการสิทธิผู้ใช้งาน</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="Styles.css">
 </head>
 <body>
 
   <div id="loader">
     <div class="spinner-border text-info mb-2"></div>
-    <div class="text-info">กำลังตรวจสอบสิทธิ...</div>
+    <div class="text-white">กำลังตรวจสอบสิทธิ...</div>
   </div>
 
-  <div class="container container-sm-custom mt-4 mb-5">
+  <div class="container mt-4 mb-5">
     <div class="d-flex justify-content-between align-items-center mb-4">
-      <h4 class="fw-bold m-0 text-info">🔐 จัดการสิทธิผู้ใช้งาน</h4>
-      <button onclick="saveRoles()" id="btn-save" class="btn btn-success px-4 fw-bold shadow-sm">บันทึกทั้งหมด</button>
+      <h4 class="fw-bold m-0 text-info">🔐 จัดการสิทธิ</h4>
+      <button onclick="saveRoles()" id="btn-save" class="btn btn-success px-4 fw-bold">บันทึกทั้งหมด</button>
     </div>
 
     <div id="role-list"></div>
 
     <div class="add-btn-dashed text-center py-3 mt-3" onclick="addRole()">
-      <div class="text-info fw-bold">+ เพิ่มผู้ใช้งาน / กำหนดสิทธิ</div>
+      <div class="text-info fw-bold">+ เพิ่มผู้ใช้งาน</div>
     </div>
   </div>
 
@@ -33,50 +32,38 @@
   <script>
     let userRoles = [], currentAdminUid = "";
 
-    window.onload = async () => {
+    async function init() {
       try {
         await liff.init({ liffId: CONFIG.LIFF_ID_ADMIN });
         if (!liff.isLoggedIn()) { liff.login(); return; }
-        const canAccess = await validateAccess("ROLE_PAGE");
-        if (canAccess) { initAfterAuth(); }
-      } catch (e) {
-        console.error("Auth Error:", e);
-        document.getElementById("loader").style.display = "none";
-      }
-    };
-
-    async function initAfterAuth() {
-      try {
         const profile = await liff.getProfile();
         currentAdminUid = profile.userId;
+        
         const res = await fetch(`${CONFIG.GAS_API}?type=admin_get_roles&uid=${currentAdminUid}`).then(r => r.json());
         userRoles = res.roles || [];
         renderRoles();
-      } catch (e) { 
-        alert("❌ ไม่สามารถดึงข้อมูลจากเซิร์ฟเวอร์ได้");
-      } finally { 
-        document.getElementById("loader").style.display = "none"; 
-      }
+      } catch (e) { alert("❌ โหลดข้อมูลล้มเหลว"); }
+      finally { document.getElementById("loader").style.display = "none"; }
     }
 
     function renderRoles() {
       const list = document.getElementById("role-list");
       list.innerHTML = userRoles.map((item, i) => `
         <div class="role-card">
-          <div class="row align-items-center g-2">
-            <div class="col-8">
+          <div class="row align-items-end g-2">
+            <div class="col-sm-8">
               <label class="label-cyan">LINE UserID</label>
               <input type="text" class="form-control form-control-dark" value="${item.uid}" 
                 onchange="updateRoleData(${i}, 'uid', this.value)" placeholder="Uf06e931...">
             </div>
-            <div class="col-3">
-              <label class="label-cyan">สิทธิการเข้าถึง</label>
+            <div class="col-sm-3 col-10">
+              <label class="label-cyan">สิทธิ</label>
               <select class="form-select form-control-dark" onchange="updateRoleData(${i}, 'role', this.value)">
                 <option value="Admin" ${item.role === 'Admin' ? 'selected' : ''}>Admin</option>
                 <option value="Staff" ${item.role === 'Staff' ? 'selected' : ''}>Staff</option>
               </select>
             </div>
-            <div class="col-1 text-end">
+            <div class="col-sm-1 col-2 text-end">
               <span class="btn-delete" onclick="removeRole(${i})">✕</span>
             </div>
           </div>
@@ -86,22 +73,21 @@
 
     function updateRoleData(i, f, v) { userRoles[i][f] = v; }
     function addRole() { userRoles.push({ uid: "", role: "Staff" }); renderRoles(); }
-    function removeRole(i) { userRoles.splice(i, 1); renderRoles(); }
+    function removeRole(i) { if(confirm("ลบสิทธินี้?")) { userRoles.splice(i, 1); renderRoles(); } }
 
     async function saveRoles() {
       const btn = document.getElementById("btn-save");
-      btn.disabled = true; 
-      btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> กำลังบันทึก...';
+      btn.disabled = true; btn.innerText = "กำลังบันทึก...";
       try {
         const res = await fetch(CONFIG.GAS_API, {
           method: "POST",
           body: JSON.stringify({ type: "admin_update_roles", adminUid: currentAdminUid, data: userRoles })
         }).then(r => r.json());
-        if(res.status === "success") { alert("✅ อัปเดตสิทธิผู้ใช้งานเรียบร้อยแล้ว!"); }
-        else { alert("⚠️ บันทึกล้มเหลว: " + (res.msg || "ลองใหม่อีกครั้ง")); }
-      } catch (e) { alert("❌ เกิดข้อผิดพลาดในการเชื่อมต่อ"); }
+        if(res.status === "success") alert("✅ บันทึกเรียบร้อย!");
+      } catch (e) { alert("❌ ผิดพลาด"); }
       finally { btn.disabled = false; btn.innerText = "บันทึกทั้งหมด"; }
     }
+    window.onload = init;
   </script>
 </body>
 </html>
