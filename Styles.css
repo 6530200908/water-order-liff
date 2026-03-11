@@ -197,3 +197,50 @@ body {
     position: fixed; inset: 0; background: rgba(0,0,0,0.95);
     display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9999;
 }
+
+/* --- เพิ่มเติมสำหรับระบบปักหมุดและ Sticky Button --- */
+
+.sticky-footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background-color: var(--main-bg);
+  padding: 15px 20px;
+  border-top: 1px solid var(--border-color);
+  z-index: 1000;
+}
+
+.payment-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.9);
+  z-index: 2000;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.modal-card {
+  background-color: var(--card-bg) !important;
+  border: 1px solid var(--border-color);
+  color: var(--text-white) !important;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.content-wrapper {
+  padding-bottom: 150px;
+}
+
+#map { 
+  height: 250px; 
+  width: 100%; 
+  border-radius: 12px; 
+  margin-bottom: 10px; 
+  border: 2px solid var(--accent);
+}
