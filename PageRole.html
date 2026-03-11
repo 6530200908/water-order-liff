@@ -17,7 +17,7 @@
   <div class="container mt-4 mb-5">
     <div class="d-flex justify-content-between align-items-center mb-4">
       <h4 class="fw-bold m-0 text-info">🔐 จัดการสิทธิ</h4>
-      <button onclick="saveRoles()" id="btn-save" class="btn btn-success px-4 fw-bold">บันทึกทั้งหมด</button>
+      <button onclick="saveRoles()" id="btn-save" class="btn btn-success px-4 fw-bold shadow-sm">บันทึกทั้งหมด</button>
     </div>
 
     <div id="role-list"></div>
@@ -39,24 +39,42 @@
         const profile = await liff.getProfile();
         currentAdminUid = profile.userId;
         
-        const res = await fetch(`${CONFIG.GAS_API}?type=admin_get_roles&uid=${currentAdminUid}`).then(r => r.json());
+        // เพิ่ม Cache: 'no-store' เพื่อป้องกันปัญหาข้อมูลไม่อัปเดตในมือถือ
+        const response = await fetch(`${CONFIG.GAS_API}?type=admin_get_roles&uid=${currentAdminUid}`, {
+          method: "GET",
+          cache: "no-store"
+        });
+
+        if (!response.ok) throw new Error("Network Response Fail");
+
+        const res = await response.json();
         userRoles = res.roles || [];
         renderRoles();
-      } catch (e) { alert("❌ โหลดข้อมูลล้มเหลว"); }
-      finally { document.getElementById("loader").style.display = "none"; }
+
+      } catch (e) { 
+        console.error(e);
+        alert("❌ โหลดข้อมูลล้มเหลว: ตรวจสอบการเชื่อมต่ออินเทอร์เน็ต"); 
+      } finally { 
+        document.getElementById("loader").style.display = "none"; 
+      }
     }
 
     function renderRoles() {
       const list = document.getElementById("role-list");
+      if (userRoles.length === 0) {
+        list.innerHTML = `<div class="text-center py-5 text-white-50">ไม่มีข้อมูลผู้ใช้งาน</div>`;
+        return;
+      }
+
       list.innerHTML = userRoles.map((item, i) => `
-        <div class="role-card">
+        <div class="role-card shadow-sm">
           <div class="row align-items-end g-2">
-            <div class="col-sm-8">
+            <div class="col-sm-7 col-12">
               <label class="label-cyan">LINE UserID</label>
               <input type="text" class="form-control form-control-dark" value="${item.uid}" 
                 onchange="updateRoleData(${i}, 'uid', this.value)" placeholder="Uf06e931...">
             </div>
-            <div class="col-sm-3 col-10">
+            <div class="col-sm-4 col-10">
               <label class="label-cyan">สิทธิ</label>
               <select class="form-select form-control-dark" onchange="updateRoleData(${i}, 'role', this.value)">
                 <option value="Admin" ${item.role === 'Admin' ? 'selected' : ''}>Admin</option>
@@ -64,7 +82,7 @@
               </select>
             </div>
             <div class="col-sm-1 col-2 text-end">
-              <span class="btn-delete" onclick="removeRole(${i})">✕</span>
+              <span class="btn-delete px-2 py-1" onclick="removeRole(${i})" style="cursor:pointer; font-size:1.2rem;">✕</span>
             </div>
           </div>
         </div>
@@ -73,20 +91,46 @@
 
     function updateRoleData(i, f, v) { userRoles[i][f] = v; }
     function addRole() { userRoles.push({ uid: "", role: "Staff" }); renderRoles(); }
-    function removeRole(i) { if(confirm("ลบสิทธินี้?")) { userRoles.splice(i, 1); renderRoles(); } }
+    
+    function removeRole(i) { 
+      if(confirm("ยืนยันการลบสิทธินี้?")) { 
+        userRoles.splice(i, 1); 
+        renderRoles(); 
+      } 
+    }
 
     async function saveRoles() {
       const btn = document.getElementById("btn-save");
-      btn.disabled = true; btn.innerText = "กำลังบันทึก...";
+      const originalText = btn.innerText;
+      
+      btn.disabled = true; 
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> กำลังบันทึก...';
+      
       try {
-        const res = await fetch(CONFIG.GAS_API, {
+        const response = await fetch(CONFIG.GAS_API, {
           method: "POST",
-          body: JSON.stringify({ type: "admin_update_roles", adminUid: currentAdminUid, data: userRoles })
-        }).then(r => r.json());
-        if(res.status === "success") alert("✅ บันทึกเรียบร้อย!");
-      } catch (e) { alert("❌ ผิดพลาด"); }
-      finally { btn.disabled = false; btn.innerText = "บันทึกทั้งหมด"; }
+          body: JSON.stringify({ 
+            type: "admin_update_roles", 
+            adminUid: currentAdminUid, 
+            data: userRoles 
+          })
+        });
+
+        const res = await response.json();
+        if(res.status === "success") {
+          alert("✅ บันทึกข้อมูลสำเร็จ!");
+        } else {
+          alert("⚠️ บันทึกไม่สำเร็จ: " + (res.msg || "เกิดข้อผิดพลาดจากเซิร์ฟเวอร์"));
+        }
+      } catch (e) { 
+        console.error(e);
+        alert("❌ เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์"); 
+      } finally { 
+        btn.disabled = false; 
+        btn.innerText = originalText; 
+      }
     }
+
     window.onload = init;
   </script>
 </body>
