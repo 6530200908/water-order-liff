@@ -18,27 +18,27 @@ body {
   padding: 20px;
 }
 
-/* --- [จุดร่วมสำคัญ] ปรับสีเทาให้เป็นสีขาวให้หมด --- */
-/* แก้ไข .text-muted, <small>, และปุ่มที่เป็น Link ให้เป็นสีขาว */
+/* --- [จุดร่วมสำคัญ] ปรับสีเทา/Muted ให้เป็นสีขาวให้อ่านง่ายในโทรศัพท์ --- */
 .text-muted, 
 small.text-muted, 
 .btn-link.text-muted,
 .t-text {
   color: #ffffff !important;
-  opacity: 1 !important; /* ป้องกันความจาง */
+  opacity: 1 !important; 
   text-decoration: none !important;
 }
 
 /* --- Dashboard Cards --- */
-.order-card, .stat-card, .chart-box {
+.order-card, .stat-card, .chart-box, .role-card {
   background: var(--card-bg) !important;
   border-radius: 12px;
   padding: 20px;
   margin-bottom: 24px;
   border: 1px solid var(--border-color);
+  position: relative; /* สำหรับปุ่มลบ */
 }
 
-/* ยกเว้น: ตัวหนังสือขนาดเล็กใน Stat Card ที่อยากให้เป็นสีฟ้าเหมือนเดิม */
+/* ยกเว้น: ตัวหนังสือเล็กใน Stat Card ให้เป็นสีฟ้าตามเดิม */
 .stat-card .text-muted {
   color: var(--accent) !important; 
   font-weight: 800 !important;
@@ -74,27 +74,13 @@ small.text-muted,
 
 .form-control-dark::placeholder {
   color: #ffffff !important;
-  opacity: 0.6 !important; /* ให้จางนิดเดียพอให้รู้ว่าเป็น placeholder */
+  opacity: 0.6 !important;
 }
 
 /* --- Tabs & Navigation --- */
-.nav-tabs { 
-  border-bottom: 2px solid #222; 
-  margin-bottom: 20px; 
-}
-
-.nav-link { 
-  color: #888888 !important; 
-  border: none !important; 
-  font-weight: bold; 
-  padding: 12px 24px;
-}
-
-.nav-link.active { 
-  color: var(--accent) !important; 
-  background: transparent !important; 
-  border-bottom: 3px solid var(--accent) !important; 
-}
+.nav-tabs { border-bottom: 2px solid #222; margin-bottom: 20px; }
+.nav-link { color: #888888 !important; border: none !important; font-weight: bold; padding: 12px 24px; }
+.nav-link.active { color: var(--accent) !important; background: transparent !important; border-bottom: 3px solid var(--accent) !important; }
 
 /* --- Table Styles --- */
 .table thead th {
@@ -104,141 +90,47 @@ small.text-muted,
   font-weight: 900 !important;
   text-transform: uppercase;
 }
-
-.table tbody td {
-  color: #ffffff !important;
-  border-bottom: 1px solid #222222;
-  padding: 14px 10px;
-  vertical-align: middle;
-}
+.table tbody td { color: #ffffff !important; border-bottom: 1px solid #222222; padding: 14px 10px; vertical-align: middle; }
 
 /* --- Badge Status --- */
-.badge-status {
-  padding: 6px 12px;
-  border-radius: 8px;
-  font-size: 0.8rem;
-  font-weight: bold;
-}
-
-.bg-success-subtle { 
-  background: rgba(32, 201, 151, 0.15) !important; 
-  color: #20c997 !important; 
-  border: 1px solid #20c997; 
-}
-
-.bg-warning-subtle { 
-  background: rgba(255, 193, 7, 0.15) !important; 
-  color: #ffc107 !important; 
-  border: 1px solid #ffc107; 
-}
-
-.bg-danger-subtle { 
-  background: rgba(255, 77, 77, 0.15) !important; 
-  color: #ff4d4d !important; 
-  border: 1px solid #ff4d4d; 
-}
+.badge-status { padding: 6px 12px; border-radius: 8px; font-size: 0.8rem; font-weight: bold; }
+.bg-success-subtle { background: rgba(32, 201, 151, 0.15) !important; color: #20c997 !important; border: 1px solid #20c997; }
+.bg-warning-subtle { background: rgba(255, 193, 7, 0.15) !important; color: #ffc107 !important; border: 1px solid #ffc107; }
+.bg-danger-subtle { background: rgba(255, 77, 77, 0.15) !important; color: #ff4d4d !important; border: 1px solid #ff4d4d; }
 
 /* --- Timeline Section --- */
-#timeline-box {
-  position: relative;
-  padding-left: 50px;
-}
+#timeline-box { position: relative; padding-left: 50px; }
+#timeline-box::before { content: ''; position: absolute; left: 22px; top: 5px; bottom: 5px; width: 2px; background: #333333; }
+.t-item { position: relative; padding-bottom: 45px; }
+.t-icon { position: absolute; left: -38px; width: 22px; height: 22px; background: #000; border: 2px solid #555; border-radius: 50%; z-index: 2; }
+.t-item.active .t-icon { background: var(--accent); border-color: var(--accent); box-shadow: 0 0 25px rgba(13, 202, 240, 0.8); transform: scale(1.3); }
+.t-item.active .t-text { color: var(--accent) !important; font-weight: 800; text-shadow: 0 0 15px rgba(13, 202, 240, 0.5); }
+.t-item.done .t-icon { background: var(--accent); border-color: var(--accent); }
+.t-item.done .t-text { color: #ffffff !important; }
 
-#timeline-box::before {
-  content: ''; 
-  position: absolute; 
-  left: 22px; 
-  top: 5px; 
-  bottom: 5px; 
-  width: 2px; 
-  background: #333333;
-}
+#loader { position: fixed; inset: 0; background: rgba(0,0,0,0.95); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; }
 
-.t-item {
-  position: relative;
-  padding-bottom: 45px;
-}
+/* --- Sticky Button & Popup --- */
+.sticky-footer { position: fixed; bottom: 0; left: 0; right: 0; background-color: var(--main-bg); padding: 15px 20px; border-top: 1px solid var(--border-color); z-index: 1000; }
+.payment-overlay { display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.9); z-index: 2000; align-items: center; justify-content: center; padding: 20px; }
+.modal-card { background-color: var(--card-bg) !important; border: 1px solid var(--border-color); color: var(--text-white) !important; border-radius: 16px; width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto; }
+.content-wrapper { padding-bottom: 150px; }
+#map { height: 250px; width: 100%; border-radius: 12px; margin-bottom: 10px; border: 2px solid var(--accent); }
 
-.t-icon {
-  position: absolute;
-  left: -38px;
-  width: 22px;
-  height: 22px;
-  background: #000;
-  border: 2px solid #555;
-  border-radius: 50%;
-  z-index: 2;
-}
+/* --- จัดการสิทธิผู้ใช้ (Role Page Custom) --- */
+.btn-delete { color: var(--danger) !important; cursor: pointer; font-weight: bold; }
+.add-btn-dashed { border: 2px dashed var(--accent); border-radius: 12px; cursor: pointer; background: rgba(13, 202, 240, 0.05); }
 
-.t-item.active .t-icon { 
-  background: var(--accent);
-  border-color: var(--accent);
-  box-shadow: 0 0 25px rgba(13, 202, 240, 0.8); 
-  transform: scale(1.3); 
-}
-
-.t-item.active .t-text { 
-  color: var(--accent) !important; 
-  font-weight: 800; 
-  text-shadow: 0 0 15px rgba(13, 202, 240, 0.5); 
-}
-
-.t-item.done .t-icon {
-  background: var(--accent);
-  border-color: var(--accent);
-}
-
-.t-item.done .t-text {
-  color: #ffffff !important;
-}
-
-#loader {
-    position: fixed; inset: 0; background: rgba(0,0,0,0.95);
-    display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9999;
-}
-
-/* --- ส่วนเสริมปุ่ม Sticky และ Popup --- */
-.sticky-footer {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background-color: var(--main-bg);
-  padding: 15px 20px;
-  border-top: 1px solid var(--border-color);
-  z-index: 1000;
-}
-
-.payment-overlay {
-  display: none;
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.9);
-  z-index: 2000;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-}
-
-.modal-card {
-  background-color: var(--card-bg) !important;
-  border: 1px solid var(--border-color);
-  color: var(--text-white) !important;
-  border-radius: 16px;
-  width: 100%;
-  max-width: 500px;
-  max-height: 90vh;
-  overflow-y: auto;
-}
-
-.content-wrapper {
-  padding-bottom: 150px;
-}
-
-#map { 
-  height: 250px; 
-  width: 100%; 
-  border-radius: 12px; 
-  margin-bottom: 10px; 
-  border: 2px solid var(--accent);
+/* ปรับปรุงให้หน้าจอโทรศัพท์ซ้อนกันแนวตั้ง ไม่เบียดกัน */
+@media (max-width: 576px) {
+  .role-card .row > div {
+    width: 100% !important;
+    margin-bottom: 15px;
+  }
+  .btn-delete {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    font-size: 1.2rem;
+  }
 }
