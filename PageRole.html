@@ -3,8 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>จัดการสิทธิผู้ใช้งาน</title>
+  <title>จัดการสิทธิผู้ใช้งาน - Water Delivery</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;700&family=Sarabun:wght@400;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="Styles.css">
 </head>
 <body>
@@ -23,26 +24,34 @@
     <div id="role-list"></div>
 
     <div class="add-btn-dashed text-center py-3 mt-3" onclick="addRole()">
-      <div class="text-info fw-bold">+ เพิ่มผู้ใช้งาน</div>
+      <div class="text-info fw-bold">+ เพิ่มผู้ใช้งาน / กำหนดสิทธิ</div>
     </div>
   </div>
 
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <script src="Config.js"></script>
+  
   <script>
     let userRoles = [], currentAdminUid = "";
 
+    // ฟังก์ชันเริ่มต้นเมื่อโหลดหน้าเว็บ
     async function init() {
       try {
         await liff.init({ liffId: CONFIG.LIFF_ID_ADMIN });
-        if (!liff.isLoggedIn()) { liff.login(); return; }
+        
+        if (!liff.isLoggedIn()) { 
+          liff.login(); 
+          return; 
+        }
+
         const profile = await liff.getProfile();
         currentAdminUid = profile.userId;
         
-        // เพิ่ม Cache: 'no-store' เพื่อป้องกันปัญหาข้อมูลไม่อัปเดตในมือถือ
+        // ดึงข้อมูลจาก Google Apps Script (เพิ่ม redirect: 'follow' เพื่อความชัวร์ในมือถือ)
         const response = await fetch(`${CONFIG.GAS_API}?type=admin_get_roles&uid=${currentAdminUid}`, {
           method: "GET",
-          cache: "no-store"
+          cache: "no-store",
+          redirect: "follow" 
         });
 
         if (!response.ok) throw new Error("Network Response Fail");
@@ -52,63 +61,81 @@
         renderRoles();
 
       } catch (e) { 
-        console.error(e);
-        alert("❌ โหลดข้อมูลล้มเหลว: ตรวจสอบการเชื่อมต่ออินเทอร์เน็ต"); 
+        console.error("Init Error:", e);
+        alert("❌ โหลดข้อมูลล้มเหลว: ตรวจสอบการเชื่อมต่อหรือการ Deployment ใน GAS"); 
       } finally { 
         document.getElementById("loader").style.display = "none"; 
       }
     }
 
+    // ฟังก์ชันวาดรายการบนหน้าจอ
     function renderRoles() {
       const list = document.getElementById("role-list");
+      
       if (userRoles.length === 0) {
-        list.innerHTML = `<div class="text-center py-5 text-white-50">ไม่มีข้อมูลผู้ใช้งาน</div>`;
+        list.innerHTML = `<div class="text-center py-5 text-white-50">ไม่พบข้อมูลผู้ใช้งานในระบบ</div>`;
         return;
       }
 
       list.innerHTML = userRoles.map((item, i) => `
-        <div class="role-card shadow-sm">
+        <div class="role-card shadow-sm mb-3">
           <div class="row align-items-end g-2">
             <div class="col-sm-7 col-12">
               <label class="label-cyan">LINE UserID</label>
-              <input type="text" class="form-control form-control-dark" value="${item.uid}" 
-                onchange="updateRoleData(${i}, 'uid', this.value)" placeholder="Uf06e931...">
+              <input type="text" class="form-control form-control-dark" 
+                value="${item.uid || ''}" 
+                onchange="updateRoleData(${i}, 'uid', this.value)" 
+                placeholder="ตัวอย่าง: Uf06e931...">
             </div>
+            
             <div class="col-sm-4 col-10">
-              <label class="label-cyan">สิทธิ</label>
+              <label class="label-cyan">สิทธิเข้าใช้งาน</label>
               <select class="form-select form-control-dark" onchange="updateRoleData(${i}, 'role', this.value)">
                 <option value="Admin" ${item.role === 'Admin' ? 'selected' : ''}>Admin</option>
                 <option value="Staff" ${item.role === 'Staff' ? 'selected' : ''}>Staff</option>
               </select>
             </div>
+            
             <div class="col-sm-1 col-2 text-end">
-              <span class="btn-delete px-2 py-1" onclick="removeRole(${i})" style="cursor:pointer; font-size:1.2rem;">✕</span>
+              <span class="btn-delete px-2 py-1" onclick="removeRole(${i})" title="ลบรายการ">✕</span>
             </div>
           </div>
         </div>
       `).join("");
     }
 
-    function updateRoleData(i, f, v) { userRoles[i][f] = v; }
-    function addRole() { userRoles.push({ uid: "", role: "Staff" }); renderRoles(); }
+    // อัปเดตข้อมูลใน Array เมื่อมีการพิมพ์หรือเปลี่ยนค่า
+    function updateRoleData(i, field, value) { 
+      userRoles[i][field] = value.trim(); 
+    }
+
+    // เพิ่มแถวใหม่
+    function addRole() { 
+      userRoles.push({ uid: "", role: "Staff" }); 
+      renderRoles(); 
+    }
     
+    // ลบแถว
     function removeRole(i) { 
-      if(confirm("ยืนยันการลบสิทธินี้?")) { 
+      if(confirm("ยืนยันการลบสิทธิผู้ใช้งานท่านนี้?")) { 
         userRoles.splice(i, 1); 
         renderRoles(); 
       } 
     }
 
+    // ฟังก์ชันบันทึกข้อมูลทั้งหมดกลับไปยัง Google Sheets
     async function saveRoles() {
       const btn = document.getElementById("btn-save");
       const originalText = btn.innerText;
       
+      // ป้องกันการกดซ้ำขณะโหลด
       btn.disabled = true; 
       btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> กำลังบันทึก...';
       
       try {
         const response = await fetch(CONFIG.GAS_API, {
           method: "POST",
+          redirect: "follow",
           body: JSON.stringify({ 
             type: "admin_update_roles", 
             adminUid: currentAdminUid, 
@@ -116,21 +143,24 @@
           })
         });
 
+        // ตรวจสอบว่า Response เป็น JSON หรือไม่ (ถ้าติด Redirect ในมือถือตัวนี้จะช่วยกรอง)
         const res = await response.json();
+        
         if(res.status === "success") {
-          alert("✅ บันทึกข้อมูลสำเร็จ!");
+          alert("✅ อัปเดตสิทธิผู้ใช้งานเรียบร้อยแล้ว!");
         } else {
-          alert("⚠️ บันทึกไม่สำเร็จ: " + (res.msg || "เกิดข้อผิดพลาดจากเซิร์ฟเวอร์"));
+          alert("⚠️ บันทึกไม่สำเร็จ: " + (res.msg || "Server Error"));
         }
       } catch (e) { 
-        console.error(e);
-        alert("❌ เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์"); 
+        console.error("Save Error:", e);
+        alert("❌ เกิดข้อผิดพลาด: ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้ (ตรวจสอบ Deployment ใน GAS)"); 
       } finally { 
         btn.disabled = false; 
         btn.innerText = originalText; 
       }
     }
 
+    // เรียกฟังก์ชัน init เมื่อหน้าจอโหลดเสร็จ
     window.onload = init;
   </script>
 </body>
