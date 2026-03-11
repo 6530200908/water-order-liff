@@ -18,6 +18,17 @@ body {
   padding: 20px;
 }
 
+/* --- [จุดร่วมสำคัญ] ปรับสีเทาให้เป็นสีขาวให้หมด --- */
+/* แก้ไข .text-muted, <small>, และปุ่มที่เป็น Link ให้เป็นสีขาว */
+.text-muted, 
+small.text-muted, 
+.btn-link.text-muted,
+.t-text {
+  color: #ffffff !important;
+  opacity: 1 !important; /* ป้องกันความจาง */
+  text-decoration: none !important;
+}
+
 /* --- Dashboard Cards --- */
 .order-card, .stat-card, .chart-box {
   background: var(--card-bg) !important;
@@ -27,21 +38,13 @@ body {
   border: 1px solid var(--border-color);
 }
 
+/* ยกเว้น: ตัวหนังสือขนาดเล็กใน Stat Card ที่อยากให้เป็นสีฟ้าเหมือนเดิม */
 .stat-card .text-muted {
   color: var(--accent) !important; 
   font-weight: 800 !important;
   font-size: 0.85rem;
   text-transform: uppercase;
-  opacity: 1 !important;
   display: block;
-  margin-bottom: 5px;
-}
-
-/* ปรับจุดร่วม: ข้อความขนาดเล็กให้เป็นสีขาวแทนสีเทา */
-.small.text-muted {
-  color: #ffffff !important;
-  opacity: 1 !important;
-  font-weight: 600 !important;
 }
 
 .label-cyan {
@@ -69,10 +72,9 @@ body {
   border-radius: 6px;
 }
 
-/* ปรับจุดร่วม: Placeholder ให้ขาวขึ้น */
 .form-control-dark::placeholder {
   color: #ffffff !important;
-  opacity: 0.7 !important;
+  opacity: 0.6 !important; /* ให้จางนิดเดียพอให้รู้ว่าเป็น placeholder */
 }
 
 /* --- Tabs & Navigation --- */
@@ -166,13 +168,6 @@ body {
   border: 2px solid #555;
   border-radius: 50%;
   z-index: 2;
-}
-
-/* ปรับจุดร่วม: ข้อความ Timeline ให้เป็นสีขาว */
-.t-text { 
-  font-size: 1.1rem; 
-  color: #ffffff !important; 
-  font-weight: 500; 
 }
 
 .t-item.active .t-icon { 
