@@ -41,11 +41,13 @@
       
       <div id="gps-section" style="display:none;">
         <label class="label-cyan mb-2">📍 จิ้มที่แผนที่เพื่อปักหมุดจุดส่งน้ำ</label>
-        <div id="map"></div>
+        <div id="map" style="height:260px; border-radius:12px; overflow:hidden;"></div>
         <p id="gpsStatus" class="small text-center mb-2 text-muted">ยังไม่ได้ปักหมุด</p>
         <input type="hidden" id="gpsData">
         <textarea id="cusAddress" class="form-control form-control-dark mb-3" rows="2" placeholder="ที่อยู่เพิ่มเติม (เช่น ตึก ชั้น ฯลฯ)"></textarea>
       </div>
+
+      <input type="hidden" id="gpsData">
 
       <button id="btn-confirm" class="btn btn-info w-100 p-3 fw-bold rounded-3 mb-2" onclick="confirmOrder()">ยืนยันการสั่งซื้อ</button>
       <button class="btn btn-link w-100 text-muted text-decoration-none" onclick="closePayment()">แก้ไขรายการ</button>
@@ -55,53 +57,121 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="Config.js"></script>
   <script>
-    let currentUserId = "", products = [], cart = {}, map, marker;
+    let currentUserId = "";
+    let products = [];
+    let cart = {};
+    let map = null;
+    let marker = null;
     let dbPromptpayID = "";
+
+    // เก็บชื่อสถานที่ -> gps
+    let locationMap = {};
 
     async function init() {
       try {
         await liff.init({ liffId: CONFIG.LIFF_ID_ORDER });
-        if (!liff.isLoggedIn()) { liff.login(); return; }
+        if (!liff.isLoggedIn()) {
+          liff.login();
+          return;
+        }
+
         const profile = await liff.getProfile();
         currentUserId = profile.userId;
 
         const res = await fetch(`${CONFIG.GAS_API}?uid=${currentUserId}`).then(r => r.json());
-        products = res.products;
-        dbPromptpayID = res.promptpayID;
+
+        products = res.products || [];
+        dbPromptpayID = res.promptpayID || "";
         renderProducts();
 
         const select = document.getElementById("locSelect");
         select.innerHTML = '<option value="">-- เลือกสถานที่ --</option>';
-        res.locations.forEach(loc => select.innerHTML += `<option value="${loc}">${loc}</option>`);
+        locationMap = {};
+
+        (res.locations || []).forEach(loc => {
+          const desc = loc.desc || "";
+          const gps = loc.gps || "";
+
+          if (!desc) return;
+
+          locationMap[desc] = gps;
+          select.innerHTML += `<option value="${escapeHtml(desc)}">${escapeHtml(desc)}</option>`;
+        });
+
         select.innerHTML += '<option value="อื่นๆ">📍 อื่นๆ (ปักหมุดแผนที่เอง)</option>';
 
         if (res.customer) {
-          document.getElementById("cusName").value = res.customer.name || profile.displayName;
-          if (res.customer.address && !res.locations.includes(res.customer.address)) {
+          document.getElementById("cusName").value = res.customer.name || profile.displayName || "";
+
+          const savedAddress = res.customer.address || "";
+          const savedGps = res.customer.gps || "";
+
+          if (savedAddress && locationMap[savedAddress] !== undefined) {
+            select.value = savedAddress;
+            handleLocationChange(savedAddress);
+          } else if (savedAddress || savedGps) {
             select.value = "อื่นๆ";
             handleLocationChange("อื่นๆ");
-            document.getElementById("cusAddress").value = res.customer.address;
-            document.getElementById("gpsData").value = res.customer.gps || "";
-          } else {
-            select.value = res.customer.address || "";
+            document.getElementById("cusAddress").value = savedAddress;
+            document.getElementById("gpsData").value = savedGps;
+
+            if (savedGps) {
+              document.getElementById("gpsStatus").innerText = "📍 มีพิกัดเดิมแล้ว";
+              document.getElementById("gpsStatus").className = "small text-center mb-2 text-success fw-bold";
+            }
           }
+        } else {
+          document.getElementById("cusName").value = profile.displayName || "";
         }
-      } catch (e) { console.error(e); }
-      finally { document.getElementById("loader").style.display = "none"; }
+
+      } catch (e) {
+        console.error(e);
+        alert("โหลดข้อมูลล้มเหลว");
+      } finally {
+        document.getElementById("loader").style.display = "none";
+      }
     }
 
     function handleLocationChange(v) {
-      document.getElementById("gps-section").style.display = (v === "อื่นๆ") ? "block" : "none";
-      if (v === "อื่นๆ") setTimeout(initMap, 300);
+      const gpsSection = document.getElementById("gps-section");
+      const gpsData = document.getElementById("gpsData");
+      const gpsStatus = document.getElementById("gpsStatus");
+      const cusAddress = document.getElementById("cusAddress");
+
+      if (v === "อื่นๆ") {
+        gpsSection.style.display = "block";
+        gpsData.value = "";
+        gpsStatus.innerText = "ยังไม่ได้ปักหมุด";
+        gpsStatus.className = "small text-center mb-2 text-muted";
+        setTimeout(initMap, 300);
+      } else {
+        gpsSection.style.display = "none";
+
+        // ถ้าเป็นสถานที่ที่เซตไว้ ให้เก็บ gps ไว้เลยแม้ไม่แสดงแผนที่
+        gpsData.value = locationMap[v] || "";
+        cusAddress.value = "";
+      }
     }
 
     function initMap() {
-      if (map) { map.invalidateSize(); return; }
+      if (map) {
+        map.invalidateSize();
+        return;
+      }
+
       map = L.map('map').setView([13.7563, 100.5018], 16);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors'
+      }).addTo(map);
+
       map.on('click', function(e) {
-        if (marker) marker.setLatLng(e.latlng);
-        else marker = L.marker(e.latlng).addTo(map);
+        if (marker) {
+          marker.setLatLng(e.latlng);
+        } else {
+          marker = L.marker(e.latlng).addTo(map);
+        }
+
         document.getElementById("gpsData").value = `${e.latlng.lat},${e.latlng.lng}`;
         document.getElementById("gpsStatus").innerText = "📍 ปักหมุดเรียบร้อย";
         document.getElementById("gpsStatus").className = "small text-center mb-2 text-success fw-bold";
@@ -111,61 +181,124 @@
     function renderProducts() {
       document.getElementById("product-list").innerHTML = products.map((p, i) => `
         <div class="order-card d-flex justify-content-between align-items-center p-3 mb-2">
-          <div><div class="fw-bold text-white">${p.desc}</div><div class="text-info small">${p.price} ฿</div></div>
-          <div class="d-flex align-items-center gap-3">
-            <button class="btn btn-sm btn-outline-light rounded-circle" onclick="updateQty(${i},-1)">-</button>
-            <span id="qty-${i}" class="fw-bold text-white">0</span>
-            <button class="btn btn-sm btn-outline-info rounded-circle" onclick="updateQty(${i},1)">+</button>
+          <div>
+            <div class="fw-bold text-white">${escapeHtml(p.desc)}</div>
+            <div class="text-info small">${p.price} ฿</div>
           </div>
-        </div>`).join("");
+          <div class="d-flex align-items-center gap-3">
+            <button class="btn btn-sm btn-outline-light rounded-circle" onclick="updateQty(${i}, -1)">-</button>
+            <span id="qty-${i}" class="fw-bold text-white">0</span>
+            <button class="btn btn-sm btn-outline-info rounded-circle" onclick="updateQty(${i}, 1)">+</button>
+          </div>
+        </div>
+      `).join("");
     }
 
     function updateQty(i, d) {
       cart[i] = Math.max(0, (cart[i] || 0) + d);
       document.getElementById(`qty-${i}`).innerText = cart[i];
+
       let total = 0;
-      Object.keys(cart).forEach(k => { total += cart[k] * products[k].price; });
+      Object.keys(cart).forEach(k => {
+        total += cart[k] * products[k].price;
+      });
+
       document.getElementById("total-price").innerText = total;
     }
 
-    function openPayment() { 
-      if(document.getElementById("total-price").innerText === "0") return alert("เลือกน้ำก่อนครับ"); 
-      document.getElementById("payment-ui").style.display = "flex"; 
+    function openPayment() {
+      if (document.getElementById("total-price").innerText === "0") {
+        alert("เลือกน้ำก่อนครับ");
+        return;
+      }
+      document.getElementById("payment-ui").style.display = "flex";
     }
     
-    function closePayment() { document.getElementById("payment-ui").style.display = "none"; }
+    function closePayment() {
+      document.getElementById("payment-ui").style.display = "none";
+    }
 
     function confirmOrder() {
-      // ... (ส่วนการ fetch และยืนยันออเดอร์เหมือนเดิมของคุณ)
       const loc = document.getElementById("locSelect").value;
-      if (!loc) return alert("กรุณาเลือกสถานที่ส่ง");
-      
+      const name = document.getElementById("cusName").value.trim();
+      const gpsValue = document.getElementById("gpsData").value.trim();
+      const customAddress = document.getElementById("cusAddress").value.trim();
+
+      if (!name) {
+        alert("กรุณากรอกชื่อผู้รับ");
+        return;
+      }
+
+      if (!loc) {
+        alert("กรุณาเลือกสถานที่ส่ง");
+        return;
+      }
+
+      const selectedItems = Object.keys(cart).filter(i => cart[i] > 0);
+      if (selectedItems.length === 0) {
+        alert("เลือกน้ำก่อนครับ");
+        return;
+      }
+
+      if (loc === "อื่นๆ") {
+        if (!gpsValue) {
+          alert("กรุณาปักหมุดบนแผนที่");
+          return;
+        }
+        if (!customAddress) {
+          alert("กรุณากรอกรายละเอียดที่อยู่เพิ่มเติม");
+          return;
+        }
+      }
+
       document.getElementById("btn-confirm").disabled = true;
       document.getElementById("btn-confirm").innerText = "กำลังบันทึก...";
 
       const orderData = {
         uid: currentUserId,
-        name: document.getElementById("cusName").value,
-        address: (loc === "อื่นๆ") ? document.getElementById("cusAddress").value : loc,
-        gps: (loc === "อื่นๆ") ? document.getElementById("gpsData").value : "",
-        items: Object.keys(cart).filter(i => cart[i] > 0).map(i => products[i].desc).join(", "),
-        amounts: Object.keys(cart).filter(i => cart[i] > 0).map(i => String(cart[i])).join(", "),
+        name: name,
+        address: (loc === "อื่นๆ") ? customAddress : loc,
+        gps: (loc === "อื่นๆ") ? gpsValue : (locationMap[loc] || ""),
+        items: selectedItems.map(i => products[i].desc).join(", "),
+        amounts: selectedItems.map(i => String(cart[i])).join(", "),
         total: document.getElementById("total-price").innerText
       };
 
-      fetch(CONFIG.GAS_API, { method: "POST", body: JSON.stringify(orderData) })
+      console.log("orderData:", orderData);
+
+      fetch(CONFIG.GAS_API, {
+        method: "POST",
+        body: JSON.stringify(orderData)
+      })
       .then(r => r.json())
       .then(res => {
+        if (res.status !== "ok") {
+          throw new Error(res.msg || "บันทึกออเดอร์ไม่สำเร็จ");
+        }
+
         const qrUrl = `https://promptpay.io/${dbPromptpayID || "0"}/${orderData.total}.png`;
-        liff.sendMessages([
-          { type: "text", text: `💧 สั่งซื้อสำเร็จ!\nยอดชำระ: ${orderData.total} ฿` },
+
+        return liff.sendMessages([
+          { type: "text", text: `💧 สั่งซื้อสำเร็จ!\nเลขออเดอร์: ${res.orderId}\nยอดชำระ: ${orderData.total} ฿` },
           { type: "image", originalContentUrl: qrUrl, previewImageUrl: qrUrl }
-        ]).then(() => liff.closeWindow());
+        ]);
       })
-      .catch(() => {
+      .then(() => liff.closeWindow())
+      .catch(err => {
+        console.error(err);
         alert("เกิดข้อผิดพลาด");
         document.getElementById("btn-confirm").disabled = false;
+        document.getElementById("btn-confirm").innerText = "ยืนยันการสั่งซื้อ";
       });
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
     }
 
     window.onload = init;
