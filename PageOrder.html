@@ -115,14 +115,14 @@
 
         products = res.products || [];
         dbPromptpayID = res.promptpayID || "";
+        
+        // แสดงเฉพาะสินค้าที่มี Stock
         renderProducts();
 
         setupLocationOptions(res.locations || []);
 
         if (res.customer) {
-          document.getElementById("cusName").value =
-            res.customer.name || profile.displayName || "";
-
+          document.getElementById("cusName").value = res.customer.name || profile.displayName || "";
           const savedAddress = (res.customer.address || "").trim();
           const savedGps = (res.customer.gps || "").trim();
 
@@ -137,8 +137,7 @@
 
             if (savedGps) {
               document.getElementById("gpsStatus").innerText = "📍 มีพิกัดเดิมแล้ว";
-              document.getElementById("gpsStatus").className =
-                "small text-center mb-2 text-success fw-bold";
+              document.getElementById("gpsStatus").className = "small text-center mb-2 text-success fw-bold";
             }
           }
         } else {
@@ -161,9 +160,7 @@
       locations.forEach(loc => {
         const desc = (loc.desc || "").trim();
         const gps = (loc.gps || "").trim();
-
         if (!desc) return;
-
         locationMap[desc] = gps;
         select.innerHTML += `<option value="${escapeHtml(desc)}">${escapeHtml(desc)}</option>`;
       });
@@ -183,7 +180,6 @@
         cusAddress.value = "";
         gpsStatus.innerText = "ยังไม่ได้ปักหมุด";
         gpsStatus.className = "small text-center mb-2 text-muted";
-
         setTimeout(initMap, 300);
       } else {
         gpsSection.style.display = "none";
@@ -195,9 +191,8 @@
     function initMap() {
       if (!map) {
         map = L.map("map").setView([13.7563, 100.5018], 16);
-
         L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-          attribution: "&copy; OpenStreetMap contributors"
+          attribution: "&copy; OpenStreetMap"
         }).addTo(map);
 
         map.on("click", function(e) {
@@ -206,42 +201,57 @@
           } else {
             marker = L.marker(e.latlng).addTo(map);
           }
-
           document.getElementById("gpsData").value = `${e.latlng.lat},${e.latlng.lng}`;
           document.getElementById("gpsStatus").innerText = "📍 ปักหมุดเรียบร้อย";
-          document.getElementById("gpsStatus").className =
-            "small text-center mb-2 text-success fw-bold";
+          document.getElementById("gpsStatus").className = "small text-center mb-2 text-success fw-bold";
         });
       }
-
       map.invalidateSize();
     }
 
+    // --- ส่วนที่แก้ไข: แสดงเฉพาะสินค้า Stock > 0 ---
     function renderProducts() {
-      document.getElementById("product-list").innerHTML = products.map((p, i) => `
-        <div class="order-card d-flex justify-content-between align-items-center p-3 mb-2">
-          <div>
-            <div class="fw-bold text-white">${escapeHtml(p.desc)}</div>
-            <div class="text-info small">${escapeHtml(String(p.price))} ฿</div>
+      const listElement = document.getElementById("product-list");
+      const availableProducts = products.filter(p => Number(p.stock) > 0);
+
+      if (availableProducts.length === 0) {
+        listElement.innerHTML = `<div class="text-center py-5 text-white-50">ขออภัย ขณะนี้สินค้าหมดชั่วคราว</div>`;
+        return;
+      }
+
+      listElement.innerHTML = availableProducts.map((p) => {
+        const realIndex = products.findIndex(item => item.id === p.id);
+        return `
+          <div class="order-card d-flex justify-content-between align-items-center p-3 mb-2">
+            <div>
+              <div class="fw-bold text-white">${escapeHtml(p.desc)}</div>
+              <div class="text-info small">${escapeHtml(String(p.price))} ฿ <span class="text-white-50 ms-1">(คงเหลือ ${p.stock})</span></div>
+            </div>
+            <div class="d-flex align-items-center gap-3">
+              <button class="btn btn-sm btn-outline-light rounded-circle" onclick="updateQty(${realIndex}, -1)">-</button>
+              <span id="qty-${realIndex}" class="fw-bold text-white">0</span>
+              <button class="btn btn-sm btn-outline-info rounded-circle" onclick="updateQty(${realIndex}, 1)">+</button>
+            </div>
           </div>
-          <div class="d-flex align-items-center gap-3">
-            <button class="btn btn-sm btn-outline-light rounded-circle" onclick="updateQty(${i}, -1)">-</button>
-            <span id="qty-${i}" class="fw-bold text-white">0</span>
-            <button class="btn btn-sm btn-outline-info rounded-circle" onclick="updateQty(${i}, 1)">+</button>
-          </div>
-        </div>
-      `).join("");
+        `;
+      }).join("");
     }
 
     function updateQty(index, delta) {
       cart[index] = Math.max(0, (cart[index] || 0) + delta);
+      
+      // ตรวจสอบ Stock เบื้องต้นฝั่ง Client
+      if (cart[index] > products[index].stock) {
+        alert("ขออภัย สินค้าในสต็อกไม่พอ");
+        cart[index] = products[index].stock;
+      }
+
       document.getElementById(`qty-${index}`).innerText = cart[index];
 
       let total = 0;
       Object.keys(cart).forEach(k => {
         total += (cart[k] || 0) * Number(products[k].price || 0);
       });
-
       document.getElementById("total-price").innerText = total;
     }
 
@@ -263,13 +273,8 @@
       const gpsValue = document.getElementById("gpsData").value.trim();
       const customAddress = document.getElementById("cusAddress").value.trim();
 
-      if (!name) {
-        alert("กรุณากรอกชื่อผู้รับ");
-        return;
-      }
-
-      if (!loc) {
-        alert("กรุณาเลือกสถานที่ส่ง");
+      if (!name || !loc) {
+        alert("กรุณากรอกข้อมูลให้ครบถ้วน");
         return;
       }
 
@@ -279,16 +284,9 @@
         return;
       }
 
-      if (loc === "อื่นๆ") {
-        if (!gpsValue) {
-          alert("กรุณาปักหมุดบนแผนที่");
-          return;
-        }
-
-        if (!customAddress) {
-          alert("กรุณากรอกรายละเอียดที่อยู่เพิ่มเติม");
-          return;
-        }
+      if (loc === "อื่นๆ" && (!gpsValue || !customAddress)) {
+        alert("กรุณาปักหมุดและระบุที่อยู่เพิ่มเติม");
+        return;
       }
 
       const btn = document.getElementById("btn-confirm");
@@ -305,8 +303,6 @@
         total: document.getElementById("total-price").innerText
       };
 
-      console.log("orderData:", orderData);
-
       try {
         const response = await fetch(CONFIG.GAS_API, {
           method: "POST",
@@ -314,11 +310,7 @@
         });
 
         const res = await response.json();
-        console.log("GAS response:", res);
-
-        if (res.status !== "ok") {
-          throw new Error(res.msg || "บันทึกออเดอร์ไม่สำเร็จ");
-        }
+        if (res.status !== "ok") throw new Error(res.msg || "บันทึกออเดอร์ไม่สำเร็จ");
 
         const qrUrl = `https://promptpay.io/${dbPromptpayID || "0"}/${orderData.total}.png`;
 
@@ -335,32 +327,25 @@
             }
           ]);
         } catch (lineErr) {
-          console.error("LIFF sendMessages error:", lineErr);
-          alert(`บันทึกออเดอร์สำเร็จแล้ว\nเลขออเดอร์: ${res.orderId}\nแต่ส่งข้อความ LINE อัตโนมัติไม่ได้`);
+          console.error("LIFF error:", lineErr);
         }
 
         if (liff.isInClient()) {
           liff.closeWindow();
         } else {
-          alert(`สั่งซื้อสำเร็จ\nเลขออเดอร์: ${res.orderId}`);
+          alert(`สั่งซื้อสำเร็จ เลขออเดอร์: ${res.orderId}`);
           window.location.href = "PageStatus.html";
         }
 
       } catch (err) {
-        console.error("confirmOrder error:", err);
-        alert("เกิดข้อผิดพลาดในการบันทึกออเดอร์");
+        alert("เกิดข้อผิดพลาด: " + err.message);
         btn.disabled = false;
         btn.innerText = "ยืนยันการสั่งซื้อ";
       }
     }
 
     function escapeHtml(str) {
-      return String(str)
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
+      return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
     }
 
     window.onload = init;
