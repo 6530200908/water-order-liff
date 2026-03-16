@@ -4,15 +4,42 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>จัดการระบบสินค้า - Water Delivery</title>
-  
+
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="Styles.css">
+  <link rel="stylesheet" href="Styles.css?v=20260317-2">
 
   <style>
-    /* CSS เพิ่มเติมเฉพาะหน้าที่ยังไม่มีใน Styles.css */
-    .stock-preview { font-size: 0.8rem; color: #2ecc71; margin-top: 4px; font-weight: bold; }
-    .bg-dark-readonly { background-color: #000 !important; color: #6c757d !important; border: 1px solid #2d3238 !important; }
+    .stock-preview {
+      font-size: 0.8rem;
+      color: #2ecc71;
+      margin-top: 4px;
+      font-weight: bold;
+    }
+
+    .bg-dark-readonly {
+      background-color: #000 !important;
+      color: #6c757d !important;
+      border: 1px solid #2d3238 !important;
+    }
+
+    #loader {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.85);
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+
+    #loader.hidden {
+      display: none !important;
+      opacity: 0 !important;
+      visibility: hidden !important;
+      pointer-events: none !important;
+    }
   </style>
 </head>
 
@@ -26,7 +53,9 @@
   <div class="container container-sm-custom mt-4" style="padding-bottom: 100px;">
     <div class="d-flex justify-content-between align-items-center mb-4">
       <h4 class="fw-bold m-0 text-info">⚙️ จัดการระบบสินค้า</h4>
-      <button onclick="saveAllToSheet()" id="btn-save-all" class="btn btn-success fw-bold px-4 shadow-sm">บันทึกทั้งหมด</button>
+      <button onclick="saveAllToSheet()" id="btn-save-all" class="btn btn-success fw-bold px-4 shadow-sm">
+        บันทึกทั้งหมด
+      </button>
     </div>
 
     <div id="admin-product-list"></div>
@@ -38,131 +67,267 @@
   </div>
 
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-  <script src="Config.js"></script>
+  <script src="Config.js?v=20260317-2"></script>
 
   <script>
-    let products = [], currentAdminUid = "Unknown";
+    let products = [];
+    let currentAdminUid = "";
 
-    // 1. เริ่มต้นระบบและเช็คสิทธิตาม Config (เช่น STOCK_PAGE หรือ ADMIN_PAGE)
-    window.onload = async () => {
+    function showLoader(message = "กำลังตรวจสอบสิทธิ...") {
+      const loader = document.getElementById("loader");
+      if (!loader) return;
+
+      loader.classList.remove("hidden");
+      loader.style.display = "flex";
+      loader.style.opacity = "1";
+      loader.style.visibility = "visible";
+      loader.style.pointerEvents = "auto";
+
+      const textNode = loader.querySelector(".text-info");
+      if (textNode) textNode.textContent = message;
+    }
+
+    function hideLoader() {
+      const loader = document.getElementById("loader");
+      if (!loader) return;
+
+      loader.classList.add("hidden");
+      loader.style.display = "none";
+      loader.style.opacity = "0";
+      loader.style.visibility = "hidden";
+      loader.style.pointerEvents = "none";
+    }
+
+    async function readJsonSafe(response) {
+      const text = await response.text();
       try {
-        await liff.init({ liffId: CONFIG.LIFF_ID_ADMIN });
-        if (!liff.isLoggedIn()) { liff.login(); return; }
-
-        // เช็คสิทธิเข้าหน้าจัดการสินค้า (อ้างอิงตามที่คุณตั้งใน Config.js)
-        const canAccess = await validateAccess("STOCK_PAGE");
-        
-        if (canAccess) {
-          initAfterAuth(); 
-        }
-      } catch (e) {
-        console.error("Auth Error:", e);
-        document.getElementById("loader").style.display = "none";
-      }
-    };
-
-    // 2. ดึงข้อมูลสินค้าหลังจากผ่านด่านตรวจสิทธิ
-    async function initAfterAuth() {
-      try {
-        const profile = await liff.getProfile();
-        currentAdminUid = profile.userId;
-
-        const res = await fetch(`${CONFIG.GAS_API}?type=admin_get_products`).then(r => r.json());
-        // เพิ่มฟิลด์ addStock เพื่อใช้คำนวณในเครื่องลูกค้า
-        products = (res.products || []).map(p => ({ ...p, addStock: 0 }));
-        renderAdminProducts();
-      } catch (e) { 
-        console.error(e);
-        alert("❌ ไม่สามารถดึงข้อมูลสินค้าได้");
-      } finally { 
-        document.getElementById("loader").style.display = "none"; 
+        return JSON.parse(text);
+      } catch (err) {
+        throw new Error("เซิร์ฟเวอร์ไม่ได้ส่ง JSON กลับมา: " + text.substring(0, 300));
       }
     }
 
-    // 3. แสดงผลรายการสินค้า
+    async function initPage() {
+      showLoader("กำลังตรวจสอบสิทธิ...");
+
+      try {
+        await liff.init({ liffId: CONFIG.LIFF_ID_ADMIN });
+
+        if (!liff.isLoggedIn()) {
+          liff.login();
+          return;
+        }
+
+        const canAccess = await validateAccess("STOCK_PAGE");
+        if (!canAccess) {
+          hideLoader();
+          return;
+        }
+
+        await initAfterAuth();
+
+      } catch (e) {
+        console.error("Auth Error:", e);
+        hideLoader();
+        alert("❌ ไม่สามารถตรวจสอบสิทธิได้\n\nรายละเอียด: " + e.message);
+      }
+    }
+
+    async function initAfterAuth() {
+      try {
+        showLoader("กำลังโหลดข้อมูลสินค้า...");
+
+        const profile = await liff.getProfile();
+        currentAdminUid = (profile.userId || "").trim();
+
+        if (!currentAdminUid) {
+          throw new Error("ไม่พบ LINE UID");
+        }
+
+        // ตรงนี้คือจุดสำคัญ: ต้องส่ง uid ไปด้วย
+        const response = await fetch(
+          `${CONFIG.GAS_API}?type=admin_get_products&uid=${encodeURIComponent(currentAdminUid)}`,
+          {
+            method: "GET",
+            cache: "no-store"
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+
+        const res = await readJsonSafe(response);
+        console.log("admin_get_products response =", res);
+
+        if (res.status !== "success") {
+          throw new Error(res.msg || "ไม่สามารถดึงข้อมูลสินค้าได้");
+        }
+
+        products = Array.isArray(res.products)
+          ? res.products.map(p => ({
+              ...p,
+              price: Number(p.price) || 0,
+              stock: Number(p.stock) || 0,
+              addStock: 0
+            }))
+          : [];
+
+        renderAdminProducts();
+
+      } catch (e) {
+        console.error("Load Products Error:", e);
+        alert("❌ ไม่สามารถดึงข้อมูลสินค้าได้\n\nรายละเอียด: " + e.message);
+      } finally {
+        hideLoader();
+      }
+    }
+
     function renderAdminProducts() {
       const list = document.getElementById("admin-product-list");
+
+      if (!Array.isArray(products) || products.length === 0) {
+        list.innerHTML = `
+          <div class="text-center py-5 text-white-50">
+            ไม่พบข้อมูลสินค้าในระบบ
+          </div>
+        `;
+        return;
+      }
+
       list.innerHTML = products.map((p, i) => `
-        <div class="role-card shadow-sm">
+        <div class="role-card shadow-sm mb-3">
           <div class="row g-2">
             <div class="col-12 mb-2">
               <label class="label-cyan">ชื่อสินค้า/รายละเอียด</label>
-              <input type="text" class="form-control form-control-dark fw-bold text-info" 
-                value="${p.desc}" onchange="updateLocalData(${i},'desc',this.value)">
+              <input
+                type="text"
+                class="form-control form-control-dark fw-bold text-info"
+                value="${escapeHtml(p.desc || "")}"
+                onchange="updateLocalData(${i}, 'desc', this.value)"
+              >
             </div>
+
             <div class="col-4">
               <label class="label-cyan">ราคา (฿)</label>
-              <input type="number" class="form-control form-control-dark" 
-                value="${p.price}" onchange="updateLocalData(${i},'price',this.value)">
+              <input
+                type="number"
+                class="form-control form-control-dark"
+                value="${Number(p.price) || 0}"
+                onchange="updateLocalData(${i}, 'price', this.value)"
+              >
             </div>
+
             <div class="col-4">
               <label class="label-cyan text-muted">สต็อกเดิม</label>
-              <input type="number" class="form-control bg-dark-readonly" value="${p.stock}" disabled>
+              <input
+                type="number"
+                class="form-control bg-dark-readonly"
+                value="${Number(p.stock) || 0}"
+                disabled
+              >
             </div>
+
             <div class="col-4">
               <label class="label-cyan">➕ เติมสต็อก</label>
-              <input type="number" class="form-control form-control-dark border-info" 
-                placeholder="0" oninput="calculateStock(${i}, this.value)">
-              <div class="stock-preview" id="preview-${i}">รวม: ${p.stock} แพ็ก</div>
+              <input
+                type="number"
+                class="form-control form-control-dark border-info"
+                placeholder="0"
+                oninput="calculateStock(${i}, this.value)"
+              >
+              <div class="stock-preview" id="preview-${i}">
+                รวม: ${(Number(p.stock) || 0) + (Number(p.addStock) || 0)} แพ็ก
+              </div>
             </div>
           </div>
-        </div>`).join("");
+        </div>
+      `).join("");
     }
 
     function calculateStock(index, value) {
       const addValue = Number(value) || 0;
       products[index].addStock = addValue;
-      const total = products[index].stock + addValue;
+      const total = (Number(products[index].stock) || 0) + addValue;
       document.getElementById(`preview-${index}`).innerText = `รวม: ${total} แพ็ก`;
     }
 
-    function updateLocalData(i, f, v) { 
-      products[i][f] = (f==='desc') ? v : Number(v); 
+    function updateLocalData(index, field, value) {
+      if (!products[index]) return;
+      products[index][field] = field === "desc" ? value : Number(value) || 0;
     }
 
-    function addNewProduct() { 
-      products.push({id:"P-"+Date.now(), desc:"", price:0, stock:0, addStock: 0}); 
-      renderAdminProducts(); 
+    function addNewProduct() {
+      products.push({
+        id: "P-" + Date.now(),
+        desc: "",
+        price: 0,
+        stock: 0,
+        addStock: 0
+      });
+      renderAdminProducts();
     }
 
-    // 4. บันทึกข้อมูลทั้งหมดลง Google Sheet
     async function saveAllToSheet() {
       const btn = document.getElementById("btn-save-all");
-      
-      // คำนวณยอดสต็อกสุทธิก่อนส่ง
+      const originalHTML = btn.innerHTML;
+
       const dataToSave = products.map(p => ({
         id: p.id,
-        desc: p.desc,
-        price: p.price,
-        stock: p.stock + (p.addStock || 0)
+        desc: String(p.desc || "").trim(),
+        price: Number(p.price) || 0,
+        stock: (Number(p.stock) || 0) + (Number(p.addStock) || 0)
       }));
 
-      btn.disabled = true; 
+      btn.disabled = true;
       btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> กำลังบันทึก...';
-      
-      try {
-        const res = await fetch(CONFIG.GAS_API, {
-          method: "POST",
-          body: JSON.stringify({ 
-            type: "admin_sync_all_products", 
-            adminUid: currentAdminUid, 
-            data: dataToSave 
-          })
-        }).then(r => r.json());
 
-        if(res.status === "success") {
-          alert("✅ อัปเดตข้อมูลและสต็อกเรียบร้อยแล้ว!");
-          location.reload(); 
-        } else {
-          alert("⚠️ บันทึกล้มเหลว: " + (res.msg || "กรุณาลองใหม่"));
+      try {
+        const response = await fetch(CONFIG.GAS_API, {
+          method: "POST",
+          headers: {
+            "Content-Type": "text/plain;charset=utf-8"
+          },
+          body: JSON.stringify({
+            type: "admin_sync_all_products",
+            adminUid: currentAdminUid,
+            data: dataToSave
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
         }
-      } catch (e) { 
-        alert("❌ เกิดข้อผิดพลาดในการเชื่อมต่อเซิร์ฟเวอร์"); 
-      } finally { 
-        btn.disabled = false; 
-        btn.innerText = "บันทึกทั้งหมด"; 
+
+        const res = await readJsonSafe(response);
+        console.log("admin_sync_all_products response =", res);
+
+        if (res.status !== "success") {
+          throw new Error(res.msg || "บันทึกข้อมูลไม่สำเร็จ");
+        }
+
+        alert("✅ อัปเดตข้อมูลและสต็อกเรียบร้อยแล้ว!");
+        location.reload();
+
+      } catch (e) {
+        console.error("Save Error:", e);
+        alert("❌ เกิดข้อผิดพลาดในการบันทึก\n\nรายละเอียด: " + e.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalHTML;
       }
     }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    document.addEventListener("DOMContentLoaded", initPage);
   </script>
 </body>
 </html>
