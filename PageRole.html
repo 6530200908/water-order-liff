@@ -47,7 +47,7 @@
         const profile = await liff.getProfile();
         currentAdminUid = profile.userId;
         
-        // ดึงข้อมูลจาก Google Apps Script (เพิ่ม redirect: 'follow' เพื่อความชัวร์ในมือถือ)
+        // ดึงข้อมูล: เพิ่ม redirect และจัดการ cache
         const response = await fetch(`${CONFIG.GAS_API}?type=admin_get_roles&uid=${currentAdminUid}`, {
           method: "GET",
           cache: "no-store",
@@ -62,7 +62,7 @@
 
       } catch (e) { 
         console.error("Init Error:", e);
-        alert("❌ โหลดข้อมูลล้มเหลว: ตรวจสอบการเชื่อมต่อหรือการ Deployment ใน GAS"); 
+        alert("❌ โหลดข้อมูลล้มลง: โปรดตรวจสอบการ Deploy GAS ว่าตั้งค่าเป็น 'Anyone' หรือยัง"); 
       } finally { 
         document.getElementById("loader").style.display = "none"; 
       }
@@ -104,18 +104,15 @@
       `).join("");
     }
 
-    // อัปเดตข้อมูลใน Array เมื่อมีการพิมพ์หรือเปลี่ยนค่า
     function updateRoleData(i, field, value) { 
       userRoles[i][field] = value.trim(); 
     }
 
-    // เพิ่มแถวใหม่
     function addRole() { 
       userRoles.push({ uid: "", role: "Staff" }); 
       renderRoles(); 
     }
     
-    // ลบแถว
     function removeRole(i) { 
       if(confirm("ยืนยันการลบสิทธิผู้ใช้งานท่านนี้?")) { 
         userRoles.splice(i, 1); 
@@ -123,18 +120,22 @@
       } 
     }
 
-    // ฟังก์ชันบันทึกข้อมูลทั้งหมดกลับไปยัง Google Sheets
+    // ฟังก์ชันบันทึกข้อมูล: ปรับปรุงให้มือถือผ่านง่ายขึ้น (CORS & Content-Type)
     async function saveRoles() {
       const btn = document.getElementById("btn-save");
       const originalText = btn.innerText;
       
-      // ป้องกันการกดซ้ำขณะโหลด
       btn.disabled = true; 
       btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> กำลังบันทึก...';
       
       try {
         const response = await fetch(CONFIG.GAS_API, {
           method: "POST",
+          mode: "cors", 
+          headers: {
+            // ใช้ text/plain เพื่อเลี่ยงปัญหา CORS Preflight ในมือถือบางรุ่น
+            "Content-Type": "text/plain;charset=utf-8" 
+          },
           redirect: "follow",
           body: JSON.stringify({ 
             type: "admin_update_roles", 
@@ -143,24 +144,23 @@
           })
         });
 
-        // ตรวจสอบว่า Response เป็น JSON หรือไม่ (ถ้าติด Redirect ในมือถือตัวนี้จะช่วยกรอง)
         const res = await response.json();
         
         if(res.status === "success") {
           alert("✅ อัปเดตสิทธิผู้ใช้งานเรียบร้อยแล้ว!");
         } else {
-          alert("⚠️ บันทึกไม่สำเร็จ: " + (res.msg || "Server Error"));
+          alert("⚠️ บันทึกไม่สำเร็จ: " + (res.msg || "เกิดข้อผิดพลาดที่เซิร์ฟเวอร์"));
         }
       } catch (e) { 
         console.error("Save Error:", e);
-        alert("❌ เกิดข้อผิดพลาด: ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้ (ตรวจสอบ Deployment ใน GAS)"); 
+        // ถ้าขึ้น Error นี้ในมือถือ ให้เช็คการ Deploy GAS เป็นหลัก
+        alert("❌ ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้: โปรด Deploy GAS ใหม่เป็นเวอร์ชันล่าสุดและตั้งค่าเป็น 'Anyone'"); 
       } finally { 
         btn.disabled = false; 
         btn.innerText = originalText; 
       }
     }
 
-    // เรียกฟังก์ชัน init เมื่อหน้าจอโหลดเสร็จ
     window.onload = init;
   </script>
 </body>
