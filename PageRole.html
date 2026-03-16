@@ -1,258 +1,104 @@
-<!DOCTYPE html>
-<html lang="th">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>จัดการสิทธิผู้ใช้งาน - Water Delivery</title>
+const CONFIG = {
+  GAS_API: "https://script.google.com/macros/s/AKfycbxzEhWKKwXP3yIosfGEynBO3CKv-2mUo56zcKS8QCuJn5GJ9RSpUvDrFPqlQQ8r7-u0vA/exec",
+  LIFF_ID_ORDER: "2008821220-C8oqqBvB",
+  LIFF_ID_STATUS: "2008821220-URtBKHjL",
+  LIFF_ID_SLIP: "2008821220-NqDJdKS0",
+  LIFF_ID_DRIVER: "2008821220-M2Bqp8AG",
+  LIFF_ID_ADMIN: "2008821220-ePnWMlu9",
+  LIFF_ID_HISTORY: "2008821220-DC2vs4n2",
+  LIFF_ID_ROLE: "2008821220-5DyuuHwJ",
+  WEBHOOK_SLIP: "https://amarin-650200908-drinking-water-bot.hf.space/webhook/upload-slip2",
+  WEBHOOK_Delivery: "https://amarin-650200908-drinking-water-bot.hf.space/webhook/delivery",
 
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;700&family=Sarabun:wght@400;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="Styles.css?v=20260316-4">
+  // ตั้งค่าสิทธิการเข้าถึงแต่ละหน้า
+  PAGE_PERMISSIONS: {
+    "SUMMARY_PAGE": ["Admin", "Staff"],
+    "STOCK_PAGE": ["Admin", "Staff"],
+    "DRIVER_PAGE": ["Admin", "Staff"],
+    "ROLE_PAGE": ["Admin"]
+  }
+};
 
-  <style>
-    #loader {
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.85);
-      z-index: 9999;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
+/**
+ * ฟังก์ชันกลางสำหรับเช็คสิทธิ
+ * - UID ต้องอยู่ในชีต role ก่อน
+ * - จากนั้น role ต้องตรงกับหน้าที่อนุญาต
+ * @param {string} pageName
+ * @returns {Promise<boolean>}
+ */
+async function validateAccess(pageName) {
+  const allowedRoles = CONFIG.PAGE_PERMISSIONS[pageName];
+
+  if (!allowedRoles) {
+    console.error("Permission config not found for page:", pageName);
+    alert("ไม่พบการตั้งค่าสิทธิของหน้านี้");
+    return false;
+  }
+
+  if (allowedRoles === "ALL") {
+    return true;
+  }
+
+  try {
+    if (!liff.isLoggedIn()) {
+      liff.login();
+      return false;
     }
 
-    #loader.hidden {
-      display: none !important;
-      opacity: 0 !important;
-      visibility: hidden !important;
-      pointer-events: none !important;
-    }
-  </style>
-</head>
-<body>
+    const profile = await liff.getProfile();
+    const uid = (profile.userId || "").trim();
 
-  <div id="loader">
-    <div class="spinner-border text-info mb-2"></div>
-    <div class="text-white">กำลังตรวจสอบสิทธิ...</div>
-  </div>
-
-  <div class="container mt-4 mb-5">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-      <h4 class="fw-bold m-0 text-info">🔐 จัดการสิทธิ</h4>
-      <button onclick="saveRoles()" id="btn-save" class="btn btn-success px-4 fw-bold shadow-sm">
-        บันทึกทั้งหมด
-      </button>
-    </div>
-
-    <div id="role-list"></div>
-
-    <div class="add-btn-dashed text-center py-3 mt-3" onclick="addRole()" style="cursor: pointer;">
-      <div class="text-info fw-bold">+ เพิ่มผู้ใช้งาน / กำหนดสิทธิ</div>
-    </div>
-  </div>
-
-  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-  <script src="Config.js?v=20260316-4"></script>
-
-  <script>
-    let userRoles = [];
-    let currentAdminUid = "";
-
-    function showLoader(message = "กำลังตรวจสอบสิทธิ...") {
-      const loader = document.getElementById("loader");
-      if (!loader) return;
-
-      loader.classList.remove("hidden");
-      loader.style.display = "flex";
-      loader.style.opacity = "1";
-      loader.style.visibility = "visible";
-      loader.style.pointerEvents = "auto";
-
-      const textNode = loader.querySelector(".text-white");
-      if (textNode) textNode.textContent = message;
+    if (!uid) {
+      alert("ไม่พบ LINE UID ของผู้ใช้งาน");
+      return false;
     }
 
-    function hideLoader() {
-      const loader = document.getElementById("loader");
-      if (!loader) return;
+    const response = await fetch(
+      `${CONFIG.GAS_API}?type=check_role&uid=${encodeURIComponent(uid)}`,
+      {
+        method: "GET",
+        cache: "no-store"
+      }
+    );
 
-      loader.classList.add("hidden");
-      loader.style.display = "none";
-      loader.style.opacity = "0";
-      loader.style.visibility = "hidden";
-      loader.style.pointerEvents = "none";
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
     }
 
-    async function readJsonSafe(response) {
-      const text = await response.text();
+    const res = await response.json();
+    console.log("check_role response =", res);
 
+    if (res.status !== "success") {
+      throw new Error(res.msg || "ตรวจสอบสิทธิไม่สำเร็จ");
+    }
+
+    // ยังไม่ได้รับอนุญาตให้ใช้ระบบ
+    if (!res.allowed) {
+      alert("⛔ UID นี้ยังไม่ได้รับอนุญาตให้ใช้งานระบบ");
       try {
-        return JSON.parse(text);
+        liff.closeWindow();
       } catch (err) {
-        throw new Error("เซิร์ฟเวอร์ไม่ได้ส่ง JSON กลับมา: " + text.substring(0, 300));
+        console.warn("closeWindow failed:", err);
       }
+      return false;
     }
 
-    async function init() {
-      showLoader("กำลังตรวจสอบสิทธิ...");
-
+    // มี UID ในระบบ แต่ role ไม่ตรงกับหน้าที่จะเข้า
+    if (!allowedRoles.includes(res.role)) {
+      alert(`⛔ ขออภัย! เฉพาะ ${allowedRoles.join(" หรือ ")} เท่านั้นที่เข้าหน้านี้ได้`);
       try {
-        await liff.init({ liffId: CONFIG.LIFF_ID_ROLE });
-
-        if (!liff.isLoggedIn()) {
-          liff.login();
-          return;
-        }
-
-        const profile = await liff.getProfile();
-        currentAdminUid = profile.userId || "";
-
-        const url = `${CONFIG.GAS_API}?type=admin_get_roles&uid=${encodeURIComponent(currentAdminUid)}`;
-
-        const response = await fetch(url, {
-          method: "GET",
-          cache: "no-store"
-        });
-
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}`);
-        }
-
-        const res = await readJsonSafe(response);
-        console.log("admin_get_roles response =", res);
-
-        // รองรับทั้ง response แบบใหม่และแบบเก่า
-        if (res.status && res.status !== "success") {
-          throw new Error(res.msg || "GAS ตอบกลับไม่สำเร็จ");
-        }
-
-        userRoles = Array.isArray(res.roles) ? res.roles : [];
-        renderRoles();
-        hideLoader();
-
-      } catch (e) {
-        console.error("Init Error:", e);
-        hideLoader();
-        alert("❌ โหลดข้อมูลล้มเหลว\n\nรายละเอียด: " + e.message);
+        liff.closeWindow();
+      } catch (err) {
+        console.warn("closeWindow failed:", err);
       }
+      return false;
     }
 
-    function renderRoles() {
-      const list = document.getElementById("role-list");
+    return true;
 
-      if (!Array.isArray(userRoles) || userRoles.length === 0) {
-        list.innerHTML = `
-          <div class="text-center py-5 text-white-50">
-            ไม่พบข้อมูลผู้ใช้งานในระบบ
-          </div>
-        `;
-        return;
-      }
-
-      list.innerHTML = userRoles.map((item, i) => `
-        <div class="role-card shadow-sm mb-3 p-3"
-             style="background: rgba(255,255,255,0.05); border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);">
-          <div class="row align-items-end g-2">
-            <div class="col-sm-7 col-12">
-              <label class="text-info small mb-1">LINE UserID</label>
-              <input
-                type="text"
-                class="form-control bg-dark text-white border-secondary"
-                value="${escapeHtml(item.uid || "")}"
-                onchange="updateRoleData(${i}, 'uid', this.value)"
-                placeholder="Uf06e931..."
-              >
-            </div>
-
-            <div class="col-sm-4 col-10">
-              <label class="text-info small mb-1">สิทธิเข้าใช้งาน</label>
-              <select
-                class="form-select bg-dark text-white border-secondary"
-                onchange="updateRoleData(${i}, 'role', this.value)"
-              >
-                <option value="Admin" ${item.role === "Admin" ? "selected" : ""}>Admin</option>
-                <option value="Staff" ${item.role === "Staff" ? "selected" : ""}>Staff</option>
-              </select>
-            </div>
-
-            <div class="col-sm-1 col-2 text-end">
-              <button class="btn btn-outline-danger border-0" onclick="removeRole(${i})">✕</button>
-            </div>
-          </div>
-        </div>
-      `).join("");
-    }
-
-    function updateRoleData(index, field, value) {
-      if (!userRoles[index]) return;
-      userRoles[index][field] = value.trim();
-    }
-
-    function addRole() {
-      userRoles.push({ uid: "", role: "Staff" });
-      renderRoles();
-    }
-
-    function removeRole(index) {
-      if (confirm("ยืนยันการลบสิทธิผู้ใช้งานท่านนี้?")) {
-        userRoles.splice(index, 1);
-        renderRoles();
-      }
-    }
-
-    async function saveRoles() {
-      const btn = document.getElementById("btn-save");
-      const originalHTML = btn.innerHTML;
-
-      btn.disabled = true;
-      btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> กำลังบันทึก...';
-
-      try {
-        const response = await fetch(CONFIG.GAS_API, {
-          method: "POST",
-          headers: {
-            "Content-Type": "text/plain;charset=utf-8"
-          },
-          body: JSON.stringify({
-            type: "admin_update_roles",
-            adminUid: currentAdminUid,
-            data: userRoles
-          })
-        });
-
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}`);
-        }
-
-        const res = await readJsonSafe(response);
-        console.log("admin_update_roles response =", res);
-
-        // รองรับทั้ง response แบบใหม่และแบบเก่า
-        if (!res.status || res.status === "success") {
-          alert("✅ อัปเดตสิทธิผู้ใช้งานเรียบร้อยแล้ว!");
-        } else {
-          throw new Error(res.msg || "Unknown Error");
-        }
-
-      } catch (e) {
-        console.error("Save Error:", e);
-        alert("❌ บันทึกไม่สำเร็จ\n\nรายละเอียด: " + e.message);
-      } finally {
-        btn.disabled = false;
-        btn.innerHTML = originalHTML;
-      }
-    }
-
-    function escapeHtml(str) {
-      return String(str)
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
-    }
-
-    document.addEventListener("DOMContentLoaded", init);
-  </script>
-</body>
-</html>
+  } catch (e) {
+    console.error("Permission Error:", e);
+    alert("ไม่สามารถตรวจสอบสิทธิได้: " + e.message);
+    return false;
+  }
+}
