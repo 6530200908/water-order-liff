@@ -10,7 +10,8 @@
 </head>
 <body>
 
-  <div id="loader">
+  <div id="loader" class="d-flex flex-column justify-content-center align-items-center"
+       style="position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 9999;">
     <div class="spinner-border text-info mb-2"></div>
     <div class="text-white">กำลังตรวจสอบสิทธิ...</div>
   </div>
@@ -18,7 +19,9 @@
   <div class="container mt-4 mb-5">
     <div class="d-flex justify-content-between align-items-center mb-4">
       <h4 class="fw-bold m-0 text-info">🔐 จัดการสิทธิ</h4>
-      <button onclick="saveRoles()" id="btn-save" class="btn btn-success px-4 fw-bold shadow-sm">บันทึกทั้งหมด</button>
+      <button onclick="saveRoles()" id="btn-save" class="btn btn-success px-4 fw-bold shadow-sm">
+        บันทึกทั้งหมด
+      </button>
     </div>
 
     <div id="role-list"></div>
@@ -30,72 +33,101 @@
 
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <script src="Config.js"></script>
-  
+
   <script>
-    let userRoles = []; 
+    let userRoles = [];
     let currentAdminUid = "";
 
-    // ฟังก์ชันเริ่มต้น: ตรวจสอบ LIFF และดึงข้อมูล
+    async function readJsonSafe(response) {
+      const text = await response.text();
+      try {
+        return JSON.parse(text);
+      } catch (err) {
+        throw new Error("เซิร์ฟเวอร์ไม่ได้ส่ง JSON กลับมา: " + text.substring(0, 300));
+      }
+    }
+
     async function init() {
       try {
         await liff.init({ liffId: CONFIG.LIFF_ID_ADMIN });
-        
-        if (!liff.isLoggedIn()) { 
-          liff.login(); 
-          return; 
+
+        if (!liff.isLoggedIn()) {
+          liff.login();
+          return;
         }
 
         const profile = await liff.getProfile();
-        currentAdminUid = profile.userId;
-        
-        // ดึงข้อมูลจาก Google Apps Script
-        const response = await fetch(`${CONFIG.GAS_API}?type=admin_get_roles&uid=${currentAdminUid}`, {
+        currentAdminUid = profile.userId || "";
+
+        const url = `${CONFIG.GAS_API}?type=admin_get_roles&uid=${encodeURIComponent(currentAdminUid)}`;
+
+        const response = await fetch(url, {
           method: "GET",
           cache: "no-store"
         });
 
-        if (!response.ok) throw new Error("Network Response Fail");
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
 
-        const res = await response.json();
-        userRoles = res.roles || [];
+        const res = await readJsonSafe(response);
+
+        if (res.status !== "success") {
+          throw new Error(res.msg || "GAS ตอบกลับไม่สำเร็จ");
+        }
+
+        userRoles = Array.isArray(res.roles) ? res.roles : [];
         renderRoles();
 
-      } catch (e) { 
+      } catch (e) {
         console.error("Init Error:", e);
-        alert("❌ โหลดข้อมูลล้มเหลว: โปรดตรวจสอบการ Deploy GAS และสิทธิ 'Anyone'"); 
-      } finally { 
-        document.getElementById("loader").style.display = "none"; 
+        alert(
+          "❌ โหลดข้อมูลล้มเหลว\n\n" +
+          "รายละเอียด: " + e.message
+        );
+      } finally {
+        document.getElementById("loader").style.display = "none";
       }
     }
 
-    // ฟังก์ชันแสดงผลรายการสิทธิลงในหน้า HTML
     function renderRoles() {
       const list = document.getElementById("role-list");
-      
-      if (userRoles.length === 0) {
-        list.innerHTML = `<div class="text-center py-5 text-white-50">ไม่พบข้อมูลผู้ใช้งานในระบบ</div>`;
+
+      if (!Array.isArray(userRoles) || userRoles.length === 0) {
+        list.innerHTML = `
+          <div class="text-center py-5 text-white-50">
+            ไม่พบข้อมูลผู้ใช้งานในระบบ
+          </div>
+        `;
         return;
       }
 
       list.innerHTML = userRoles.map((item, i) => `
-        <div class="role-card shadow-sm mb-3 p-3" style="background: rgba(255,255,255,0.05); border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);">
+        <div class="role-card shadow-sm mb-3 p-3"
+             style="background: rgba(255,255,255,0.05); border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);">
           <div class="row align-items-end g-2">
             <div class="col-sm-7 col-12">
               <label class="text-info small mb-1">LINE UserID</label>
-              <input type="text" class="form-control bg-dark text-white border-secondary" 
-                value="${item.uid || ''}" 
-                onchange="updateRoleData(${i}, 'uid', this.value)" 
-                placeholder="Uf06e931...">
+              <input
+                type="text"
+                class="form-control bg-dark text-white border-secondary"
+                value="${escapeHtml(item.uid || "")}"
+                onchange="updateRoleData(${i}, 'uid', this.value)"
+                placeholder="Uf06e931..."
+              >
             </div>
-            
+
             <div class="col-sm-4 col-10">
               <label class="text-info small mb-1">สิทธิเข้าใช้งาน</label>
-              <select class="form-select bg-dark text-white border-secondary" onchange="updateRoleData(${i}, 'role', this.value)">
-                <option value="Admin" ${item.role === 'Admin' ? 'selected' : ''}>Admin</option>
-                <option value="Staff" ${item.role === 'Staff' ? 'selected' : ''}>Staff</option>
+              <select
+                class="form-select bg-dark text-white border-secondary"
+                onchange="updateRoleData(${i}, 'role', this.value)"
+              >
+                <option value="Admin" ${item.role === "Admin" ? "selected" : ""}>Admin</option>
+                <option value="Staff" ${item.role === "Staff" ? "selected" : ""}>Staff</option>
               </select>
             </div>
-            
+
             <div class="col-sm-1 col-2 text-end">
               <button class="btn btn-outline-danger border-0" onclick="removeRole(${i})">✕</button>
             </div>
@@ -104,60 +136,76 @@
       `).join("");
     }
 
-    // อัปเดตข้อมูลในตัวแปร userRoles
-    function updateRoleData(index, field, value) { 
-      userRoles[index][field] = value.trim(); 
+    function updateRoleData(index, field, value) {
+      if (!userRoles[index]) return;
+      userRoles[index][field] = value.trim();
     }
 
-    // เพิ่มแถวใหม่
-    function addRole() { 
-      userRoles.push({ uid: "", role: "Staff" }); 
-      renderRoles(); 
-    }
-    
-    // ลบแถว
-    function removeRole(index) { 
-      if(confirm("ยืนยันการลบสิทธิผู้ใช้งานท่านนี้?")) { 
-        userRoles.splice(index, 1); 
-        renderRoles(); 
-      } 
+    function addRole() {
+      userRoles.push({ uid: "", role: "Staff" });
+      renderRoles();
     }
 
-    // ฟังก์ชันบันทึกข้อมูล (POST)
-    async function saveRoles() {
-      const btn = document.getElementById("btn-save");
-      const originalText = btn.innerText;
-      
-      btn.disabled = true; 
-      btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> กำลังบันทึก...';
-      
-      try {
-        const response = await fetch(CONFIG.GAS_API, {
-          method: "POST",
-          body: JSON.stringify({ 
-            type: "admin_update_roles", 
-            adminUid: currentAdminUid, 
-            data: userRoles 
-          })
-        });
-
-        const res = await response.json();
-        
-        if(res.status === "success") {
-          alert("✅ อัปเดตสิทธิผู้ใช้งานเรียบร้อยแล้ว!");
-        } else {
-          alert("⚠️ บันทึกไม่สำเร็จ: " + (res.msg || "Unknown Error"));
-        }
-      } catch (e) { 
-        console.error("Save Error:", e);
-        alert("❌ เชื่อมต่อเซิร์ฟเวอร์ไม่ได้: โปรดตรวจสอบการ Deploy GAS เป็น 'Anyone'"); 
-      } finally { 
-        btn.disabled = false; 
-        btn.innerText = originalText; 
+    function removeRole(index) {
+      if (confirm("ยืนยันการลบสิทธิผู้ใช้งานท่านนี้?")) {
+        userRoles.splice(index, 1);
+        renderRoles();
       }
     }
 
-    // รันฟังก์ชันเมื่อโหลดหน้า
+    async function saveRoles() {
+      const btn = document.getElementById("btn-save");
+      const originalHTML = btn.innerHTML;
+
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> กำลังบันทึก...';
+
+      try {
+        const response = await fetch(CONFIG.GAS_API, {
+          method: "POST",
+          headers: {
+            "Content-Type": "text/plain;charset=utf-8"
+          },
+          body: JSON.stringify({
+            type: "admin_update_roles",
+            adminUid: currentAdminUid,
+            data: userRoles
+          })
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+
+        const res = await readJsonSafe(response);
+
+        if (res.status === "success") {
+          alert("✅ อัปเดตสิทธิผู้ใช้งานเรียบร้อยแล้ว!");
+        } else {
+          throw new Error(res.msg || "Unknown Error");
+        }
+
+      } catch (e) {
+        console.error("Save Error:", e);
+        alert(
+          "❌ บันทึกไม่สำเร็จ\n\n" +
+          "รายละเอียด: " + e.message
+        );
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalHTML;
+      }
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
     window.onload = init;
   </script>
 </body>
