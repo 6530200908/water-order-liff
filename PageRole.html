@@ -34,134 +34,40 @@
   <script>
     let userRoles = [], currentAdminUid = "";
 
-    // ฟังก์ชันเริ่มต้นเมื่อโหลดหน้าเว็บ
     async function init() {
       try {
         await liff.init({ liffId: CONFIG.LIFF_ID_ADMIN });
-        
-        if (!liff.isLoggedIn()) { 
-          liff.login(); 
-          return; 
-        }
-
+        if (!liff.isLoggedIn()) { liff.login(); return; }
         const profile = await liff.getProfile();
         currentAdminUid = profile.userId;
         
-        // ดึงข้อมูล: เพิ่ม redirect และจัดการ cache
-        const response = await fetch(`${CONFIG.GAS_API}?type=admin_get_roles&uid=${currentAdminUid}`, {
-          method: "GET",
-          cache: "no-store",
-          redirect: "follow" 
-        });
-
+        // ดึงข้อมูลแบบ GET มาตรฐาน
+        const response = await fetch(`${CONFIG.GAS_API}?type=admin_get_roles&uid=${currentAdminUid}`);
         if (!response.ok) throw new Error("Network Response Fail");
 
         const res = await response.json();
         userRoles = res.roles || [];
         renderRoles();
-
       } catch (e) { 
-        console.error("Init Error:", e);
-        alert("❌ โหลดข้อมูลล้มลง: โปรดตรวจสอบการ Deploy GAS ว่าตั้งค่าเป็น 'Anyone' หรือยัง"); 
+        console.error(e);
+        alert("❌ โหลดข้อมูลล้มเหลว: ตรวจสอบลิงก์ API ใน Config.js"); 
       } finally { 
         document.getElementById("loader").style.display = "none"; 
       }
     }
 
-    // ฟังก์ชันวาดรายการบนหน้าจอ
     function renderRoles() {
       const list = document.getElementById("role-list");
-      
       if (userRoles.length === 0) {
-        list.innerHTML = `<div class="text-center py-5 text-white-50">ไม่พบข้อมูลผู้ใช้งานในระบบ</div>`;
+        list.innerHTML = `<div class="text-center py-5 text-white-50">ไม่พบข้อมูล</div>`;
         return;
       }
-
       list.innerHTML = userRoles.map((item, i) => `
         <div class="role-card shadow-sm mb-3">
           <div class="row align-items-end g-2">
             <div class="col-sm-7 col-12">
               <label class="label-cyan">LINE UserID</label>
-              <input type="text" class="form-control form-control-dark" 
-                value="${item.uid || ''}" 
-                onchange="updateRoleData(${i}, 'uid', this.value)" 
-                placeholder="ตัวอย่าง: Uf06e931...">
+              <input type="text" class="form-control form-control-dark" value="${item.uid || ''}" onchange="updateRoleData(${i}, 'uid', this.value)">
             </div>
-            
             <div class="col-sm-4 col-10">
-              <label class="label-cyan">สิทธิเข้าใช้งาน</label>
-              <select class="form-select form-control-dark" onchange="updateRoleData(${i}, 'role', this.value)">
-                <option value="Admin" ${item.role === 'Admin' ? 'selected' : ''}>Admin</option>
-                <option value="Staff" ${item.role === 'Staff' ? 'selected' : ''}>Staff</option>
-              </select>
-            </div>
-            
-            <div class="col-sm-1 col-2 text-end">
-              <span class="btn-delete px-2 py-1" onclick="removeRole(${i})" title="ลบรายการ">✕</span>
-            </div>
-          </div>
-        </div>
-      `).join("");
-    }
-
-    function updateRoleData(i, field, value) { 
-      userRoles[i][field] = value.trim(); 
-    }
-
-    function addRole() { 
-      userRoles.push({ uid: "", role: "Staff" }); 
-      renderRoles(); 
-    }
-    
-    function removeRole(i) { 
-      if(confirm("ยืนยันการลบสิทธิผู้ใช้งานท่านนี้?")) { 
-        userRoles.splice(i, 1); 
-        renderRoles(); 
-      } 
-    }
-
-    // ฟังก์ชันบันทึกข้อมูล: ปรับปรุงให้มือถือผ่านง่ายขึ้น (CORS & Content-Type)
-    async function saveRoles() {
-      const btn = document.getElementById("btn-save");
-      const originalText = btn.innerText;
-      
-      btn.disabled = true; 
-      btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> กำลังบันทึก...';
-      
-      try {
-        const response = await fetch(CONFIG.GAS_API, {
-          method: "POST",
-          mode: "cors", 
-          headers: {
-            // ใช้ text/plain เพื่อเลี่ยงปัญหา CORS Preflight ในมือถือบางรุ่น
-            "Content-Type": "text/plain;charset=utf-8" 
-          },
-          redirect: "follow",
-          body: JSON.stringify({ 
-            type: "admin_update_roles", 
-            adminUid: currentAdminUid, 
-            data: userRoles 
-          })
-        });
-
-        const res = await response.json();
-        
-        if(res.status === "success") {
-          alert("✅ อัปเดตสิทธิผู้ใช้งานเรียบร้อยแล้ว!");
-        } else {
-          alert("⚠️ บันทึกไม่สำเร็จ: " + (res.msg || "เกิดข้อผิดพลาดที่เซิร์ฟเวอร์"));
-        }
-      } catch (e) { 
-        console.error("Save Error:", e);
-        // ถ้าขึ้น Error นี้ในมือถือ ให้เช็คการ Deploy GAS เป็นหลัก
-        alert("❌ ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้: โปรด Deploy GAS ใหม่เป็นเวอร์ชันล่าสุดและตั้งค่าเป็น 'Anyone'"); 
-      } finally { 
-        btn.disabled = false; 
-        btn.innerText = originalText; 
-      }
-    }
-
-    window.onload = init;
-  </script>
-</body>
-</html>
+              <label class="label-cyan
