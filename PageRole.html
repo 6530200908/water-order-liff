@@ -7,7 +7,7 @@
 
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;700&family=Sarabun:wght@400;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="Styles.css?v=20260316-4">
+  <link rel="stylesheet" href="Styles.css?v=20260317-1">
 
   <style>
     #loader {
@@ -52,7 +52,7 @@
   </div>
 
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-  <script src="Config.js?v=20260316-4"></script>
+  <script src="Config.js?v=20260317-1"></script>
 
   <script>
     let userRoles = [];
@@ -85,7 +85,6 @@
 
     async function readJsonSafe(response) {
       const text = await response.text();
-
       try {
         return JSON.parse(text);
       } catch (err) {
@@ -99,20 +98,28 @@
       try {
         await liff.init({ liffId: CONFIG.LIFF_ID_ROLE });
 
-        if (!liff.isLoggedIn()) {
-          liff.login();
+        const canAccess = await validateAccess("ROLE_PAGE");
+        if (!canAccess) {
+          hideLoader();
           return;
         }
 
         const profile = await liff.getProfile();
-        currentAdminUid = profile.userId || "";
+        currentAdminUid = (profile.userId || "").trim();
 
-        const url = `${CONFIG.GAS_API}?type=admin_get_roles&uid=${encodeURIComponent(currentAdminUid)}`;
+        if (!currentAdminUid) {
+          throw new Error("ไม่พบ LINE UID");
+        }
 
-        const response = await fetch(url, {
-          method: "GET",
-          cache: "no-store"
-        });
+        showLoader("กำลังโหลดข้อมูลสิทธิ...");
+
+        const response = await fetch(
+          `${CONFIG.GAS_API}?type=admin_get_roles&uid=${encodeURIComponent(currentAdminUid)}`,
+          {
+            method: "GET",
+            cache: "no-store"
+          }
+        );
 
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}`);
@@ -121,9 +128,8 @@
         const res = await readJsonSafe(response);
         console.log("admin_get_roles response =", res);
 
-        // รองรับทั้ง response แบบใหม่และแบบเก่า
-        if (res.status && res.status !== "success") {
-          throw new Error(res.msg || "GAS ตอบกลับไม่สำเร็จ");
+        if (res.status !== "success") {
+          throw new Error(res.msg || "โหลดข้อมูลสิทธิไม่สำเร็จ");
         }
 
         userRoles = Array.isArray(res.roles) ? res.roles : [];
@@ -160,7 +166,7 @@
                 class="form-control bg-dark text-white border-secondary"
                 value="${escapeHtml(item.uid || "")}"
                 onchange="updateRoleData(${i}, 'uid', this.value)"
-                placeholder="Uf06e931..."
+                placeholder="Uxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
               >
             </div>
 
@@ -185,7 +191,7 @@
 
     function updateRoleData(index, field, value) {
       if (!userRoles[index]) return;
-      userRoles[index][field] = value.trim();
+      userRoles[index][field] = String(value || "").trim();
     }
 
     function addRole() {
@@ -208,6 +214,17 @@
       btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> กำลังบันทึก...';
 
       try {
+        const cleanedRoles = userRoles
+          .map(item => ({
+            uid: String(item.uid || "").trim(),
+            role: String(item.role || "Staff").trim()
+          }))
+          .filter(item => item.uid !== "");
+
+        if (cleanedRoles.length === 0) {
+          throw new Error("ต้องมีข้อมูลผู้ใช้งานอย่างน้อย 1 รายการ");
+        }
+
         const response = await fetch(CONFIG.GAS_API, {
           method: "POST",
           headers: {
@@ -216,7 +233,7 @@
           body: JSON.stringify({
             type: "admin_update_roles",
             adminUid: currentAdminUid,
-            data: userRoles
+            data: cleanedRoles
           })
         });
 
@@ -227,12 +244,13 @@
         const res = await readJsonSafe(response);
         console.log("admin_update_roles response =", res);
 
-        // รองรับทั้ง response แบบใหม่และแบบเก่า
-        if (!res.status || res.status === "success") {
-          alert("✅ อัปเดตสิทธิผู้ใช้งานเรียบร้อยแล้ว!");
-        } else {
-          throw new Error(res.msg || "Unknown Error");
+        if (res.status !== "success") {
+          throw new Error(res.msg || "บันทึกข้อมูลไม่สำเร็จ");
         }
+
+        userRoles = cleanedRoles;
+        renderRoles();
+        alert("✅ อัปเดตสิทธิผู้ใช้งานเรียบร้อยแล้ว!");
 
       } catch (e) {
         console.error("Save Error:", e);
