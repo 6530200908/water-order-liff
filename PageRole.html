@@ -4,14 +4,16 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>จัดการสิทธิผู้ใช้งาน - Water Delivery</title>
+
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;700&family=Sarabun:wght@400;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="Styles.css?v=20260316-3">
+  <link rel="stylesheet" href="Styles.css?v=20260316-4">
+
   <style>
     #loader {
       position: fixed;
       inset: 0;
-      background: rgba(0,0,0,0.85);
+      background: rgba(0, 0, 0, 0.85);
       z-index: 9999;
       display: flex;
       flex-direction: column;
@@ -50,7 +52,8 @@
   </div>
 
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-<script src="Config.js?v=20260316-3"></script>
+  <script src="Config.js?v=20260316-4"></script>
+
   <script>
     let userRoles = [];
     let currentAdminUid = "";
@@ -58,8 +61,13 @@
     function showLoader(message = "กำลังตรวจสอบสิทธิ...") {
       const loader = document.getElementById("loader");
       if (!loader) return;
+
       loader.classList.remove("hidden");
       loader.style.display = "flex";
+      loader.style.opacity = "1";
+      loader.style.visibility = "visible";
+      loader.style.pointerEvents = "auto";
+
       const textNode = loader.querySelector(".text-white");
       if (textNode) textNode.textContent = message;
     }
@@ -67,6 +75,7 @@
     function hideLoader() {
       const loader = document.getElementById("loader");
       if (!loader) return;
+
       loader.classList.add("hidden");
       loader.style.display = "none";
       loader.style.opacity = "0";
@@ -76,6 +85,7 @@
 
     async function readJsonSafe(response) {
       const text = await response.text();
+
       try {
         return JSON.parse(text);
       } catch (err) {
@@ -109,8 +119,10 @@
         }
 
         const res = await readJsonSafe(response);
+        console.log("admin_get_roles response =", res);
 
-        if (res.status !== "success") {
+        // รองรับทั้ง response แบบใหม่และแบบเก่า
+        if (res.status && res.status !== "success") {
           throw new Error(res.msg || "GAS ตอบกลับไม่สำเร็จ");
         }
 
@@ -213,8 +225,10 @@
         }
 
         const res = await readJsonSafe(response);
+        console.log("admin_update_roles response =", res);
 
-        if (res.status === "success") {
+        // รองรับทั้ง response แบบใหม่และแบบเก่า
+        if (!res.status || res.status === "success") {
           alert("✅ อัปเดตสิทธิผู้ใช้งานเรียบร้อยแล้ว!");
         } else {
           throw new Error(res.msg || "Unknown Error");
