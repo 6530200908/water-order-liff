@@ -6,12 +6,30 @@
   <title>จัดการสิทธิผู้ใช้งาน - Water Delivery</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;700&family=Sarabun:wght@400;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="Styles.css">
+  <link rel="stylesheet" href="Styles.css?v=20260316-2">
+  <style>
+    #loader {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.85);
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+
+    #loader.hidden {
+      display: none !important;
+      opacity: 0 !important;
+      visibility: hidden !important;
+      pointer-events: none !important;
+    }
+  </style>
 </head>
 <body>
 
-  <div id="loader" class="d-flex flex-column justify-content-center align-items-center"
-       style="position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 9999;">
+  <div id="loader">
     <div class="spinner-border text-info mb-2"></div>
     <div class="text-white">กำลังตรวจสอบสิทธิ...</div>
   </div>
@@ -32,11 +50,30 @@
   </div>
 
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-  <script src="Config.js"></script>
+  <script src="Config.js?v=20260316-2"></script>
 
   <script>
     let userRoles = [];
     let currentAdminUid = "";
+
+    function showLoader(message = "กำลังตรวจสอบสิทธิ...") {
+      const loader = document.getElementById("loader");
+      if (!loader) return;
+      loader.classList.remove("hidden");
+      loader.style.display = "flex";
+      const textNode = loader.querySelector(".text-white");
+      if (textNode) textNode.textContent = message;
+    }
+
+    function hideLoader() {
+      const loader = document.getElementById("loader");
+      if (!loader) return;
+      loader.classList.add("hidden");
+      loader.style.display = "none";
+      loader.style.opacity = "0";
+      loader.style.visibility = "hidden";
+      loader.style.pointerEvents = "none";
+    }
 
     async function readJsonSafe(response) {
       const text = await response.text();
@@ -48,6 +85,8 @@
     }
 
     async function init() {
+      showLoader("กำลังตรวจสอบสิทธิ...");
+
       try {
         await liff.init({ liffId: CONFIG.LIFF_ID_ROLE });
 
@@ -78,15 +117,12 @@
 
         userRoles = Array.isArray(res.roles) ? res.roles : [];
         renderRoles();
+        hideLoader();
 
       } catch (e) {
         console.error("Init Error:", e);
-        alert(
-          "❌ โหลดข้อมูลล้มเหลว\n\n" +
-          "รายละเอียด: " + e.message
-        );
-      } finally {
-        document.getElementById("loader").style.display = "none";
+        hideLoader();
+        alert("❌ โหลดข้อมูลล้มเหลว\n\nรายละเอียด: " + e.message);
       }
     }
 
@@ -187,10 +223,7 @@
 
       } catch (e) {
         console.error("Save Error:", e);
-        alert(
-          "❌ บันทึกไม่สำเร็จ\n\n" +
-          "รายละเอียด: " + e.message
-        );
+        alert("❌ บันทึกไม่สำเร็จ\n\nรายละเอียด: " + e.message);
       } finally {
         btn.disabled = false;
         btn.innerHTML = originalHTML;
@@ -206,7 +239,7 @@
         .replace(/'/g, "&#039;");
     }
 
-    window.onload = init;
+    document.addEventListener("DOMContentLoaded", init);
   </script>
 </body>
 </html>
