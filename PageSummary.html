@@ -3,74 +3,24 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Water Dashboard</title>
-
+  <title>Water Dashboard - Overview</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;700&family=Sarabun:wght@400;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="Styles.css?v=20260317-2">
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
-
-  <style>
-    #loader{
-      position:fixed;
-      inset:0;
-      background:#000;
-      z-index:9999;
-      display:flex;
-      flex-direction:column;
-      justify-content:center;
-      align-items:center;
-    }
-
-    #loader.hidden{
-      display:none !important;
-      opacity:0 !important;
-      visibility:hidden !important;
-      pointer-events:none !important;
-    }
-
-    #loader-text{
-      color:#00d5ff;
-      font-weight:700;
-      font-size:1rem;
-      animation:none !important;
-      transform:none !important;
-      writing-mode:horizontal-tb !important;
-      text-orientation:mixed !important;
-      white-space:nowrap;
-    }
-  </style>
 </head>
 <body>
 
   <div id="loader">
     <div class="spinner-border text-info mb-3"></div>
-    <div id="loader-text">กำลังโหลดข้อมูล...</div>
+    <div id="loader-text">กำลังประมวลผลสรุป...</div>
   </div>
 
   <div class="container py-3">
-    <h3 class="fw-bold text-info mb-3 text-center">📊 สรุปภาพรวมส่งน้ำ</h3>
-
-    <div class="chart-box mb-3">
-      <div class="row g-2">
-        <div class="col-12 col-md-6">
-          <label class="label-cyan">🔍 ค้นหาลูกค้า / ออเดอร์</label>
-          <input type="text" id="filter-user" class="form-control form-control-dark" placeholder="ระบุชื่อหรือรหัส..." onkeyup="applyFilters()">
-        </div>
-        <div class="col-12 col-md-6">
-          <label class="label-cyan">💧 ยี่ห้อน้ำ</label>
-          <input type="text" id="filter-bland" class="form-control form-control-dark" placeholder="ระบุยี่ห้อ..." onkeyup="applyFilters()">
-        </div>
-        <div class="col-6">
-          <label class="label-cyan">📅 ตั้งแต่วันที่</label>
-          <input type="date" id="filter-start" class="form-control form-control-dark" onchange="applyFilters()">
-        </div>
-        <div class="col-6">
-          <label class="label-cyan">📅 ถึงวันที่</label>
-          <input type="date" id="filter-end" class="form-control form-control-dark" onchange="applyFilters()">
-        </div>
-      </div>
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h3 class="fw-bold text-info m-0">📊 ภาพรวมส่งน้ำ</h3>
+      <button onclick="window.location.href='OrderList.html'" class="btn btn-outline-info btn-sm rounded-pill">ดูรายการทั้งหมด</button>
     </div>
 
     <div class="row g-2 mb-3">
@@ -83,256 +33,138 @@
       <div class="col-6 col-md-3">
         <div class="stat-card text-center">
           <div class="text-muted small">ส่งสำเร็จ</div>
-          <div id="stat-success-count" class="stat-value">0</div>
+          <div id="stat-success-count" class="stat-value">0 <small class="fs-6">ออเดอร์</small></div>
         </div>
       </div>
       <div class="col-6 col-md-3">
         <div class="stat-card text-center">
           <div class="text-muted small">รอจัดส่ง</div>
-          <div id="stat-pending" class="stat-value" style="color:var(--warning)">0</div>
+          <div id="stat-pending" class="stat-value" style="color:var(--warning)">0 <small class="fs-6">ออเดอร์</small></div>
         </div>
       </div>
       <div class="col-6 col-md-3">
         <div class="stat-card text-center">
           <div class="text-muted small">ยกเลิก</div>
-          <div id="stat-cancel" class="stat-value" style="color:var(--danger)">0</div>
+          <div id="stat-cancel" class="stat-value" style="color:var(--danger)">0 <small class="fs-6">ออเดอร์</small></div>
         </div>
       </div>
     </div>
 
-    <div class="row g-2">
+    <div class="row g-2 mb-3">
       <div class="col-12 col-md-6">
-        <div class="chart-box">
-          <div class="text-center small label-cyan mb-2">💰 สัดส่วนมูลค่าเงิน</div>
-          <div id="value-pie-chart" style="height:220px"></div>
+        <div class="chart-box h-100">
+          <div class="text-center small label-cyan mb-2">🏆 5 อันดับสินค้าขายดี (จำนวนชิ้น)</div>
+          <div id="top-products-list" class="py-2">
+            </div>
         </div>
       </div>
 
       <div class="col-12 col-md-6">
-        <div class="chart-box">
-          <div class="text-center small label-cyan mb-2">📈 งานสำเร็จย้อนหลัง</div>
-          <div id="bar-chart" style="height:220px"></div>
+        <div class="chart-box h-100">
+          <div class="text-center small label-cyan mb-2">💰 สัดส่วนยอดขาย (บาท)</div>
+          <div id="value-pie-chart" style="height:200px"></div>
         </div>
       </div>
     </div>
 
-    <div class="chart-box p-0 overflow-hidden">
-      <div class="p-2 border-bottom border-secondary bg-dark">
-        <span class="small fw-bold text-info">รายการล่าสุด</span>
-      </div>
-
-      <div class="table-responsive">
-        <table class="table table-dark m-0">
-          <thead>
-            <tr>
-              <th>ลูกค้า</th>
-              <th>ยอด</th>
-              <th>สถานะ</th>
-            </tr>
-          </thead>
-          <tbody id="table-body"></tbody>
-        </table>
-      </div>
+    <div class="chart-box">
+       <div class="text-center small label-cyan mb-2">📈 งานสำเร็จย้อนหลัง 7 วัน</div>
+       <div id="bar-chart" style="height:220px"></div>
     </div>
   </div>
 
   <script src="Config.js?v=20260317-2"></script>
-
   <script>
     let allOrders = [];
-    let currentUid = "";
-
     google.charts.load("current", { packages: ["corechart"] });
 
-    function showLoader(message = "กำลังโหลดข้อมูล...") {
-      const loader = document.getElementById("loader");
-      const text = document.getElementById("loader-text");
-      if (text) text.textContent = message;
-      if (loader) loader.classList.remove("hidden");
-    }
-
-    function hideLoader() {
-      const loader = document.getElementById("loader");
-      if (loader) loader.classList.add("hidden");
-    }
-
-    async function readJsonSafe(response) {
-      const text = await response.text();
-      try {
-        return JSON.parse(text);
-      } catch (err) {
-        throw new Error("เซิร์ฟเวอร์ไม่ได้ส่ง JSON กลับมา: " + text.substring(0, 300));
-      }
-    }
-
     async function init() {
-      showLoader("กำลังตรวจสอบสิทธิ...");
-
       try {
-        console.log("SUMMARY PAGE VERSION = 20260317-2");
-
         await liff.init({ liffId: CONFIG.LIFF_ID_SUMMARY });
-
-        if (!liff.isLoggedIn()) {
-          liff.login();
-          return;
-        }
-
-        const canAccess = await validateAccess("SUMMARY_PAGE");
-        if (!canAccess) {
-          hideLoader();
-          return;
-        }
-
+        if (!liff.isLoggedIn()) { liff.login(); return; }
         const profile = await liff.getProfile();
-        currentUid = (profile.userId || "").trim();
-
-        if (!currentUid) {
-          throw new Error("ไม่พบ LINE UID");
-        }
-
-        showLoader("กำลังโหลดข้อมูลสรุป...");
-
-        const response = await fetch(
-          `${CONFIG.GAS_API}?type=admin_get_summary&uid=${encodeURIComponent(currentUid)}`,
-          {
-            method: "GET",
-            cache: "no-store"
-          }
-        );
-
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}`);
-        }
-
-        const res = await readJsonSafe(response);
-        console.log("admin_get_summary response =", res);
-
-        if (res.status !== "success") {
-          throw new Error(res.msg || "โหลดข้อมูลสรุปไม่สำเร็จ");
-        }
-
-        allOrders = Array.isArray(res.orders) ? res.orders : [];
-
-        google.charts.setOnLoadCallback(() => {
+        
+        const response = await fetch(`${CONFIG.GAS_API}?type=admin_get_summary&uid=${profile.userId}`);
+        const res = await response.json();
+        
+        if (res.status === "success") {
+          allOrders = res.orders || [];
           renderDashboard(allOrders);
-        });
-
-      } catch (e) {
-        console.error("Summary Init Error:", e);
-        alert("โหลดข้อมูลไม่สำเร็จ\n\n" + e.message);
-      } finally {
-        hideLoader();
-      }
-    }
-
-    function applyFilters() {
-      const u = document.getElementById("filter-user").value.trim().toLowerCase();
-      const b = document.getElementById("filter-bland").value.trim().toLowerCase();
-      const s = document.getElementById("filter-start").value;
-      const e = document.getElementById("filter-end").value;
-
-      const filtered = allOrders.filter(o => {
-        let oDate = "";
-
-        if (o.time) {
-          const p = o.time.split(" ")[0].split("/");
-          if (p.length === 3) {
-            oDate = `${p[2]}-${p[1].padStart(2, "0")}-${p[0].padStart(2, "0")}`;
-          }
         }
-
-        const mUser = !u || String(o.customer || "").toLowerCase().includes(u) || String(o.order_id || "").toLowerCase().includes(u);
-        const mBland = !b || String(o.bland || "").toLowerCase().includes(b);
-        const mStart = !s || (oDate && oDate >= s);
-        const mEnd = !e || (oDate && oDate <= e);
-
-        return mUser && mBland && mStart && mEnd;
-      });
-
-      renderDashboard(filtered);
+      } catch (e) { alert("Error: " + e.message); }
+      finally { document.getElementById("loader").classList.add("hidden"); }
     }
 
     function renderDashboard(data) {
       const sSuccess = data.filter(o => o.status === "ส่งสำเร็จ");
-      const sPending = data.filter(o => o.status === "รอจัดส่ง");
-      const sCancel = data.filter(o => o.status === "ยกเลิก");
-
       const vSuccess = sSuccess.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
 
       document.getElementById("stat-total").innerText = "฿" + vSuccess.toLocaleString();
-      document.getElementById("stat-success-count").innerText = sSuccess.length;
-      document.getElementById("stat-pending").innerText = sPending.length;
-      document.getElementById("stat-cancel").innerText = sCancel.length;
+      document.getElementById("stat-success-count").innerHTML = `${sSuccess.length} <small class="fs-6 text-muted">ออเดอร์</small>`;
+      document.getElementById("stat-pending").innerHTML = `${data.filter(o=>o.status==="รอจัดส่ง").length} <small class="fs-6 text-muted">ออเดอร์</small>`;
+      document.getElementById("stat-cancel").innerHTML = `${data.filter(o=>o.status==="ยกเลิก").length} <small class="fs-6 text-muted">ออเดอร์</small>`;
 
-      document.getElementById("table-body").innerHTML = data.slice(0, 30).map(o => `
-        <tr>
-          <td>
-            <div class="fw-bold text-info">${escapeHtml(o.customer || "ไม่ระบุ")}</div>
-            <div class="small text-muted">${escapeHtml(o.order_id || "-")} | ${escapeHtml(o.time ? o.time.split(" ")[0] : "-")}</div>
-          </td>
-          <td class="fw-bold" style="color:var(--success)">฿${(Number(o.total) || 0).toLocaleString()}</td>
-          <td><span class="badge-status ${getStatusClass(o.status)}">${escapeHtml(o.status || "-")}</span></td>
-        </tr>
-      `).join("");
-
-      drawCharts(sSuccess, sPending, sCancel);
+      calculateTopProducts(sSuccess);
+      google.charts.setOnLoadCallback(() => drawCharts(data));
     }
 
-    function getStatusClass(s) {
-      if (s === "ส่งสำเร็จ") return "bg-success-subtle";
-      if (s === "รอจัดส่ง") return "bg-warning-subtle";
-      if (s === "ยกเลิก") return "bg-danger-subtle";
-      return "bg-secondary";
-    }
-
-    function drawCharts(s1, s2, s3) {
-      const commonOptions = {
-        backgroundColor: "transparent",
-        legend: { textStyle: { color: "#fff" } },
-        chartArea: { width: "90%", height: "80%" }
-      };
-
-      const v1 = s1.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
-      const v2 = s2.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
-      const v3 = s3.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
-
-      new google.visualization.PieChart(document.getElementById("value-pie-chart")).draw(
-        google.visualization.arrayToDataTable([
-          ["สถานะ", "บาท"],
-          ["สำเร็จ", v1],
-          ["รอส่ง", v2],
-          ["ยกเลิก", v3]
-        ]),
-        { ...commonOptions, colors: ["#20c997", "#ffc107", "#ff4d4d"], pieHole: 0.5 }
-      );
-
-      const dayMap = {};
-      s1.forEach(o => {
-        if (o.time) {
-          const d = o.time.split(" ")[0].substring(0, 5);
-          dayMap[d] = (dayMap[d] || 0) + 1;
-        }
+    function calculateTopProducts(successOrders) {
+      const productMap = {};
+      successOrders.forEach(o => {
+        if (!o.items || !o.amounts) return;
+        const names = o.items.split(", ");
+        const counts = o.amounts.split(", ");
+        names.forEach((name, i) => {
+          const qty = parseInt(counts[i]) || 0;
+          productMap[name] = (productMap[name] || 0) + qty;
+        });
       });
 
-      const entries = Object.entries(dayMap).slice(-7);
+      const top5 = Object.entries(productMap)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5);
 
-      new google.visualization.ColumnChart(document.getElementById("bar-chart")).draw(
-        google.visualization.arrayToDataTable([
-          ["วัน", "งาน"],
-          ...(entries.length ? entries : [["", 0]])
-        ]),
-        { ...commonOptions, colors: ["#0dcaf0"], legend: "none" }
-      );
+      const html = top5.map((p, idx) => `
+        <div class="d-flex justify-content-between align-items-center mb-2 p-2 border-bottom border-secondary">
+          <span class="text-white small">${idx+1}. ${p[0]}</span>
+          <span class="text-info fw-bold">${p[1].toLocaleString()} <small class="text-muted">ชิ้น</small></span>
+        </div>
+      `).join("");
+      
+      document.getElementById("top-products-list").innerHTML = html || '<div class="text-center text-muted">ไม่มีข้อมูลการขาย</div>';
     }
 
-    function escapeHtml(str) {
-      return String(str)
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
+    function drawCharts(data) {
+      // Pie Chart logic (บาท)
+      const successVal = data.filter(o=>o.status==="ส่งสำเร็จ").reduce((s,o)=>s+(Number(o.total)||0),0);
+      const pendingVal = data.filter(o=>o.status==="รอจัดส่ง").reduce((s,o)=>s+(Number(o.total)||0),0);
+      
+      const pieData = google.visualization.arrayToDataTable([
+        ['Status', 'Baht'],
+        ['สำเร็จ', successVal],
+        ['รอส่ง', pendingVal]
+      ]);
+
+      new google.visualization.PieChart(document.getElementById("value-pie-chart")).draw(pieData, {
+        backgroundColor: "transparent",
+        colors: ["#20c997", "#ffc107"],
+        pieHole: 0.4,
+        legend: { textStyle: { color: "#fff" } },
+        chartArea: { width: "90%", height: "80%" }
+      });
+
+      // Bar Chart logic (7 วันล่าสุด)
+      const dayMap = {};
+      data.filter(o=>o.status==="ส่งสำเร็จ").forEach(o => {
+        const d = o.time ? o.time.split(" ")[0].substring(0, 5) : "N/A";
+        dayMap[d] = (dayMap[d] || 0) + 1;
+      });
+      const barEntries = Object.entries(dayMap).slice(-7);
+      
+      new google.visualization.ColumnChart(document.getElementById("bar-chart")).draw(
+        google.visualization.arrayToDataTable([["วัน", "ออเดอร์"], ...barEntries]),
+        { backgroundColor: "transparent", colors: ["#0dcaf0"], legend: "none", hAxis: { textStyle: { color: "#fff" } }, vAxis: { textStyle: { color: "#fff" } } }
+      );
     }
 
     document.addEventListener("DOMContentLoaded", init);
