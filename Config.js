@@ -8,6 +8,8 @@ const CONFIG = {
   LIFF_ID_HISTORY: "2008821220-DC2vs4n2",
   LIFF_ID_ROLE: "2008821220-5DyuuHwJ",
   LIFF_ID_SUMMARY: "2008821220-nF2QLSuT",
+  LIFF_ID_ORDERLIST: "2008821220-GhN9SMVD",
+  
   WEBHOOK_SLIP: "https://amarin-650200908-drinking-water-bot.hf.space/webhook/upload-slip2",
   WEBHOOK_Delivery: "https://amarin-650200908-drinking-water-bot.hf.space/webhook/delivery",
 
