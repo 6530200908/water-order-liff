@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Order List - Water System</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="Styles.css?v=20260317-2">
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+</head>
+<body>
+  <div class="container py-3">
+    <div class="d-flex align-items-center mb-3">
+      <button onclick="window.location.href='Dashboard.html'" class="btn btn-dark btn-sm me-2">🔙 กลับ</button>
+      <h4 class="fw-bold text-info m-0">📋 รายการออเดอร์ทั้งหมด</h4>
+    </div>
+
+    <div class="chart-box mb-3">
+      <input type="text" id="filter-all" class="form-control form-control-dark" placeholder="🔍 ค้นหาลูกค้า, รหัส หรือสถานะ..." onkeyup="applyFilters()">
+    </div>
+
+    <div class="chart-box p-0 overflow-hidden">
+      <div class="table-responsive">
+        <table class="table table-dark m-0">
+          <thead>
+            <tr>
+              <th>ลูกค้า / วันที่</th>
+              <th>ยอดสุทธิ</th>
+              <th>สถานะ</th>
+            </tr>
+          </thead>
+          <tbody id="table-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script src="Config.js?v=20260317-2"></script>
+  <script>
+    let allOrders = [];
+
+    async function init() {
+      try {
+        await liff.init({ liffId: CONFIG.LIFF_ID_SUMMARY });
+        const profile = await liff.getProfile();
+        const response = await fetch(`${CONFIG.GAS_API}?type=admin_get_summary&uid=${profile.userId}`);
+        const res = await response.json();
+        allOrders = res.orders || [];
+        renderTable(allOrders);
+      } catch (e) { console.error(e); }
+    }
+
+    function renderTable(data) {
+      document.getElementById("table-body").innerHTML = data.map(o => `
+        <tr>
+          <td>
+            <div class="fw-bold text-info">${o.customer || "ไม่ระบุ"}</div>
+            <div class="small text-muted">${o.order_id} | ${o.time ? o.time.split(" ")[0] : "-"}</div>
+          </td>
+          <td class="fw-bold text-success">฿${(Number(o.total) || 0).toLocaleString()}</td>
+          <td><span class="badge ${getStatusBadge(o.status)}">${o.status}</span></td>
+        </tr>
+      `).join("");
+    }
+
+    function getStatusBadge(s) {
+      if (s === "ส่งสำเร็จ") return "bg-success";
+      if (s === "รอจัดส่ง") return "bg-warning text-dark";
+      if (s === "ยกเลิก") return "bg-danger";
+      return "bg-secondary";
+    }
+
+    function applyFilters() {
+      const val = document.getElementById("filter-all").value.toLowerCase();
+      const filtered = allOrders.filter(o => 
+        o.customer?.toLowerCase().includes(val) || 
+        o.order_id?.toLowerCase().includes(val) ||
+        o.status?.toLowerCase().includes(val)
+      );
+      renderTable(filtered);
+    }
+
+    document.addEventListener("DOMContentLoaded", init);
+  </script>
+</body>
+</html>
