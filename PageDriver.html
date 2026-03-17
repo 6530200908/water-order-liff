@@ -1,260 +1,453 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>รายการจัดส่งน้ำ - Water Delivery</title>
+
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;700&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="Styles.css">
+
+<style>
+.modal-full{
+display:none;
+position:fixed;
+inset:0;
+background:rgba(0,0,0,0.9);
+z-index:1000;
+padding:20px;
+overflow-y:auto;
+}
+
+.preview-box{
+width:100%;
+height:200px;
+background:#000;
+border-radius:10px;
+display:flex;
+align-items:center;
+justify-content:center;
+overflow:hidden;
+border:1px dashed #3f444a;
+}
+
+#driver-preview{
+width:100%;
+height:100%;
+object-fit:cover;
+}
+
+.gps-box{
+background:#000;
+padding:10px;
+border-radius:8px;
+border:1px solid #3f444a;
+}
+</style>
+</head>
+
+
+<body>
+
+<div id="loader">
+<div class="spinner-border text-info mb-2"></div>
+<div class="text-info">กำลังตรวจสอบสิทธิ...</div>
+</div>
+
+
+<div class="container container-sm-custom mt-3 pb-5">
+<h3 class="fw-bold text-info mb-4">🚚 รายการรอจัดส่ง</h3>
+<div id="driver-order-list"></div>
+</div>
+
+
+
+<!-- Upload Modal -->
+<div id="upload-modal" class="modal-full">
+
+<div class="role-card mx-auto" style="max-width:450px;border-color:#0dcaf0">
+
+<h5 class="fw-bold mb-2 text-info">📸 ยืนยันการส่งสินค้า</h5>
+
+<p id="modal-order-id" class="small text-muted mb-3"></p>
+
+<label class="label-cyan">ถ่ายรูปภาพหลักฐาน</label>
+
+<input
+type="file"
+accept="image/*"
+id="driverSlipInput"
+class="form-control form-control-dark mb-3"
+>
+
+
+<div class="preview-box mb-3">
+
+<div id="preview-placeholder" class="text-muted small text-center">
+ยังไม่ได้เลือกรูปภาพ
+</div>
+
+<img id="driver-preview" style="display:none">
+
+</div>
+
+
+<div class="gps-box mb-3">
+<div id="gps-status" class="small text-info">
+🛰️ กำลังดึงพิกัด GPS...
+</div>
+</div>
+
+
+<button
+id="btn-submit-delivery"
+class="btn btn-info w-100 fw-bold text-dark mb-2"
+disabled
+onclick="submitDelivery()"
+>
+✅ ยืนยันส่งสำเร็จ
+</button>
+
+<button
+class="btn btn-link text-muted w-100 btn-sm text-decoration-none"
+onclick="closeUploadModal()"
+>
+ยกเลิก
+</button>
+
+</div>
+</div>
+
+
+
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<script src="Config.js"></script>
+
+
 <script>
-let currentOrderId = "";
-let driverImageBase64 = "";
-let currentGps = "";
-let currentDriverUid = "";
+
+let currentOrderId=""
+let driverImageBase64=""
+let currentGps=""
+
+
 
 window.onload = async () => {
-  try {
-    document.getElementById("loader").style.display = "flex";
 
-    await liff.init({ liffId: CONFIG.LIFF_ID_DRIVER });
+try{
 
-    const accessGranted = await validateAccess("DRIVER_PAGE");
-    if (!accessGranted) {
-      document.getElementById("loader").style.display = "none";
-      return;
-    }
+await liff.init({liffId:CONFIG.LIFF_ID_DRIVER})
 
-    const profile = await liff.getProfile();
-    currentDriverUid = (profile.userId || "").trim();
-
-    if (!currentDriverUid) {
-      alert("❌ ไม่พบ UID ของผู้ใช้งาน");
-      document.getElementById("loader").style.display = "none";
-      return;
-    }
-
-    console.log("Driver UID:", currentDriverUid);
-
-    loadDriverOrders();
-
-  } catch (e) {
-    console.error("window.onload error:", e);
-    alert("❌ โหลดข้อมูลไม่สำเร็จ: " + e.message);
-    document.getElementById("loader").style.display = "none";
-  }
-};
-
-function loadDriverOrders() {
-  document.getElementById("loader").style.display = "flex";
-
-  fetch(`${CONFIG.GAS_API}?type=driver_list&uid=${encodeURIComponent(currentDriverUid)}`, {
-    method: "GET",
-    cache: "no-store"
-  })
-    .then(res => {
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      return res.json();
-    })
-    .then(res => {
-      console.log("driver_list response:", res);
-
-      const list = document.getElementById("driver-order-list");
-
-      if (!res.orders || res.orders.length === 0) {
-        list.innerHTML = "<div class='text-center mt-5 text-muted'>ไม่มีงานค้าง 🎉</div>";
-        return;
-      }
-
-      list.innerHTML = res.orders.map(o => {
-        const collapseId = "detail-" + o.order_id;
-
-        return `
-          <div class="role-card border-start border-info border-4 shadow-sm mb-3">
-
-            <div class="d-flex justify-content-between mb-2">
-              <span class="badge bg-info text-dark">${o.order_id}</span>
-              <small class="text-muted">🕒 ${o.time || "-"}</small>
-            </div>
-
-            <div class="fw-bold text-white">👤 ${o.customer || "-"}</div>
-            <div class="small text-info mb-2">📍 ${o.locat || "-"}</div>
-
-            <div class="d-flex justify-content-between mb-2">
-              <span class="badge bg-secondary">${o.status || "-"}</span>
-              <span class="fw-bold text-warning">${o.total || "-"}</span>
-            </div>
-
-            <button
-              class="btn btn-outline-info btn-sm w-100 mb-2"
-              data-bs-toggle="collapse"
-              data-bs-target="#${collapseId}"
-            >
-              ดูรายละเอียด
-            </button>
-
-            <div id="${collapseId}" class="collapse">
-              <div class="bg-black p-3 rounded-3 small mb-2 border border-secondary">
-                <div>🧾 ${o.items || "-"}</div>
-                ${o.amount ? `<div class="mt-1">📦 ${o.amount}</div>` : ""}
-                <div class="mt-1 text-muted">📌 ${o.gps || "-"}</div>
-              </div>
-            </div>
-
-            <div class="row g-2">
-              <div class="col-4">
-                <a
-                  href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(o.gps || "")}"
-                  target="_blank"
-                  class="btn btn-outline-secondary btn-sm w-100"
-                >
-                  🗺️ แผนที่
-                </a>
-              </div>
-
-              <div class="col-8">
-                <button
-                  class="btn btn-info btn-sm w-100 fw-bold text-dark"
-                  onclick="openUploadModal('${o.order_id}')"
-                >
-                  📷 ส่งงาน
-                </button>
-              </div>
-            </div>
-
-          </div>
-        `;
-      }).join("");
-    })
-    .catch(err => {
-      console.error("loadDriverOrders error:", err);
-      document.getElementById("driver-order-list").innerHTML =
-        "<div class='text-center mt-5 text-danger'>❌ โหลดรายการไม่สำเร็จ</div>";
-    })
-    .finally(() => {
-      document.getElementById("loader").style.display = "none";
-    });
+if(!liff.isLoggedIn()){
+liff.login()
+return
 }
 
-function openUploadModal(id) {
-  currentOrderId = id;
-  driverImageBase64 = "";
-  currentGps = "";
+loadDriverOrders()
 
-  document.getElementById("modal-order-id").innerText = "เลขออเดอร์: " + id;
-  document.getElementById("upload-modal").style.display = "block";
-  document.getElementById("btn-submit-delivery").disabled = true;
+}catch(e){
 
-  document.getElementById("gps-status").innerHTML = "🛰️ กำลังดึงพิกัด GPS...";
-  document.getElementById("driverSlipInput").value = "";
-  document.getElementById("driver-preview").style.display = "none";
-  document.getElementById("preview-placeholder").style.display = "block";
+console.error(e)
+document.getElementById("loader").style.display="none"
 
-  if (navigator.geolocation) {
-    navigator.geolocation.getCurrentPosition(
-      pos => {
-        currentGps = pos.coords.latitude + "," + pos.coords.longitude;
-        document.getElementById("gps-status").innerHTML = "📍 พิกัดปัจจุบัน: " + currentGps;
-      },
-      err => {
-        console.warn("GPS error:", err);
-        document.getElementById("gps-status").innerHTML = "⚠️ ไม่สามารถระบุพิกัดได้";
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 0
-      }
-    );
-  } else {
-    document.getElementById("gps-status").innerHTML = "⚠️ อุปกรณ์ไม่รองรับ GPS";
-  }
-
-  document.getElementById("driverSlipInput").onchange = e => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = () => {
-      driverImageBase64 = reader.result;
-      document.getElementById("driver-preview").src = driverImageBase64;
-      document.getElementById("driver-preview").style.display = "block";
-      document.getElementById("preview-placeholder").style.display = "none";
-      document.getElementById("btn-submit-delivery").disabled = false;
-    };
-    reader.readAsDataURL(file);
-  };
 }
 
-function closeUploadModal() {
-  document.getElementById("upload-modal").style.display = "none";
-  document.getElementById("driverSlipInput").value = "";
-  document.getElementById("driver-preview").style.display = "none";
-  document.getElementById("preview-placeholder").style.display = "block";
 }
 
-async function submitDelivery() {
-  const btn = document.getElementById("btn-submit-delivery");
-  const originalHtml = btn.innerHTML;
 
-  btn.disabled = true;
-  btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> กำลังบันทึก...';
 
-  try {
-    if (!driverImageBase64) {
-      alert("กรุณาแนบรูปก่อน");
-      btn.disabled = false;
-      btn.innerHTML = originalHtml;
-      return;
-    }
+function loadDriverOrders(){
 
-    const gasRes = await fetch(CONFIG.GAS_API, {
-      method: "POST",
-      body: JSON.stringify({
-        type: "update_delivery",
-        orderId: currentOrderId,
-        image: driverImageBase64,
-        currentGps: currentGps,
-        uid: currentDriverUid
-      })
-    });
+document.getElementById("loader").style.display="flex"
 
-    if (!gasRes.ok) {
-      throw new Error("GAS update failed");
-    }
+fetch(`${CONFIG.GAS_API}?type=driver_list`)
+.then(res=>res.json())
 
-    const payload = {
-      orderId: currentOrderId,
-      image: driverImageBase64,
-      gps: currentGps,
-      uid: currentDriverUid,
-      time: new Date().toISOString()
-    };
+.then(res=>{
 
-    const res = await fetch(CONFIG.WEBHOOK_Delivery, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(payload)
-    });
+const list=document.getElementById("driver-order-list")
 
-    if (!res.ok) {
-      throw new Error("Webhook upload failed");
-    }
+if(!res.orders || res.orders.length===0){
 
-    try {
-      await liff.sendMessages([
-        {
-          type: "text",
-          text: `📦 ส่งสินค้าเรียบร้อย\nOrder: ${currentOrderId}`
-        }
-      ]);
-    } catch (e) {
-      console.warn("sendMessages fail", e);
-    }
+list.innerHTML=
+"<div class='text-center mt-5 text-muted'>ไม่มีงานค้าง 🎉</div>"
 
-    alert("✅ บันทึกการจัดส่งสำเร็จ!");
-    closeUploadModal();
-    loadDriverOrders();
-
-  } catch (err) {
-    console.error(err);
-    alert("❌ เกิดข้อผิดพลาดในการส่งข้อมูล");
-  } finally {
-    btn.disabled = false;
-    btn.innerHTML = originalHtml;
-  }
+return
 }
+
+
+
+list.innerHTML=res.orders.map(o=>{
+
+const collapseId="detail-"+o.order_id
+
+return`
+
+<div class="role-card border-start border-info border-4 shadow-sm">
+
+<div class="d-flex justify-content-between mb-2">
+<span class="badge bg-info text-dark">${o.order_id}</span>
+<small class="text-muted">🕒 ${o.time||"-"}</small>
+</div>
+
+<div class="fw-bold text-white">👤 ${o.customer||"-"}</div>
+
+<div class="small text-info mb-2">📍 ${o.locat||"-"}</div>
+
+
+<div class="d-flex justify-content-between mb-2">
+<span class="badge bg-secondary">${o.status||"-"}</span>
+<span class="fw-bold text-warning">${o.total||"-"}</span>
+</div>
+
+
+<button
+class="btn btn-outline-info btn-sm w-100 mb-2"
+data-bs-toggle="collapse"
+data-bs-target="#${collapseId}"
+>
+ดูรายละเอียด
+</button>
+
+
+<div id="${collapseId}" class="collapse">
+
+<div class="bg-black p-3 rounded-3 small mb-2 border border-secondary">
+
+<div>🧾 ${o.items||"-"}</div>
+
+${o.amount?`<div class="mt-1">📦 ${o.amount}</div>`:""}
+
+<div class="mt-1 text-muted">📌 ${o.gps||"-"}</div>
+
+</div>
+
+</div>
+
+
+<div class="row g-2">
+
+<div class="col-4">
+
+<a
+href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(o.gps||"")}"
+target="_blank"
+class="btn btn-outline-secondary btn-sm w-100"
+>
+🗺️ แผนที่
+</a>
+
+</div>
+
+
+<div class="col-8">
+
+<button
+class="btn btn-info btn-sm w-100 fw-bold text-dark"
+onclick="openUploadModal('${o.order_id}')"
+>
+📷 ส่งงาน
+</button>
+
+</div>
+
+</div>
+
+</div>
+
+`
+
+}).join("")
+
+})
+
+.finally(()=>{
+
+document.getElementById("loader").style.display="none"
+
+})
+
+}
+
+
+
+function openUploadModal(id){
+
+currentOrderId=id
+driverImageBase64=""
+currentGps=""
+
+document.getElementById("modal-order-id").innerText="เลขออเดอร์: "+id
+
+document.getElementById("upload-modal").style.display="block"
+
+document.getElementById("btn-submit-delivery").disabled=true
+
+
+
+navigator.geolocation?.getCurrentPosition(pos=>{
+
+currentGps=pos.coords.latitude+","+pos.coords.longitude
+
+document.getElementById("gps-status").innerHTML=
+"📍 พิกัดปัจจุบัน: "+currentGps
+
+},err=>{
+
+document.getElementById("gps-status").innerHTML=
+"⚠️ ไม่สามารถระบุพิกัดได้"
+
+})
+
+
+
+document.getElementById("driverSlipInput").onchange=e=>{
+
+const file=e.target.files[0]
+
+if(!file)return
+
+const reader=new FileReader()
+
+reader.onload=()=>{
+
+driverImageBase64=reader.result
+
+document.getElementById("driver-preview").src=driverImageBase64
+
+document.getElementById("driver-preview").style.display="block"
+
+document.getElementById("preview-placeholder").style.display="none"
+
+document.getElementById("btn-submit-delivery").disabled=false
+
+}
+
+reader.readAsDataURL(file)
+
+}
+
+}
+
+
+
+function closeUploadModal(){
+
+document.getElementById("upload-modal").style.display="none"
+
+document.getElementById("driverSlipInput").value=""
+
+document.getElementById("driver-preview").style.display="none"
+
+document.getElementById("preview-placeholder").style.display="block"
+
+}
+
+
+
+async function submitDelivery(){
+
+const btn=document.getElementById("btn-submit-delivery")
+const originalHtml=btn.innerHTML
+
+btn.disabled=true
+btn.innerHTML='<span class="spinner-border spinner-border-sm"></span> กำลังบันทึก...'
+
+try{
+
+// ตรวจว่ามีรูปหรือยัง
+if(!driverImageBase64){
+alert("กรุณาแนบรูปก่อน")
+btn.disabled=false
+btn.innerHTML=originalHtml
+return
+}
+
+
+// 1️⃣ ส่งข้อมูลไป Google Apps Script
+const gasRes = await fetch(CONFIG.GAS_API,{
+method:"POST",
+body:JSON.stringify({
+type:"update_delivery",
+orderId:currentOrderId,
+image:driverImageBase64,
+currentGps:currentGps
+})
+})
+
+if(!gasRes.ok){
+throw new Error("GAS update failed")
+}
+
+
+// 2️⃣ ส่งข้อมูลไป Webhook
+const payload={
+orderId:currentOrderId,
+image:driverImageBase64,
+gps:currentGps,
+time:new Date().toISOString()
+}
+
+const res=await fetch(CONFIG.WEBHOOK_Delivery,{
+method:"POST",
+headers:{
+"Content-Type":"application/json"
+},
+body:JSON.stringify(payload)
+})
+
+if(!res.ok){
+throw new Error("Webhook upload failed")
+}
+
+
+// 3️⃣ แจ้ง LINE
+try{
+
+await liff.sendMessages([
+{
+type:"text",
+text:`📦 ส่งสินค้าเรียบร้อย\nOrder: ${currentOrderId}`
+}
+])
+
+}catch(e){
+
+console.warn("sendMessages fail",e)
+
+}
+
+
+// 4️⃣ สำเร็จ
+alert("✅ บันทึกการจัดส่งสำเร็จ!")
+
+closeUploadModal()
+loadDriverOrders()
+
+}
+
+catch(err){
+
+console.error(err)
+alert("❌ เกิดข้อผิดพลาดในการส่งข้อมูล")
+
+}
+
+finally{
+
+btn.disabled=false
+btn.innerHTML=originalHtml
+
+}
+
+}
+
 </script>
+
+</body>
+</html>
