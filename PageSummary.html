@@ -171,7 +171,7 @@
       try {
         console.log("SUMMARY PAGE VERSION = 20260317-2");
 
-        await liff.init({ liffId: CONFIG.LIFF_ID_ADMIN });
+        await liff.init({ liffId: CONFIG.LIFF_ID_SUMMARY });
 
         if (!liff.isLoggedIn()) {
           liff.login();
