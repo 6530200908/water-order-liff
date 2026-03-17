@@ -41,7 +41,7 @@
 
     async function init() {
       try {
-        await liff.init({ liffId: CONFIG.LIFF_ID_SUMMARY });
+        await liff.init({ liffId: CONFIG.LIFF_ID_ORDERLIST });
         const profile = await liff.getProfile();
         const response = await fetch(`${CONFIG.GAS_API}?type=admin_get_summary&uid=${profile.userId}`);
         const res = await response.json();
