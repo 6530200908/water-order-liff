@@ -122,17 +122,17 @@ window.onload = async () => {
   }
 };
 
+<script>
 function loadDriverOrders() {
   document.getElementById("loader").style.display = "flex";
 
   fetch(`${CONFIG.GAS_API}?type=driver_list&uid=${encodeURIComponent(currentDriverUid)}`)
     .then(res => res.json())
     .then(res => {
-
       const list = document.getElementById("driver-order-list");
 
       if (res.status !== "success") {
-        list.innerHTML = `<div class="text-danger text-center mt-5">${res.msg}</div>`;
+        list.innerHTML = `<div class="text-danger text-center mt-5">${res.msg || "โหลดข้อมูลไม่สำเร็จ"}</div>`;
         return;
       }
 
@@ -141,78 +141,104 @@ function loadDriverOrders() {
         return;
       }
 
-      list.innerHTML = res.orders.map(o => {
-        const collapseId = "detail-" + o.order_id;
+      const grouped = {};
+
+      res.orders.forEach(o => {
+        const locationKey = (o.locat || "ไม่ระบุที่อยู่จัดส่ง").trim();
+        if (!grouped[locationKey]) grouped[locationKey] = [];
+        grouped[locationKey].push(o);
+      });
+
+      const sortedLocations = Object.keys(grouped).sort((a, b) => a.localeCompare(b, "th"));
+
+      list.innerHTML = sortedLocations.map(locationName => {
+        const orders = grouped[locationName];
 
         return `
-        <div class="role-card border-start border-info border-4 shadow-sm">
-
-          <div class="d-flex justify-content-between mb-2">
-            <span class="badge bg-info text-dark">${o.order_id}</span>
-            <small class="text-muted">🕒 ${o.time || "-"}</small>
-          </div>
-
-          <div class="fw-bold text-white">👤 ${o.customer || "-"}</div>
-          <div class="small text-info mb-2">📍 ${o.locat || "-"}</div>
-
-          <div class="d-flex justify-content-between mb-2">
-            <span class="badge bg-secondary">${o.status || "-"}</span>
-            <span class="fw-bold text-warning">${o.total || "-"}</span>
-          </div>
-
-          <button class="btn btn-outline-info btn-sm w-100 mb-2"
-            data-bs-toggle="collapse"
-            data-bs-target="#${collapseId}">
-            ดูรายละเอียด
-          </button>
-
-          <div id="${collapseId}" class="collapse">
-            <div class="bg-black p-3 rounded-3 small mb-2 border border-secondary">
-              <div>🧾 ${o.items || "-"}</div>
-              ${o.amount ? `<div class="mt-1">📦 ${o.amount}</div>` : ""}
-              <div class="mt-1 text-muted">📌 ${o.gps || "-"}</div>
+          <div class="mb-4">
+            <div class="mb-3 p-3 rounded-3 border border-info bg-dark">
+              <div class="fw-bold text-info fs-5">📍 ${locationName}</div>
+              <div class="small text-muted">จำนวนออเดอร์: ${orders.length}</div>
             </div>
-          </div>
 
-          <div class="row g-2">
+            ${orders.map(o => {
+              const collapseId = "detail-" + o.order_id;
 
-            <div class="col-4">
-              ${
-                o.gps
-                  ? `
-                  <a
-                    href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(o.gps)}&travelmode=driving"
-                    target="_blank"
-                    class="btn btn-outline-secondary btn-sm w-100">
-                    🗺️ แผนที่
-                  </a>
-                  `
-                  : `
-                  <button class="btn btn-outline-secondary btn-sm w-100" disabled>
-                    ไม่มีพิกัด
+              return `
+                <div class="role-card border-start border-info border-4 shadow-sm mb-3">
+
+                  <div class="d-flex justify-content-between mb-2">
+                    <span class="badge bg-info text-dark">${o.order_id}</span>
+                    <small class="text-muted">🕒 ${o.time || "-"}</small>
+                  </div>
+
+                  <div class="fw-bold text-white">👤 ${o.customer || "-"}</div>
+                  <div class="small text-info mb-2">📍 ${o.locat || "-"}</div>
+
+                  <div class="d-flex justify-content-between mb-2">
+                    <span class="badge bg-secondary">${o.status || "-"}</span>
+                    <span class="fw-bold text-warning">${o.total || "-"}</span>
+                  </div>
+
+                  <button class="btn btn-outline-info btn-sm w-100 mb-2"
+                    data-bs-toggle="collapse"
+                    data-bs-target="#${collapseId}">
+                    ดูรายละเอียด
                   </button>
-                  `
-              }
-            </div>
 
-            <div class="col-8">
-              <button class="btn btn-info btn-sm w-100 fw-bold text-dark"
-                onclick="openUploadModal('${o.order_id}')">
-                📷 ส่งงาน
-              </button>
-            </div>
+                  <div id="${collapseId}" class="collapse">
+                    <div class="bg-black p-3 rounded-3 small mb-2 border border-secondary">
+                      <div>🧾 ${o.items || "-"}</div>
+                      ${o.amount ? `<div class="mt-1">📦 ${o.amount}</div>` : ""}
+                      <div class="mt-1 text-muted">📌 ${o.gps || "-"}</div>
+                    </div>
+                  </div>
 
+                  <div class="row g-2">
+                    <div class="col-4">
+                      ${
+                        o.gps
+                          ? `
+                          <a
+                            href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(o.gps)}&travelmode=driving"
+                            target="_blank"
+                            class="btn btn-outline-secondary btn-sm w-100">
+                            🗺️ แผนที่
+                          </a>
+                          `
+                          : `
+                          <button class="btn btn-outline-secondary btn-sm w-100" disabled>
+                            ไม่มีพิกัด
+                          </button>
+                          `
+                      }
+                    </div>
+
+                    <div class="col-8">
+                      <button class="btn btn-info btn-sm w-100 fw-bold text-dark"
+                        onclick="openUploadModal('${o.order_id}')">
+                        📷 ส่งงาน
+                      </button>
+                    </div>
+                  </div>
+
+                </div>
+              `;
+            }).join("")}
           </div>
-
-        </div>
         `;
       }).join("");
-
+    })
+    .catch(err => {
+      console.error("loadDriverOrders error =", err);
+      document.getElementById("driver-order-list").innerHTML =
+        "<div class='text-center mt-5 text-danger'>❌ โหลดรายการไม่สำเร็จ</div>";
     })
     .finally(() => {
       document.getElementById("loader").style.display = "none";
     });
 }
+</script>
 
 function openUploadModal(id) {
   currentOrderId = id;
