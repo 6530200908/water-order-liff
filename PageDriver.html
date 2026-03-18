@@ -39,6 +39,28 @@ width:100%;
 height:100%;
 object-fit:cover;
 }
+
+.location-group-header{
+background:#0b0b0b;
+border:2px solid #0dcaf0;
+border-radius:16px;
+padding:14px 16px;
+margin-bottom:14px;
+box-shadow:0 0 0 1px rgba(13,202,240,0.12) inset;
+}
+
+.location-group-title{
+color:#0dcaf0;
+font-weight:700;
+font-size:1.1rem;
+margin:0;
+}
+
+.location-group-sub{
+color:#9aa4ad;
+font-size:.9rem;
+margin-top:4px;
+}
 </style>
 </head>
 
@@ -63,8 +85,12 @@ object-fit:cover;
 
     <label class="label-cyan">ถ่ายรูปภาพหลักฐาน</label>
 
-    <input type="file" accept="image/*" id="driverSlipInput"
-      class="form-control form-control-dark mb-3">
+    <input
+      type="file"
+      accept="image/*"
+      id="driverSlipInput"
+      class="form-control form-control-dark mb-3"
+    >
 
     <div class="preview-box mb-3">
       <div id="preview-placeholder" class="text-muted small text-center">
@@ -73,14 +99,19 @@ object-fit:cover;
       <img id="driver-preview" style="display:none">
     </div>
 
-    <button id="btn-submit-delivery"
+    <button
+      id="btn-submit-delivery"
       class="btn btn-info w-100 fw-bold text-dark mb-2"
-      disabled onclick="submitDelivery()">
+      disabled
+      onclick="submitDelivery()"
+    >
       ✅ ยืนยันส่งสำเร็จ
     </button>
 
-    <button class="btn btn-link text-muted w-100 btn-sm text-decoration-none"
-      onclick="closeUploadModal()">
+    <button
+      class="btn btn-link text-muted w-100 btn-sm text-decoration-none"
+      onclick="closeUploadModal()"
+    >
       ยกเลิก
     </button>
 
@@ -113,21 +144,32 @@ window.onload = async () => {
     const profile = await liff.getProfile();
     currentDriverUid = (profile.userId || "").trim();
 
+    if (!currentDriverUid) {
+      throw new Error("ไม่พบ LINE UID");
+    }
+
     loadDriverOrders();
 
   } catch (e) {
-    console.error(e);
+    console.error("window.onload error:", e);
     alert("โหลดข้อมูลไม่สำเร็จ");
     document.getElementById("loader").style.display = "none";
   }
 };
 
-<script>
 function loadDriverOrders() {
   document.getElementById("loader").style.display = "flex";
 
-  fetch(`${CONFIG.GAS_API}?type=driver_list&uid=${encodeURIComponent(currentDriverUid)}`)
-    .then(res => res.json())
+  fetch(`${CONFIG.GAS_API}?type=driver_list&uid=${encodeURIComponent(currentDriverUid)}`, {
+    method: "GET",
+    cache: "no-store"
+  })
+    .then(res => {
+      if (!res.ok) {
+        throw new Error(`HTTP ${res.status}`);
+      }
+      return res.json();
+    })
     .then(res => {
       const list = document.getElementById("driver-order-list");
 
@@ -145,7 +187,9 @@ function loadDriverOrders() {
 
       res.orders.forEach(o => {
         const locationKey = (o.locat || "ไม่ระบุที่อยู่จัดส่ง").trim();
-        if (!grouped[locationKey]) grouped[locationKey] = [];
+        if (!grouped[locationKey]) {
+          grouped[locationKey] = [];
+        }
         grouped[locationKey].push(o);
       });
 
@@ -156,9 +200,9 @@ function loadDriverOrders() {
 
         return `
           <div class="mb-4">
-            <div class="mb-3 p-3 rounded-3 border border-info bg-dark">
-              <div class="fw-bold text-info fs-5">📍 ${locationName}</div>
-              <div class="small text-muted">จำนวนออเดอร์: ${orders.length}</div>
+            <div class="location-group-header">
+              <div class="location-group-title">📍 ${locationName}</div>
+              <div class="location-group-sub">จำนวนออเดอร์: ${orders.length}</div>
             </div>
 
             ${orders.map(o => {
@@ -180,9 +224,11 @@ function loadDriverOrders() {
                     <span class="fw-bold text-warning">${o.total || "-"}</span>
                   </div>
 
-                  <button class="btn btn-outline-info btn-sm w-100 mb-2"
+                  <button
+                    class="btn btn-outline-info btn-sm w-100 mb-2"
                     data-bs-toggle="collapse"
-                    data-bs-target="#${collapseId}">
+                    data-bs-target="#${collapseId}"
+                  >
                     ดูรายละเอียด
                   </button>
 
@@ -202,12 +248,16 @@ function loadDriverOrders() {
                           <a
                             href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(o.gps)}&travelmode=driving"
                             target="_blank"
-                            class="btn btn-outline-secondary btn-sm w-100">
+                            class="btn btn-outline-secondary btn-sm w-100"
+                          >
                             🗺️ แผนที่
                           </a>
                           `
                           : `
-                          <button class="btn btn-outline-secondary btn-sm w-100" disabled>
+                          <button
+                            class="btn btn-outline-secondary btn-sm w-100"
+                            disabled
+                          >
                             ไม่มีพิกัด
                           </button>
                           `
@@ -215,8 +265,10 @@ function loadDriverOrders() {
                     </div>
 
                     <div class="col-8">
-                      <button class="btn btn-info btn-sm w-100 fw-bold text-dark"
-                        onclick="openUploadModal('${o.order_id}')">
+                      <button
+                        class="btn btn-info btn-sm w-100 fw-bold text-dark"
+                        onclick="openUploadModal('${o.order_id}')"
+                      >
                         📷 ส่งงาน
                       </button>
                     </div>
@@ -238,7 +290,6 @@ function loadDriverOrders() {
       document.getElementById("loader").style.display = "none";
     });
 }
-</script>
 
 function openUploadModal(id) {
   currentOrderId = id;
@@ -272,13 +323,26 @@ function openUploadModal(id) {
 
 function closeUploadModal() {
   document.getElementById("upload-modal").style.display = "none";
+  document.getElementById("driverSlipInput").value = "";
+  document.getElementById("driver-preview").style.display = "none";
+  document.getElementById("preview-placeholder").style.display = "block";
 }
 
 async function submitDelivery() {
   const btn = document.getElementById("btn-submit-delivery");
+  const originalHtml = btn.innerHTML;
+
   btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> กำลังบันทึก...';
 
   try {
+    if (!driverImageBase64) {
+      alert("กรุณาแนบรูปก่อน");
+      btn.disabled = false;
+      btn.innerHTML = originalHtml;
+      return;
+    }
+
     const gasRes = await fetch(CONFIG.GAS_API, {
       method: "POST",
       body: JSON.stringify({
@@ -289,20 +353,58 @@ async function submitDelivery() {
       })
     });
 
-    const data = await gasRes.json();
+    if (!gasRes.ok) {
+      throw new Error("GAS update failed");
+    }
 
-    if (data.status !== "ok") throw new Error(data.msg);
+    const gasJson = await gasRes.json();
+    console.log("update_delivery response =", gasJson);
 
-    alert("✅ ส่งสำเร็จ");
+    if (gasJson.status !== "ok" && gasJson.status !== "success") {
+      throw new Error(gasJson.msg || "อัปเดตสถานะไม่สำเร็จ");
+    }
+
+    const payload = {
+      orderId: currentOrderId,
+      image: driverImageBase64,
+      uid: currentDriverUid,
+      time: new Date().toISOString()
+    };
+
+    const res = await fetch(CONFIG.WEBHOOK_Delivery, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (!res.ok) {
+      throw new Error("Webhook upload failed");
+    }
+
+    try {
+      await liff.sendMessages([
+        {
+          type: "text",
+          text: `📦 ส่งสินค้าเรียบร้อย\nOrder: ${currentOrderId}`
+        }
+      ]);
+    } catch (e) {
+      console.warn("sendMessages fail", e);
+    }
+
+    alert("✅ บันทึกการจัดส่งสำเร็จ!");
     closeUploadModal();
     loadDriverOrders();
 
   } catch (err) {
-    alert("❌ ผิดพลาด");
-    console.error(err);
+    console.error("submitDelivery error =", err);
+    alert("❌ เกิดข้อผิดพลาดในการส่งข้อมูล: " + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = originalHtml;
   }
-
-  btn.disabled = false;
 }
 </script>
 
