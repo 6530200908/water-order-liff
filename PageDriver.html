@@ -63,12 +63,8 @@ object-fit:cover;
 
     <label class="label-cyan">ถ่ายรูปภาพหลักฐาน</label>
 
-    <input
-      type="file"
-      accept="image/*"
-      id="driverSlipInput"
-      class="form-control form-control-dark mb-3"
-    >
+    <input type="file" accept="image/*" id="driverSlipInput"
+      class="form-control form-control-dark mb-3">
 
     <div class="preview-box mb-3">
       <div id="preview-placeholder" class="text-muted small text-center">
@@ -77,19 +73,14 @@ object-fit:cover;
       <img id="driver-preview" style="display:none">
     </div>
 
-    <button
-      id="btn-submit-delivery"
+    <button id="btn-submit-delivery"
       class="btn btn-info w-100 fw-bold text-dark mb-2"
-      disabled
-      onclick="submitDelivery()"
-    >
+      disabled onclick="submitDelivery()">
       ✅ ยืนยันส่งสำเร็จ
     </button>
 
-    <button
-      class="btn btn-link text-muted w-100 btn-sm text-decoration-none"
-      onclick="closeUploadModal()"
-    >
+    <button class="btn btn-link text-muted w-100 btn-sm text-decoration-none"
+      onclick="closeUploadModal()">
       ยกเลิก
     </button>
 
@@ -117,25 +108,16 @@ window.onload = async () => {
     }
 
     const accessGranted = await validateAccess("DRIVER_PAGE");
-    if (!accessGranted) {
-      document.getElementById("loader").style.display = "none";
-      return;
-    }
+    if (!accessGranted) return;
 
     const profile = await liff.getProfile();
     currentDriverUid = (profile.userId || "").trim();
 
-    if (!currentDriverUid) {
-      throw new Error("ไม่พบ LINE UID");
-    }
-
-    console.log("currentDriverUid =", currentDriverUid);
-
     loadDriverOrders();
 
   } catch (e) {
-    console.error("window.onload error:", e);
-    alert("❌ โหลดข้อมูลไม่สำเร็จ: " + e.message);
+    console.error(e);
+    alert("โหลดข้อมูลไม่สำเร็จ");
     document.getElementById("loader").style.display = "none";
   }
 };
@@ -143,23 +125,14 @@ window.onload = async () => {
 function loadDriverOrders() {
   document.getElementById("loader").style.display = "flex";
 
-  fetch(`${CONFIG.GAS_API}?type=driver_list&uid=${encodeURIComponent(currentDriverUid)}`, {
-    method: "GET",
-    cache: "no-store"
-  })
+  fetch(`${CONFIG.GAS_API}?type=driver_list&uid=${encodeURIComponent(currentDriverUid)}`)
+    .then(res => res.json())
     .then(res => {
-      if (!res.ok) {
-        throw new Error(`HTTP ${res.status}`);
-      }
-      return res.json();
-    })
-    .then(res => {
-      console.log("driver_list response =", res);
 
       const list = document.getElementById("driver-order-list");
 
       if (res.status !== "success") {
-        list.innerHTML = `<div class="text-center mt-5 text-danger">❌ ${res.msg || "โหลดข้อมูลไม่สำเร็จ"}</div>`;
+        list.innerHTML = `<div class="text-danger text-center mt-5">${res.msg}</div>`;
         return;
       }
 
@@ -172,66 +145,69 @@ function loadDriverOrders() {
         const collapseId = "detail-" + o.order_id;
 
         return `
-          <div class="role-card border-start border-info border-4 shadow-sm">
+        <div class="role-card border-start border-info border-4 shadow-sm">
 
-            <div class="d-flex justify-content-between mb-2">
-              <span class="badge bg-info text-dark">${o.order_id}</span>
-              <small class="text-muted">🕒 ${o.time || "-"}</small>
+          <div class="d-flex justify-content-between mb-2">
+            <span class="badge bg-info text-dark">${o.order_id}</span>
+            <small class="text-muted">🕒 ${o.time || "-"}</small>
+          </div>
+
+          <div class="fw-bold text-white">👤 ${o.customer || "-"}</div>
+          <div class="small text-info mb-2">📍 ${o.locat || "-"}</div>
+
+          <div class="d-flex justify-content-between mb-2">
+            <span class="badge bg-secondary">${o.status || "-"}</span>
+            <span class="fw-bold text-warning">${o.total || "-"}</span>
+          </div>
+
+          <button class="btn btn-outline-info btn-sm w-100 mb-2"
+            data-bs-toggle="collapse"
+            data-bs-target="#${collapseId}">
+            ดูรายละเอียด
+          </button>
+
+          <div id="${collapseId}" class="collapse">
+            <div class="bg-black p-3 rounded-3 small mb-2 border border-secondary">
+              <div>🧾 ${o.items || "-"}</div>
+              ${o.amount ? `<div class="mt-1">📦 ${o.amount}</div>` : ""}
+              <div class="mt-1 text-muted">📌 ${o.gps || "-"}</div>
+            </div>
+          </div>
+
+          <div class="row g-2">
+
+            <div class="col-4">
+              ${
+                o.gps
+                  ? `
+                  <a
+                    href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(o.gps)}&travelmode=driving"
+                    target="_blank"
+                    class="btn btn-outline-secondary btn-sm w-100">
+                    🗺️ แผนที่
+                  </a>
+                  `
+                  : `
+                  <button class="btn btn-outline-secondary btn-sm w-100" disabled>
+                    ไม่มีพิกัด
+                  </button>
+                  `
+              }
             </div>
 
-            <div class="fw-bold text-white">👤 ${o.customer || "-"}</div>
-            <div class="small text-info mb-2">📍 ${o.locat || "-"}</div>
-
-            <div class="d-flex justify-content-between mb-2">
-              <span class="badge bg-secondary">${o.status || "-"}</span>
-              <span class="fw-bold text-warning">${o.total || "-"}</span>
-            </div>
-
-            <button
-              class="btn btn-outline-info btn-sm w-100 mb-2"
-              data-bs-toggle="collapse"
-              data-bs-target="#${collapseId}"
-            >
-              ดูรายละเอียด
-            </button>
-
-            <div id="${collapseId}" class="collapse">
-              <div class="bg-black p-3 rounded-3 small mb-2 border border-secondary">
-                <div>🧾 ${o.items || "-"}</div>
-                ${o.amount ? `<div class="mt-1">📦 ${o.amount}</div>` : ""}
-                <div class="mt-1 text-muted">📌 ${o.gps || "-"}</div>
-              </div>
-            </div>
-
-            <div class="row g-2">
-              <div class="col-4">
-                <a
-                  href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(o.gps || "")}"
-                  target="_blank"
-                  class="btn btn-outline-secondary btn-sm w-100"
-                >
-                  🗺️ แผนที่
-                </a>
-              </div>
-
-              <div class="col-8">
-                <button
-                  class="btn btn-info btn-sm w-100 fw-bold text-dark"
-                  onclick="openUploadModal('${o.order_id}')"
-                >
-                  📷 ส่งงาน
-                </button>
-              </div>
+            <div class="col-8">
+              <button class="btn btn-info btn-sm w-100 fw-bold text-dark"
+                onclick="openUploadModal('${o.order_id}')">
+                📷 ส่งงาน
+              </button>
             </div>
 
           </div>
+
+        </div>
         `;
       }).join("");
-    })
-    .catch(err => {
-      console.error("loadDriverOrders error =", err);
-      document.getElementById("driver-order-list").innerHTML =
-        "<div class='text-center mt-5 text-danger'>❌ โหลดรายการไม่สำเร็จ</div>";
+
     })
     .finally(() => {
       document.getElementById("loader").style.display = "none";
@@ -270,26 +246,13 @@ function openUploadModal(id) {
 
 function closeUploadModal() {
   document.getElementById("upload-modal").style.display = "none";
-  document.getElementById("driverSlipInput").value = "";
-  document.getElementById("driver-preview").style.display = "none";
-  document.getElementById("preview-placeholder").style.display = "block";
 }
 
 async function submitDelivery() {
   const btn = document.getElementById("btn-submit-delivery");
-  const originalHtml = btn.innerHTML;
-
   btn.disabled = true;
-  btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> กำลังบันทึก...';
 
   try {
-    if (!driverImageBase64) {
-      alert("กรุณาแนบรูปก่อน");
-      btn.disabled = false;
-      btn.innerHTML = originalHtml;
-      return;
-    }
-
     const gasRes = await fetch(CONFIG.GAS_API, {
       method: "POST",
       body: JSON.stringify({
@@ -300,58 +263,20 @@ async function submitDelivery() {
       })
     });
 
-    if (!gasRes.ok) {
-      throw new Error("GAS update failed");
-    }
+    const data = await gasRes.json();
 
-    const gasJson = await gasRes.json();
-    console.log("update_delivery response =", gasJson);
+    if (data.status !== "ok") throw new Error(data.msg);
 
-    if (gasJson.status !== "ok" && gasJson.status !== "success") {
-      throw new Error(gasJson.msg || "อัปเดตสถานะไม่สำเร็จ");
-    }
-
-    const payload = {
-      orderId: currentOrderId,
-      image: driverImageBase64,
-      uid: currentDriverUid,
-      time: new Date().toISOString()
-    };
-
-    const res = await fetch(CONFIG.WEBHOOK_Delivery, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(payload)
-    });
-
-    if (!res.ok) {
-      throw new Error("Webhook upload failed");
-    }
-
-    try {
-      await liff.sendMessages([
-        {
-          type: "text",
-          text: `📦 ส่งสินค้าเรียบร้อย\nOrder: ${currentOrderId}`
-        }
-      ]);
-    } catch (e) {
-      console.warn("sendMessages fail", e);
-    }
-
-    alert("✅ บันทึกการจัดส่งสำเร็จ!");
+    alert("✅ ส่งสำเร็จ");
     closeUploadModal();
     loadDriverOrders();
 
   } catch (err) {
-    console.error("submitDelivery error =", err);
-    alert("❌ เกิดข้อผิดพลาดในการส่งข้อมูล: " + err.message);
-  } finally {
-    btn.disabled = false;
-    btn.innerHTML = originalHtml;
+    alert("❌ ผิดพลาด");
+    console.error(err);
   }
+
+  btn.disabled = false;
 }
 </script>
 
