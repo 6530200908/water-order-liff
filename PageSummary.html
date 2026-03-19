@@ -36,24 +36,25 @@
         <div class="stat-card">
           <div class="text-muted small">รายรับจริง</div>
           <div id="stat-total" class="stat-value text-success" style="font-size: 1.4rem;">฿0</div>
+          <div id="stat-success-count" class="stat-value text-info">0<small>บาท</small></div>
         </div>
       </div>
       <div class="col-6 col-md-3">
         <div class="stat-card">
           <div class="text-muted small">ส่งสำเร็จ</div>
-          <div id="stat-success-count" class="stat-value text-info">0<small>งาน</small></div>
+          <div id="stat-success-count" class="stat-value text-info">0<small>ออเดอร์</small></div>
         </div>
       </div>
       <div class="col-6 col-md-3">
         <div class="stat-card">
           <div class="text-muted small">รอจัดส่ง</div>
-          <div id="stat-pending" class="stat-value text-warning">0<small>งาน</small></div>
+          <div id="stat-pending" class="stat-value text-warning">0<small>ออเดอร์</small></div>
         </div>
       </div>
       <div class="col-6 col-md-3">
         <div class="stat-card">
           <div class="text-muted small">ยกเลิก</div>
-          <div id="stat-cancel" class="stat-value text-danger">0<small>งาน</small></div>
+          <div id="stat-cancel" class="stat-value text-danger">0<small>ออเดอร์</small></div>
         </div>
       </div>
     </div>
@@ -61,7 +62,7 @@
     <div class="row g-2 mb-3">
       <div class="col-12 col-md-6">
         <div class="chart-box h-100">
-          <div class="text-center small label-cyan mb-3">🏆 5 อันดับสินค้าขายดี (ชิ้น)</div>
+          <div class="text-center small label-cyan mb-3">🏆 5 อันดับสินค้าขายดี (แพค)</div>
           <div id="top-products-list"></div>
         </div>
       </div>
@@ -143,7 +144,7 @@
       document.getElementById("top-products-list").innerHTML = top5.map((p, i) => `
         <div class="d-flex justify-content-between mb-2 p-2 border-bottom border-secondary">
           <span class="text-white small">${i+1}. ${p[0]}</span>
-          <span class="text-info fw-bold">${p[1].toLocaleString()} ชิ้น</span>
+          <span class="text-info fw-bold">${p[1].toLocaleString()} แพค</span>
         </div>
       `).join("") || '<div class="text-muted text-center py-3">ไม่มีข้อมูลการขาย</div>';
 
