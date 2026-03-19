@@ -3,63 +3,56 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Water Dashboard - Overview</title>
+  <title>Water Dashboard - Stable Version</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="Styles.css?v=20260317-4">
+  <link rel="stylesheet" href="Styles.css?v=20260317-FINAL">
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
 
   <style>
-    /* ป้องกัน Loader ค้าง */
-    #loader.hidden {
-      display: none !important;
-      opacity: 0 !important;
-      visibility: hidden !important;
-      pointer-events: none !important;
-    }
-    .stat-value small { font-size: 0.9rem; margin-left: 4px; }
+    #loader { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; color: #0dcaf0; transition: 0.3s; }
+    #loader.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+    .stat-value small { font-size: 0.8rem; color: #aaa; margin-left: 3px; }
   </style>
 </head>
 <body>
 
   <div id="loader">
     <div class="spinner-border text-info mb-3"></div>
-    <div id="loader-text">กำลังประมวลผลสรุป...</div>
-    <button id="btn-retry" class="btn btn-outline-light btn-sm mt-3 d-none" onclick="location.reload()">โหลดใหม่</button>
+    <div id="loader-text">กำลังดึงข้อมูล...</div>
+    <button id="btn-retry" class="btn btn-outline-info btn-sm mt-3 d-none" onclick="location.reload()">ลองใหม่อีกครั้ง</button>
   </div>
 
   <div class="container py-3">
     <div class="d-flex justify-content-between align-items-center mb-4">
-      <h3 class="fw-bold text-info m-0">📊 ภาพรวมส่งน้ำ</h3>
-      <button onclick="window.location.href='OrderList.html'" class="btn btn-outline-info btn-sm rounded-pill px-3">
-        ดูรายการทั้งหมด
-      </button>
+      <h3 class="fw-bold text-info m-0">📊 สรุปภาพรวม</h3>
+      <button onclick="window.location.href='OrderList.html'" class="btn btn-outline-info btn-sm rounded-pill px-3">รายการทั้งหมด</button>
     </div>
 
-    <div class="row g-2 mb-3">
+    <div class="row g-2 mb-3 text-center">
       <div class="col-6 col-md-3">
-        <div class="stat-card text-center">
+        <div class="stat-card">
           <div class="text-muted small">รายรับจริง</div>
-          <div id="stat-total" class="stat-value" style="color:var(--success)">฿0</div>
+          <div id="stat-total" class="stat-value text-success">฿0</div>
         </div>
       </div>
       <div class="col-6 col-md-3">
-        <div class="stat-card text-center">
+        <div class="stat-card">
           <div class="text-muted small">ส่งสำเร็จ</div>
-          <div id="stat-success-count" class="stat-value">0</div>
+          <div id="stat-success-count" class="stat-value text-info">0<small>ออเดอร์</small></div>
         </div>
       </div>
       <div class="col-6 col-md-3">
-        <div class="stat-card text-center">
+        <div class="stat-card">
           <div class="text-muted small">รอจัดส่ง</div>
-          <div id="stat-pending" class="stat-value" style="color:var(--warning)">0</div>
+          <div id="stat-pending" class="stat-value text-warning">0<small>ออเดอร์</small></div>
         </div>
       </div>
       <div class="col-6 col-md-3">
-        <div class="stat-card text-center">
+        <div class="stat-card">
           <div class="text-muted small">ยกเลิก</div>
-          <div id="stat-cancel" class="stat-value" style="color:var(--danger)">0</div>
+          <div id="stat-cancel" class="stat-value text-danger">0<small>ออเดอร์</small></div>
         </div>
       </div>
     </div>
@@ -67,44 +60,138 @@
     <div class="row g-2 mb-3">
       <div class="col-12 col-md-6">
         <div class="chart-box h-100">
-          <div class="text-center small label-cyan mb-2">🏆 5 อันดับสินค้าขายดี (จำนวนชิ้น)</div>
-          <div id="top-products-list" class="py-2">
-            </div>
+          <div class="text-center small label-cyan mb-2">🏆 5 อันดับขายดี (ชิ้น)</div>
+          <div id="top-products-list"></div>
         </div>
       </div>
       <div class="col-12 col-md-6">
         <div class="chart-box h-100">
-          <div class="text-center small label-cyan mb-2">💰 สัดส่วนยอดขาย (บาท)</div>
-          <div id="value-pie-chart" style="height:200px"></div>
+          <div class="text-center small label-cyan mb-2">💰 สัดส่วนยอด (บาท)</div>
+          <div id="value-pie-chart" style="height:180px"></div>
         </div>
       </div>
     </div>
 
     <div class="chart-box">
-       <div class="text-center small label-cyan mb-2">📈 ออเดอร์สำเร็จย้อนหลัง 7 วัน</div>
-       <div id="bar-chart" style="height:220px"></div>
+       <div id="bar-chart" style="height:200px"></div>
     </div>
   </div>
 
-  <script src="Config.js?v=20260317-4"></script>
+  <script src="Config.js?v=20260317-FINAL"></script>
   <script>
     let allOrders = [];
-    google.charts.load("current", { packages: ["corechart"], 'language': 'th' });
+    // โหลด Charts ล่วงหน้า
+    try {
+        google.charts.load("current", { packages: ["corechart"], 'language': 'th' });
+    } catch(e) { console.error("Google Charts Load Fail"); }
 
     async function init() {
-      // ตั้ง Timeout 10 วินาที ถ้าไม่เสร็จให้แสดงปุ่ม Retry
-      const timeout = setTimeout(() => {
-        document.getElementById("loader-text").innerText = "การเชื่อมต่อช้าผิดปกติ...";
-        document.getElementById("btn-retry").classList.remove("d-none");
-      }, 10000);
+      const loaderText = document.getElementById("loader-text");
+      const btnRetry = document.getElementById("btn-retry");
+
+      // แผน B: ถ้า 8 วินาทียังไม่หาย ให้บังคับปิด Loader และโชว์ปุ่มลองใหม่
+      const forceClose = setTimeout(() => {
+        if (!allOrders.length) {
+            loaderText.innerHTML = "การเชื่อมต่อช้ามาก หรือข้อมูลผิดพลาด";
+            btnRetry.classList.remove("d-none");
+        }
+      }, 8000);
 
       try {
+        loaderText.innerText = "กำลังตรวจสอบสิทธิ์...";
         await liff.init({ liffId: CONFIG.LIFF_ID_SUMMARY });
         
-        if (!liff.isLoggedIn()) { 
-          liff.login(); 
-          return; 
-        }
+        if (!liff.isLoggedIn()) { liff.login(); return; }
 
         const profile = await liff.getProfile();
-        const response = await fetch
+        loaderText.innerText = "กำลังรับข้อมูลจากเซิร์ฟเวอร์...";
+
+        const response = await fetch(`${CONFIG.GAS_API}?type=admin_get_summary&uid=${profile.userId}`);
+        const res = await response.json();
+
+        if (res.status === "success") {
+          allOrders = res.orders || [];
+          // อัปเดตตัวเลข
+          renderStats(allOrders);
+          // วาดกราฟ (ดัก Error แยกต่างหากไม่ให้ตัวหมุนค้าง)
+          try {
+            google.charts.setOnLoadCallback(() => drawCharts(allOrders));
+          } catch(err) { console.error("Chart Error", err); }
+        } else {
+          throw new Error(res.msg || "Server Error");
+        }
+
+      } catch (e) {
+        console.error("Main Init Error:", e);
+        loaderText.innerHTML = `<span class="text-danger">ผิดพลาด: ${e.message}</span>`;
+        btnRetry.classList.remove("d-none");
+      } finally {
+        clearTimeout(forceClose);
+        // ปิด Loader แน่นอน 100%
+        setTimeout(() => {
+          document.getElementById("loader").classList.add("hidden");
+        }, 500);
+      }
+    }
+
+    function renderStats(data) {
+      const s1 = data.filter(o => o.status === "ส่งสำเร็จ");
+      const s2 = data.filter(o => o.status === "รอจัดส่ง");
+      const s3 = data.filter(o => o.status === "ยกเลิก");
+      const totalIncome = s1.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
+
+      document.getElementById("stat-total").innerText = "฿" + totalIncome.toLocaleString();
+      document.getElementById("stat-success-count").innerHTML = `${s1.length}<small>ออเดอร์</small>`;
+      document.getElementById("stat-pending").innerHTML = `${s2.length}<small>ออเดอร์</small>`;
+      document.getElementById("stat-cancel").innerHTML = `${s3.length}<small>ออเดอร์</small>`;
+
+      // 5 อันดับขายดี
+      const productMap = {};
+      s1.forEach(o => {
+        if (!o.items || !o.amounts) return;
+        const names = String(o.items).split(", ");
+        const counts = String(o.amounts).split(", ");
+        names.forEach((name, i) => {
+          const qty = parseInt(counts[i]) || 0;
+          if(name.trim()) productMap[name.trim()] = (productMap[name.trim()] || 0) + qty;
+        });
+      });
+
+      const top5 = Object.entries(productMap).sort((a,b) => b[1]-a[1]).slice(0, 5);
+      document.getElementById("top-products-list").innerHTML = top5.map((p, i) => `
+        <div class="d-flex justify-content-between small mb-2 border-bottom border-secondary pb-1">
+          <span>${i+1}. ${p[0]}</span>
+          <span class="text-info fw-bold">${p[1].toLocaleString()} ชิ้น</span>
+        </div>
+      `).join("") || '<div class="text-muted">ไม่มีข้อมูล</div>';
+    }
+
+    function drawCharts(data) {
+      const s1 = data.filter(o => o.status === "ส่งสำเร็จ");
+      const incomeS1 = s1.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
+      const incomeS2 = data.filter(o => o.status === "รอจัดส่ง").reduce((sum, o) => sum + (Number(o.total) || 0), 0);
+
+      // Pie Chart
+      const pieData = google.visualization.arrayToDataTable([['S', 'V'], ['สำเร็จ', incomeS1], ['รอส่ง', incomeS2]]);
+      new google.visualization.PieChart(document.getElementById("value-pie-chart")).draw(pieData, {
+        backgroundColor: "transparent", colors: ["#20c997", "#ffc107"], pieHole: 0.4,
+        legend: { textStyle: { color: "#fff", fontSize: 10 } }, chartArea: { width: "100%", height: "80%" }
+      });
+
+      // Bar Chart
+      const dayMap = {};
+      s1.forEach(o => {
+        const d = o.time ? o.time.split(" ")[0].substring(0, 5) : "";
+        if(d) dayMap[d] = (dayMap[d] || 0) + 1;
+      });
+      const barData = google.visualization.arrayToDataTable([["วัน", "งาน"], ...Object.entries(dayMap).slice(-7)]);
+      new google.visualization.ColumnChart(document.getElementById("bar-chart")).draw(barData, {
+        backgroundColor: "transparent", colors: ["#0dcaf0"], legend: "none",
+        hAxis: { textStyle: { color: "#fff", fontSize: 10 } }, vAxis: { textStyle: { color: "#fff" } }
+      });
+    }
+
+    document.addEventListener("DOMContentLoaded", init);
+  </script>
+</body>
+</html>
