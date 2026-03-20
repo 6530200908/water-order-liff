@@ -11,7 +11,6 @@
   <link rel="stylesheet" href="Styles.css?v=20260320-FINAL">
 
   <style>
-    /* สไตล์เพิ่มเติมสำหรับปุ่มและฟอนต์ */
     #loader { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 9999; display: flex; justify-content: center; align-items: center; }
     .label-cyan { color: #0dcaf0; font-size: 0.85rem; }
     .stat-value small { font-size: 0.9rem; margin-left: 4px; }
@@ -26,9 +25,7 @@
   <div id="page-order" class="container content-wrapper">
     <div class="d-flex justify-content-between align-items-center my-4">
       <h4 class="fw-bold m-0 text-info">🛒 สั่งน้ำดื่ม</h4>
-      <button onclick="window.location.href='PageHistory.html'" class="btn btn-sm btn-outline-info rounded-pill px-3">
-        ประวัติ
-      </button>
+      <button onclick="window.location.href='PageHistory.html'" class="btn btn-sm btn-outline-info rounded-pill px-3">ประวัติ</button>
     </div>
 
     <div id="product-list"></div>
@@ -38,9 +35,7 @@
         <span class="text-white">ยอดรวมทั้งสิ้น</span>
         <span class="fw-bold text-info"><span id="total-price">0</span> ฿</span>
       </div>
-      <button class="btn btn-info w-100 p-3 fw-bold rounded-3" onclick="openPayment()">
-        ไปหน้าชำระเงิน
-      </button>
+      <button class="btn btn-info w-100 p-3 fw-bold rounded-3" onclick="openPayment()">ไปหน้าชำระเงิน</button>
     </div>
   </div>
 
@@ -60,17 +55,11 @@
         <label class="label-cyan mb-2">📍 กดที่แผนที่เพื่อปักหมุดจุดส่งน้ำ</label>
         <div id="map" style="height:220px; border-radius:12px; overflow:hidden;"></div>
         <p id="gpsStatus" class="small text-center mb-2 text-muted">ยังไม่ได้ปักหมุด</p>
-
         <textarea id="cusAddress" class="form-control form-control-dark mb-3" rows="2" placeholder="ที่อยู่เพิ่มเติม (เช่น ตึก ชั้น ฯลฯ)"></textarea>
       </div>
 
-      <button id="btn-confirm" class="btn btn-info w-100 p-3 fw-bold rounded-3 mb-2" onclick="confirmOrder()">
-        ยืนยันการสั่งซื้อ
-      </button>
-
-      <button class="btn btn-link w-100 text-muted text-decoration-none" onclick="closePayment()">
-        แก้ไขรายการ
-      </button>
+      <button id="btn-confirm" class="btn btn-info w-100 p-3 fw-bold rounded-3 mb-2" onclick="confirmOrder()">ยืนยันการสั่งซื้อ</button>
+      <button class="btn btn-link w-100 text-muted text-decoration-none" onclick="closePayment()">แก้ไขรายการ</button>
     </div>
   </div>
 
@@ -90,21 +79,16 @@
       try {
         await liff.init({ liffId: CONFIG.LIFF_ID_ORDER });
         if (!liff.isLoggedIn()) { liff.login(); return; }
-
         const profile = await liff.getProfile();
         currentUserId = profile.userId;
 
-        // ดึงข้อมูลพื้นฐานจาก GAS API (products, locations, customer, promptpayID)
         const res = await fetch(`${CONFIG.GAS_API}?uid=${currentUserId}`).then(r => r.json());
         products = res.products || [];
         dbPromptpayID = res.promptpayID || "";
         
-        // กรองแสดงเฉพาะสินค้าที่มี Stock
         renderProducts();
-        // ตั้งค่าตัวเลือกสถานที่
         setupLocationOptions(res.locations || []);
 
-        // โหลดข้อมูลลูกค้าเดิมถ้ามี
         if (res.customer) {
           document.getElementById("cusName").value = res.customer.name || profile.displayName || "";
           const savedAddress = (res.customer.address || "").trim();
@@ -118,15 +102,11 @@
             handleLocationChange("อื่นๆ");
             document.getElementById("cusAddress").value = savedAddress;
             document.getElementById("gpsData").value = savedGps;
-            if (savedGps) {
-              document.getElementById("gpsStatus").innerText = "📍 มีพิกัดเดิมแล้ว";
-              document.getElementById("gpsStatus").className = "small text-center mb-2 text-success fw-bold";
-            }
           }
         } else {
           document.getElementById("cusName").value = profile.displayName || "";
         }
-      } catch (e) { alert("โหลดข้อมูลล้มเหลว"); console.error(e); }
+      } catch (e) { alert("โหลดข้อมูลล้มเหลว"); }
       finally { document.getElementById("loader").style.display = "none"; }
     }
 
@@ -147,22 +127,17 @@
       const gpsSection = document.getElementById("gps-section");
       if (value === "อื่นๆ") {
         gpsSection.style.display = "block";
-        document.getElementById("gpsData").value = "";
-        document.getElementById("cusAddress").value = "";
-        document.getElementById("gpsStatus").innerText = "ยังไม่ได้ปักหมุด";
-        document.getElementById("gpsStatus").className = "small text-center mb-2 text-muted";
         setTimeout(initMap, 300);
       } else {
         gpsSection.style.display = "none";
         document.getElementById("gpsData").value = locationMap[value] || "";
-        document.getElementById("cusAddress").value = "";
       }
     }
 
     function initMap() {
       if (!map) {
         map = L.map("map").setView([13.7563, 100.5018], 16);
-        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: "&copy; OpenStreetMap contributors" }).addTo(map);
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: "&copy; OpenStreetMap" }).addTo(map);
         map.on("click", function(e) {
           if (marker) { marker.setLatLng(e.latlng); } 
           else { marker = L.marker(e.latlng).addTo(map); }
@@ -176,35 +151,33 @@
 
     function renderProducts() {
       const listElement = document.getElementById("product-list");
-      const availableProducts = products.filter(p => Number(p.stock) > 0);
-      if (availableProducts.length === 0) {
-        listElement.innerHTML = `<div class="text-center py-5 text-white-50">ขออภัย ขณะนี้สินค้าหมดชั่วคราว</div>`;
+      const avail = products.filter(p => Number(p.stock) > 0);
+      if (avail.length === 0) {
+        listElement.innerHTML = `<div class="text-center py-5 text-white-50">สินค้าหมดชั่วคราว</div>`;
         return;
       }
-      listElement.innerHTML = availableProducts.map((p) => {
-        const realIndex = products.findIndex(item => item.id === p.id);
+      listElement.innerHTML = avail.map((p) => {
+        const idx = products.findIndex(item => item.id === p.id);
         return `
           <div class="order-card d-flex justify-content-between align-items-center p-3 mb-2">
             <div>
               <div class="fw-bold text-white">${escapeHtml(p.desc)}</div>
-              <div class="text-info small">${escapeHtml(String(p.price))} ฿ <span class="text-white-50 ms-1">(คงเหลือ ${p.stock})</span></div>
+              <div class="text-info small">${p.price} ฿ <span class="text-white-50 ms-1">(สต็อก: ${p.stock})</span></div>
             </div>
             <div class="d-flex align-items-center gap-3">
-              <button class="btn btn-sm btn-outline-light rounded-circle" onclick="updateQty(${realIndex}, -1)">-</button>
-              <span id="qty-${realIndex}" class="fw-bold text-white">0</span>
-              <button class="btn btn-sm btn-outline-info rounded-circle" onclick="updateQty(${realIndex}, 1)">+</button>
+              <button class="btn btn-sm btn-outline-light rounded-circle" onclick="updateQty(${idx}, -1)">-</button>
+              <span id="qty-${idx}" class="fw-bold text-white">0</span>
+              <button class="btn btn-sm btn-outline-info rounded-circle" onclick="updateQty(${idx}, 1)">+</button>
             </div>
           </div>
         `;
       }).join("");
     }
 
-    function updateQty(index, delta) {
-      cart[index] = Math.max(0, (cart[index] || 0) + delta);
-      // ตรวจสอบ Stock เบื้องต้นฝั่ง Client
-      if (cart[index] > products[index].stock) { alert("ขออภัย สินค้าในสต็อกไม่พอ"); cart[index] = products[index].stock; }
-      document.getElementById(`qty-${index}`).innerText = cart[index];
-      // คำนวณยอดรวม
+    function updateQty(i, d) {
+      cart[i] = Math.max(0, (cart[i] || 0) + d);
+      if (cart[i] > products[i].stock) { alert("สินค้าไม่พอ"); cart[i] = products[i].stock; }
+      document.getElementById(`qty-${i}`).innerText = cart[i];
       let total = 0;
       Object.keys(cart).forEach(k => { total += (cart[k] || 0) * Number(products[k].price || 0); });
       document.getElementById("total-price").innerText = total;
@@ -217,23 +190,21 @@
 
     function closePayment() { document.getElementById("payment-ui").style.display = "none"; }
 
-    // --- ส่วนที่แก้ไข: ส่ง Payload ไป n8n และไม่ออกห้องแชท ---
     async function confirmOrder() {
       const loc = document.getElementById("locSelect").value;
       const name = document.getElementById("cusName").value.trim();
       const gpsValue = document.getElementById("gpsData").value.trim();
       const customAddress = document.getElementById("cusAddress").value.trim();
 
-      if (!name || !loc) { alert("กรุณากรอกข้อมูลให้ครบถ้วน"); return; }
+      if (!name || !loc) { alert("กรอกข้อมูลให้ครบ"); return; }
       const selectedItems = Object.keys(cart).filter(i => cart[i] > 0);
-      if (selectedItems.length === 0) { alert("เลือกน้ำก่อนครับ"); return; }
-      if (loc === "อื่นๆ" && (!gpsValue || !customAddress)) { alert("กรุณาปักหมุดและระบุที่อยู่เพิ่มเติม"); return; }
+      if (selectedItems.length === 0) return;
 
       const btn = document.getElementById("btn-confirm");
       btn.disabled = true;
       btn.innerText = "กำลังประมวลผล...";
 
-      // เตรียมข้อมูลออเดอร์
+      const itemDetails = selectedItems.map(i => `- ${products[i].desc} x ${cart[i]}`).join("\n");
       const orderData = {
         uid: currentUserId,
         name: name,
@@ -241,53 +212,45 @@
         gps: (loc === "อื่นๆ") ? gpsValue : (locationMap[loc] || ""),
         items: selectedItems.map(i => products[i].desc).join(", "),
         amounts: selectedItems.map(i => String(cart[i])).join(", "),
-        total: document.getElementById("total-price").innerText,
-        timestamp: new Date().toISOString()
+        total: document.getElementById("total-price").innerText
       };
 
       try {
-        // 1. ส่งข้อมูลไปบันทึกที่ GAS API (เพื่อเอา OrderID)
-        const gasResponse = await fetch(CONFIG.GAS_API, {
-          method: "POST",
-          body: JSON.stringify(orderData)
-        });
-        const gasRes = await gasResponse.json();
-        if (gasRes.status !== "ok") throw new Error(gasRes.msg || "บันทึกออเดอร์ไม่สำเร็จ");
+        const gasRes = await fetch(CONFIG.GAS_API, { method: "POST", body: JSON.stringify(orderData) }).then(r => r.json());
+        if (gasRes.status !== "ok") throw new Error(gasRes.msg);
 
-        // 2. ส่ง Payload ทั้งหมดไป n8n Webhook
-        const n8nPayload = {
-          orderId: gasRes.orderId,
-          qrCodeUrl: `https://promptpay.io/${dbPromptpayID || "0"}/${orderData.total}.png` // สร้างลิงก์ QR ให้ n8n เอาไปใช้
-        };
-
-        // ตรวจสอบว่ามี CONFIG.N8N_WEBHOOK ใน Config.js แล้วนะครับ
-        await fetch(CONFIG.WEBHOOK_QRcode, {
+        // ส่งข้อมูลให้ n8n (รวม QR URL)
+        fetch(CONFIG.WEBHOOK_QRcode, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(n8nPayload)
-        }).catch(err => console.log("n8n Webhook ignored:", err)); // ใส่ catch เผื่อ n8n พัง แต่ออเดอร์จริงสำเร็จไปแล้ว
+          body: JSON.stringify({
+            orderId: gasRes.orderId,
+            ...orderData,
+            qrCodeUrl: `https://promptpay.io/${dbPromptpayID}/${orderData.total}.png`
+          })
+        }).catch(e => console.error(e));
 
-        // 3. จบการทำงาน (ไม่ออกห้องแชท)
+        // ส่ง Text สรุปเข้าแชท
         if (liff.isInClient()) {
-          // ถ้าอยู่ใน LINE ให้แจ้งเตือนสั้นๆ แล้วปิดหน้านี้
-          alert(`สั่งซื้อสำเร็จ! เลขออเดอร์: ${gasRes.orderId}\nตรวจสอบใบแจ้งหนี้ได้ในแชทครับ`);
+          await liff.sendMessages([{
+            type: "text",
+            text: `💧 บันทึกออเดอร์สำเร็จ!\nเลขออเดอร์: ${gasRes.orderId}\n----------------------\nคุณ: ${name}\nรายการ:\n${itemDetails}\nรวม: ${orderData.total} บาท\n----------------------\nขอบคุณที่ใช้บริการครับ`
+          }]);
           liff.closeWindow();
         } else {
-          // ถ้าอยู่ข้างนอก ให้แจ้งเตือนแล้วพาไปหน้าสถานะ
-          alert(`สั่งซื้อสำเร็จ เลขออเดอร์: ${gasRes.orderId}`);
+          alert(`สั่งซื้อสำเร็จ! เลขออเดอร์: ${gasRes.orderId}`);
           window.location.href = "PageStatus.html";
         }
       } catch (err) {
-        alert("เกิดข้อผิดพลาด: " + err.message);
+        alert("ผิดพลาด: " + err.message);
         btn.disabled = false;
         btn.innerText = "ยืนยันการสั่งซื้อ";
       }
     }
 
     function escapeHtml(str) {
-      return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+      return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
     }
-
     window.onload = init;
   </script>
 </body>
