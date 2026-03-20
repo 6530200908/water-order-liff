@@ -14,6 +14,8 @@
     #loader { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 9999; display: flex; justify-content: center; align-items: center; }
     .label-cyan { color: #0dcaf0; font-size: 0.85rem; }
     .stat-value small { font-size: 0.9rem; margin-left: 4px; }
+    /* เพิ่มปุ่มดึงตำแหน่งปัจจุบันบนแผนที่ */
+    .locate-btn { background: white; border: 2px solid rgba(0,0,0,0.2); border-radius: 4px; padding: 5px; cursor: pointer; }
   </style>
 </head>
 <body>
@@ -52,9 +54,9 @@
       <input type="hidden" id="gpsData">
 
       <div id="gps-section" style="display:none;">
-        <label class="label-cyan mb-2">📍 กดที่แผนที่เพื่อปักหมุดจุดส่งน้ำ</label>
-        <div id="map" style="height:220px; border-radius:12px; overflow:hidden;"></div>
-        <p id="gpsStatus" class="small text-center mb-2 text-muted">ยังไม่ได้ปักหมุด</p>
+        <label class="label-cyan mb-2">📍 ปักหมุดจุดส่งน้ำ (เริ่มต้น: แหลมฉบัง)</label>
+        <div id="map" style="height:220px; border-radius:12px; overflow:hidden; margin-bottom: 10px;"></div>
+        <p id="gpsStatus" class="small text-center mb-2 text-muted">กดที่แผนที่เพื่อเปลี่ยนจุดส่ง</p>
         <textarea id="cusAddress" class="form-control form-control-dark mb-3" rows="2" placeholder="ที่อยู่เพิ่มเติม (เช่น ตึก ชั้น ฯลฯ)"></textarea>
       </div>
 
@@ -75,6 +77,10 @@
     let dbPromptpayID = "";
     let locationMap = {};
 
+    // พิกัดเริ่มต้น: แหลมฉบัง (4WC9+8J5)
+    const DEFAULT_LAT = 13.0838;
+    const DEFAULT_LNG = 100.9238;
+
     async function init() {
       try {
         await liff.init({ liffId: CONFIG.LIFF_ID_ORDER });
@@ -89,23 +95,7 @@
         renderProducts();
         setupLocationOptions(res.locations || []);
 
-        if (res.customer) {
-          document.getElementById("cusName").value = res.customer.name || profile.displayName || "";
-          const savedAddress = (res.customer.address || "").trim();
-          const savedGps = (res.customer.gps || "").trim();
-
-          if (savedAddress && locationMap[savedAddress]) {
-            document.getElementById("locSelect").value = savedAddress;
-            handleLocationChange(savedAddress);
-          } else if (savedAddress || savedGps) {
-            document.getElementById("locSelect").value = "อื่นๆ";
-            handleLocationChange("อื่นๆ");
-            document.getElementById("cusAddress").value = savedAddress;
-            document.getElementById("gpsData").value = savedGps;
-          }
-        } else {
-          document.getElementById("cusName").value = profile.displayName || "";
-        }
+        document.getElementById("cusName").value = (res.customer && res.customer.name) ? res.customer.name : profile.displayName;
       } catch (e) { alert("โหลดข้อมูลล้มเหลว"); }
       finally { document.getElementById("loader").style.display = "none"; }
     }
@@ -120,7 +110,7 @@
         locationMap[desc] = (loc.gps || "").trim();
         select.innerHTML += `<option value="${escapeHtml(desc)}">${escapeHtml(desc)}</option>`;
       });
-      select.innerHTML += '<option value="อื่นๆ">📍 อื่นๆ (ปักหมุดแผนที่เอง)</option>';
+      select.innerHTML += '<option value="อื่นๆ">📍 อื่นๆ (ปักหมุดเอง)</option>';
     }
 
     function handleLocationChange(value) {
@@ -134,19 +124,47 @@
       }
     }
 
-    function initMap() {
+    // ฟังก์ชันดึงพิกัดปัจจุบัน
+    function getCurrentPosition() {
+      return new Promise((resolve) => {
+        if (!navigator.geolocation) return resolve(null);
+        navigator.geolocation.getCurrentPosition(
+          (pos) => resolve([pos.coords.latitude, pos.coords.longitude]),
+          () => resolve(null),
+          { enableHighAccuracy: true, timeout: 5000 }
+        );
+      });
+    }
+
+    async function initMap() {
       if (!map) {
-        map = L.map("map").setView([13.7563, 100.5018], 16);
+        // เริ่มต้นที่พิกัดแหลมฉบังที่คุณกำหนดก่อน
+        map = L.map("map").setView([DEFAULT_LAT, DEFAULT_LNG], 15);
         L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: "&copy; OpenStreetMap" }).addTo(map);
+
+        // ลองดึงพิกัดจริงของผู้ใช้ ถ้าได้ให้เลื่อนไปที่นั่น
+        const userPos = await getCurrentPosition();
+        if (userPos) {
+          map.setView(userPos, 16);
+          updateMarker(userPos[0], userPos[1]);
+        } else {
+          // ถ้าไม่ได้พิกัดผู้ใช้ ให้ปักหมุดไว้ที่แหลมฉบังเป็นค่าเริ่มต้น
+          updateMarker(DEFAULT_LAT, DEFAULT_LNG);
+        }
+
         map.on("click", function(e) {
-          if (marker) { marker.setLatLng(e.latlng); } 
-          else { marker = L.marker(e.latlng).addTo(map); }
-          document.getElementById("gpsData").value = `${e.latlng.lat},${e.latlng.lng}`;
-          document.getElementById("gpsStatus").innerText = "📍 ปักหมุดเรียบร้อย";
-          document.getElementById("gpsStatus").className = "small text-center mb-2 text-success fw-bold";
+          updateMarker(e.latlng.lat, e.latlng.lng);
         });
       }
       map.invalidateSize();
+    }
+
+    function updateMarker(lat, lng) {
+      if (marker) { marker.setLatLng([lat, lng]); } 
+      else { marker = L.marker([lat, lng]).addTo(map); }
+      document.getElementById("gpsData").value = `${lat},${lng}`;
+      document.getElementById("gpsStatus").innerText = "📍 ปักหมุดเรียบร้อย";
+      document.getElementById("gpsStatus").className = "small text-center mb-2 text-success fw-bold";
     }
 
     function renderProducts() {
@@ -198,8 +216,7 @@
 
       if (!name || !loc) { alert("กรอกข้อมูลให้ครบ"); return; }
       const selectedItems = Object.keys(cart).filter(i => cart[i] > 0);
-      if (selectedItems.length === 0) return;
-
+      
       const btn = document.getElementById("btn-confirm");
       btn.disabled = true;
       btn.innerText = "กำลังประมวลผล...";
@@ -219,26 +236,14 @@
         const gasRes = await fetch(CONFIG.GAS_API, { method: "POST", body: JSON.stringify(orderData) }).then(r => r.json());
         if (gasRes.status !== "ok") throw new Error(gasRes.msg);
 
-        // ส่งข้อมูลให้ n8n (รวม QR URL)
-        // fetch(CONFIG.WEBHOOK_QRcode, {
-        //   method: "POST",
-        //   headers: { "Content-Type": "application/json" },
-        //   body: JSON.stringify({
-        //     orderId: gasRes.orderId,
-        //     qrCodeUrl: `https://promptpay.io/${dbPromptpayID}/${orderData.total}.png`
-        //   })
-        // }).catch(e => console.error(e));
-
-        // ส่ง Text สรุปเข้าแชท
         if (liff.isInClient()) {
           await liff.sendMessages([{
             type: "text",
-            text: `💧 บันทึกออเดอร์สำเร็จ!\nเลขออเดอร์: ${gasRes.orderId}\n----------------------\nคุณ: ${name}\nรายการ:\n${itemDetails}\nรวม: ${orderData.total} บาท\n----------------------\nขอบคุณที่ใช้บริการครับ`
+            text: `💧 บันทึกออเดอร์สำเร็จ!\nเลขออเดอร์: ${gasRes.orderId}\nคุณ: ${name}\nรายการ:\n${itemDetails}\nรวม: ${orderData.total} บาท\nขอบคุณที่ใช้บริการครับ`
           }]);
           liff.closeWindow();
         } else {
           alert(`สั่งซื้อสำเร็จ! เลขออเดอร์: ${gasRes.orderId}`);
-          window.location.href = "PageStatus.html";
         }
       } catch (err) {
         alert("ผิดพลาด: " + err.message);
