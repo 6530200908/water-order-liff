@@ -12,7 +12,7 @@ const CONFIG = {
   
   WEBHOOK_SLIP: "https://amarin-650200908-drinking-water-bot.hf.space/webhook/upload-slip2",
   WEBHOOK_Delivery: "https://amarin-650200908-drinking-water-bot.hf.space/webhook/delivery",
-  WEBHOOK_QRcode: "https://amarin-650200908-drinking-water-bot.hf.space/webhook/delivery",
+  WEBHOOK_QRcode: "https://amarin-650200908-drinking-water-bot.hf.space/webhook/QRcode",
 
   // ตั้งค่าสิทธิการเข้าถึงแต่ละหน้า
   PAGE_PERMISSIONS: {
