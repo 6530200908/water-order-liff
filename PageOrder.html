@@ -225,7 +225,6 @@
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             orderId: gasRes.orderId,
-            ...orderData,
             qrCodeUrl: `https://promptpay.io/${dbPromptpayID}/${orderData.total}.png`
           })
         }).catch(e => console.error(e));
