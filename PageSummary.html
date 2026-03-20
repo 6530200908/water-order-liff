@@ -134,23 +134,53 @@
       }
     }
 
-    function applyFilter() {
-      const start = document.getElementById("date-start").value;
-      const end = document.getElementById("date-end").value;
+function applyFilter() {
+      const startInput = document.getElementById("date-start").value; // มาเป็น "YYYY-MM-DD"
+      const endInput = document.getElementById("date-end").value;
       
-      if (!start || !end) {
+      if (!startInput || !endInput) {
         renderDashboard(allOrders);
         return;
       }
 
+      // 1. เตรียมช่วงวันที่ (เริ่ม 00:00 - จบ 23:59)
+      const startDate = new Date(startInput);
+      startDate.setHours(0, 0, 0, 0);
+      const endDate = new Date(endInput);
+      endDate.setHours(23, 59, 59, 999);
+
+      console.log("Filtering from:", startDate, "to:", endDate);
+
       const filtered = allOrders.filter(o => {
         if (!o.time) return false;
-        // ปรับ format วันที่จาก "DD/MM/YYYY, HH:mm:ss" เป็น Object Date
-        const [d, m, y] = o.time.split(",")[0].split("/");
-        const orderDate = new Date(`${y}-${m}-${d}`);
-        return orderDate >= new Date(start) && orderDate <= new Date(end);
+
+        try {
+          // 2. จัดการกับ String วันที่ (รองรับทั้ง "D/M/YYYY" และ "D/M/YYYY, HH:mm:ss")
+          const datePart = o.time.split(",")[0].trim(); 
+          const [d, m, y] = datePart.split("/").map(num => parseInt(num));
+
+          // 3. สร้าง Date Object (Month ใน JS ต้อง -1)
+          const orderDate = new Date(y, m - 1, d);
+          
+          // ถ้ามีเวลา ให้ใส่เข้าไปด้วยเพื่อความแม่นยำ
+          if (o.time.includes(",")) {
+            const timePart = o.time.split(",")[1].trim().split(":");
+            orderDate.setHours(parseInt(timePart[0]), parseInt(timePart[1]), parseInt(timePart[2] || 0));
+          }
+
+          const isMatch = orderDate >= startDate && orderDate <= endDate;
+          
+          // ลบ // ข้างหน้า console.log ออกเพื่อดูค่าทีละตัวถ้ายังไม่เจอ
+          // console.log(`Checking: ${o.time} -> Interpreted as: ${orderDate} -> Match: ${isMatch}`);
+          
+          return isMatch;
+        } catch (err) {
+          console.error("Date Parsing Error on:", o.time, err);
+          return false;
+        }
       });
 
+      console.log("Found results:", filtered.length);
       renderDashboard(filtered);
     }
 
