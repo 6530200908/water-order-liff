@@ -220,14 +220,14 @@
         if (gasRes.status !== "ok") throw new Error(gasRes.msg);
 
         // ส่งข้อมูลให้ n8n (รวม QR URL)
-        fetch(CONFIG.WEBHOOK_QRcode, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            orderId: gasRes.orderId,
-            qrCodeUrl: `https://promptpay.io/${dbPromptpayID}/${orderData.total}.png`
-          })
-        }).catch(e => console.error(e));
+        // fetch(CONFIG.WEBHOOK_QRcode, {
+        //   method: "POST",
+        //   headers: { "Content-Type": "application/json" },
+        //   body: JSON.stringify({
+        //     orderId: gasRes.orderId,
+        //     qrCodeUrl: `https://promptpay.io/${dbPromptpayID}/${orderData.total}.png`
+        //   })
+        // }).catch(e => console.error(e));
 
         // ส่ง Text สรุปเข้าแชท
         if (liff.isInClient()) {
