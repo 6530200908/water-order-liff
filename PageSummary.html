@@ -13,8 +13,16 @@
   <style>
     #loader { position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; color: #0dcaf0; }
     #loader.hidden { opacity: 0; visibility: hidden; pointer-events: none; transition: 0.5s; }
-    .stat-value small { font-size: 0.8rem; color: #aaa; margin-left: 3px; }
+    
+    /* ปรับช่อง Stat ให้เท่ากัน */
+    .stat-card { min-height: 90px; display: flex; flex-direction: column; justify-content: center; }
+    .stat-value { font-size: 1.25rem !important; font-weight: bold; }
+    .stat-value small { font-size: 0.75rem; color: #aaa; margin-left: 3px; font-weight: normal; }
+    
     .chart-box { background: rgba(255,255,255,0.05); border-radius: 15px; padding: 15px; border: 1px solid rgba(255,255,255,0.1); }
+    .filter-section { background: rgba(13, 202, 240, 0.1); border-radius: 12px; padding: 12px; margin-bottom: 15px; border: 1px dashed #0dcaf0; }
+    .form-control-dark { background: #1a1a1a; border: 1px solid #333; color: #fff; font-size: 0.85rem; }
+    .form-control-dark:focus { background: #222; border-color: #0dcaf0; color: #fff; box-shadow: none; }
   </style>
 </head>
 <body>
@@ -26,33 +34,51 @@
   </div>
 
   <div class="container py-3">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-      <h3 class="fw-bold text-info m-0">📊 สรุปภาพรวมส่งน้ำ</h3>
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h4 class="fw-bold text-info m-0">📊 สรุปภาพรวมส่งน้ำ</h4>
+    </div>
+
+    <div class="filter-section">
+      <div class="row g-2 align-items-end">
+        <div class="col-5">
+          <label class="text-info small mb-1">เริ่ม</label>
+          <input type="date" id="date-start" class="form-control form-control-dark">
+        </div>
+        <div class="col-5">
+          <label class="text-info small mb-1">สิ้นสุด</label>
+          <input type="date" id="date-end" class="form-control form-control-dark">
+        </div>
+        <div class="col-2">
+          <button class="btn btn-info w-100 p-2" onclick="applyFilter()">
+            🔎
+          </button>
+        </div>
+      </div>
     </div>
 
     <div class="row g-2 mb-3 text-center">
       <div class="col-6 col-md-3">
         <div class="stat-card">
           <div class="text-muted small">รายรับจริง</div>
-          <div id="stat-total" class="stat-value text-success" style="font-size: 1.4rem;">฿0<small>บาท</small></div>
+          <div id="stat-total" class="stat-value text-success">฿0<small>บาท</small></div>
         </div>
       </div>
       <div class="col-6 col-md-3">
         <div class="stat-card">
           <div class="text-muted small">ส่งสำเร็จ</div>
-          <div id="stat-success-count" class="stat-value text-info">0<small>ออเดอร์</small></div>
+          <div id="stat-success-count" class="stat-value text-info">0<small>งาน</small></div>
         </div>
       </div>
       <div class="col-6 col-md-3">
         <div class="stat-card">
           <div class="text-muted small">รอจัดส่ง</div>
-          <div id="stat-pending" class="stat-value text-warning">0<small>ออเดอร์</small></div>
+          <div id="stat-pending" class="stat-value text-warning">0<small>งาน</small></div>
         </div>
       </div>
       <div class="col-6 col-md-3">
         <div class="stat-card">
           <div class="text-muted small">ยกเลิก</div>
-          <div id="stat-cancel" class="stat-value text-danger">0<small>ออเดอร์</small></div>
+          <div id="stat-cancel" class="stat-value text-danger">0<small>งาน</small></div>
         </div>
       </div>
     </div>
@@ -73,8 +99,8 @@
     </div>
 
     <div class="chart-box">
-       <div class="text-center small label-cyan mb-2">📈 จำนวนงานสำเร็จย้อนหลัง</div>
-       <div id="bar-chart" style="height:220px"></div>
+        <div class="text-center small label-cyan mb-2">📈 จำนวนงานสำเร็จย้อนหลัง</div>
+        <div id="bar-chart" style="height:220px"></div>
     </div>
   </div>
 
@@ -95,7 +121,7 @@
 
         if (res.status === "success") {
           allOrders = res.orders || [];
-          renderDashboard(allOrders);
+          renderDashboard(allOrders); // แสดงทั้งหมดในตอนแรก
         } else {
           throw new Error(res.msg || "Server Error");
         }
@@ -108,24 +134,41 @@
       }
     }
 
+    function applyFilter() {
+      const start = document.getElementById("date-start").value;
+      const end = document.getElementById("date-end").value;
+      
+      if (!start || !end) {
+        renderDashboard(allOrders);
+        return;
+      }
+
+      const filtered = allOrders.filter(o => {
+        if (!o.time) return false;
+        // ปรับ format วันที่จาก "DD/MM/YYYY, HH:mm:ss" เป็น Object Date
+        const [d, m, y] = o.time.split(",")[0].split("/");
+        const orderDate = new Date(`${y}-${m}-${d}`);
+        return orderDate >= new Date(start) && orderDate <= new Date(end);
+      });
+
+      renderDashboard(filtered);
+    }
+
     function renderDashboard(data) {
-      // 1. แยกกลุ่มข้อมูลตามสถานะ (ให้ตรงกับคำใน Sheet)
       const successItems = data.filter(o => o.status === "ส่งสำเร็จ");
       const pendingItems = data.filter(o => o.status === "รอจัดส่ง");
       const cancelItems = data.filter(o => o.status === "ยกเลิก");
 
-      // 2. คำนวณรายรับ (ลบตัวอักษรแปลกๆ ออกก่อนบวก)
       const totalIncome = successItems.reduce((sum, o) => {
         const cleanPrice = String(o.total || "0").replace(/[^0-9.]/g, '');
         return sum + (Number(cleanPrice) || 0);
       }, 0);
 
-      document.getElementById("stat-total").innerText = "฿" + totalIncome.toLocaleString();
+      document.getElementById("stat-total").innerHTML = `฿${totalIncome.toLocaleString()}<small>บาท</small>`;
       document.getElementById("stat-success-count").innerHTML = `${successItems.length}<small>งาน</small>`;
       document.getElementById("stat-pending").innerHTML = `${pendingItems.length}<small>งาน</small>`;
       document.getElementById("stat-cancel").innerHTML = `${cancelItems.length}<small>งาน</small>`;
 
-      // 3. 5 อันดับขายดี (ใช้คอลัมน์ bland และ amount ตามรูป Sheet)
       const productMap = {};
       successItems.forEach(o => {
         if (!o.bland || !o.amount) return;
@@ -146,7 +189,6 @@
         </div>
       `).join("") || '<div class="text-muted text-center py-3">ไม่มีข้อมูลการขาย</div>';
 
-      // 4. วาดกราฟ
       google.charts.setOnLoadCallback(() => {
         drawPieChart(successItems.length, pendingItems.length, cancelItems.length);
         drawBarChart(successItems);
@@ -155,17 +197,14 @@
 
     function drawPieChart(s, p, c) {
       const pieTable = google.visualization.arrayToDataTable([
-        ['Status', 'Count'],
-        ['สำเร็จ', s],
-        ['รอส่ง', p],
-        ['ยกเลิก', c]
+        ['Status', 'Count'], ['สำเร็จ', s], ['รอส่ง', p], ['ยกเลิก', c]
       ]);
       new google.visualization.PieChart(document.getElementById("value-pie-chart")).draw(pieTable, {
         backgroundColor: "transparent",
         colors: ["#20c997", "#ffc107", "#dc3545"],
         pieHole: 0.4,
-        legend: { textStyle: { color: "#fff", fontSize: 12 }, position: 'bottom' },
-        chartArea: { width: "90%", height: "80%" }
+        legend: { textStyle: { color: "#fff", fontSize: 11 }, position: 'bottom' },
+        chartArea: { width: "100%", height: "80%" }
       });
     }
 
@@ -186,7 +225,8 @@
             colors: ["#0dcaf0"],
             legend: "none",
             hAxis: { textStyle: { color: "#fff", fontSize: 10 } },
-            vAxis: { textStyle: { color: "#fff" }, gridlines: { color: "#333" } }
+            vAxis: { textStyle: { color: "#fff" }, gridlines: { color: "#333" } },
+            chartArea: { width: "85%", height: "70%" }
           }
         );
       }
