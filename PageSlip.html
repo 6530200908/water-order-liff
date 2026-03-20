@@ -26,14 +26,6 @@
         ⏰ หมดเวลาชำระเงินแล้ว กรุณาสั่งรายการใหม่
       </div>
 
-      <div id="paidBox" class="alert alert-success fw-bold py-2" style="display:none;">
-        ✅ ออเดอร์นี้ชำระเงินแล้ว / มีการอัปโหลดสลิปแล้ว
-      </div>
-
-      <div id="cancelBox" class="alert alert-secondary fw-bold py-2" style="display:none;">
-        ❌ ออเดอร์นี้ถูกยกเลิกแล้ว
-      </div>
-
       <input type="file" accept="image/*" id="slipInput" class="form-control mb-3">
 
       <img
@@ -62,7 +54,6 @@
     let expireAt = null;
     let countdownInterval = null;
     let isExpired = false;
-    let isLocked = false;
 
     async function init() {
       const urlParams = new URLSearchParams(window.location.search);
@@ -83,32 +74,9 @@
         }
 
         document.getElementById("slip-order-text").innerText = "ออเดอร์: " + orderIdFromUrl;
+
         document.getElementById("slipInput").addEventListener("change", handleFile);
 
-        // เช็กสถานะออเดอร์จริงก่อน
-        const orderInfo = await fetchOrderInfo(orderIdFromUrl);
-
-        if (!orderInfo) {
-          alert("ไม่พบข้อมูลออเดอร์");
-          lockUploadUI("notfound");
-          return;
-        }
-
-        const status = (orderInfo.status || "").trim();
-        const slip = (orderInfo.slip || "").trim();
-
-        // ถ้ามีสลิปแล้ว หรือสถานะเลยขั้นชำระเงินไปแล้ว => ล็อกหน้า
-        if (slip || ["รอจัดส่ง", "กำลังจัดส่ง", "จัดส่งแล้ว", "ชำระเงินสำเร็จ"].includes(status)) {
-          lockUploadUI("paid");
-          return;
-        }
-
-        if (["ยกเลิก", "ถูกยกเลิก", "ชำระเงินไม่สำเร็จ"].includes(status)) {
-          lockUploadUI("cancel");
-          return;
-        }
-
-        // ยังชำระได้อยู่ ค่อยเริ่มนับเวลา
         startCountdownFromOrderTime(timeFromUrl);
 
       } catch (err) {
@@ -120,34 +88,18 @@
       }
     }
 
-    async function fetchOrderInfo(orderId) {
-      try {
-        // ต้องมี endpoint สำหรับดึงข้อมูลออเดอร์ตาม order_id
-        // ตัวอย่าง: CONFIG.GAS_API + ?type=get_order&order_id=ORD-00058
-        const res = await fetch(`${CONFIG.GAS_API}?type=get_order&order_id=${encodeURIComponent(orderId)}`);
-        const data = await res.json();
-
-        if (data && data.order) {
-          return data.order;
-        }
-
-        return null;
-      } catch (err) {
-        console.error("fetchOrderInfo error:", err);
-        return null;
-      }
-    }
-
     function parseOrderTime(dateTimeStr) {
       if (!dateTimeStr) return null;
 
       const decoded = decodeURIComponent(dateTimeStr).trim();
 
+      // รองรับ ISO เช่น 2026-03-20T05:44:20.553Z
       const isoDate = new Date(decoded);
       if (!isNaN(isoDate.getTime())) {
         return isoDate;
       }
 
+      // รองรับรูปแบบไทยเดิม เช่น 20/3/2026, 9:50:19
       const parts = decoded.split(", ");
       if (parts.length !== 2) return null;
 
@@ -162,7 +114,7 @@
       const [day, month, year] = dateSplit;
       const [hour, minute, second] = timeSplit;
 
-      if ([day, month, year, hour, minute, second].some(v => Number.isNaN(v))) {
+      if ([day, month, year, hour, minute, second].some(value => Number.isNaN(value))) {
         return null;
       }
 
@@ -178,6 +130,7 @@
         return;
       }
 
+      // หมดอายุหลังจากเวลาสั่ง 1 ชั่วโมง
       expireAt = orderTime.getTime() + (60 * 60 * 1000);
 
       updateCountdown();
@@ -207,7 +160,6 @@
 
     function expireOrderUI() {
       isExpired = true;
-      isLocked = true;
 
       document.getElementById("countdown").innerText = "00:00";
       document.getElementById("timerBox").style.display = "none";
@@ -221,34 +173,9 @@
       sendBtn.innerText = "หมดเวลาชำระเงิน";
     }
 
-    function lockUploadUI(type) {
-      isLocked = true;
-
-      if (countdownInterval) clearInterval(countdownInterval);
-
-      document.getElementById("timerBox").style.display = "none";
-
-      const slipInput = document.getElementById("slipInput");
-      const sendBtn = document.getElementById("sendBtn");
-
-      slipInput.disabled = true;
-      sendBtn.disabled = true;
-
-      if (type === "paid") {
-        document.getElementById("paidBox").style.display = "block";
-        sendBtn.innerText = "ออเดอร์นี้ชำระแล้ว";
-      } else if (type === "cancel") {
-        document.getElementById("cancelBox").style.display = "block";
-        sendBtn.innerText = "ออเดอร์ถูกยกเลิก";
-      } else {
-        document.getElementById("expiredBox").style.display = "block";
-        sendBtn.innerText = "ไม่สามารถอัปโหลดได้";
-      }
-    }
-
     function handleFile(e) {
-      if (isExpired || isLocked) {
-        alert("ออเดอร์นี้ไม่สามารถอัปโหลดสลิปได้แล้ว");
+      if (isExpired) {
+        alert("หมดเวลาชำระเงินแล้ว");
         e.target.value = "";
         return;
       }
@@ -264,8 +191,8 @@
 
       const reader = new FileReader();
       reader.onload = () => {
-        if (isExpired || isLocked) {
-          alert("ออเดอร์นี้ไม่สามารถอัปโหลดสลิปได้แล้ว");
+        if (isExpired) {
+          alert("หมดเวลาชำระเงินแล้ว");
           return;
         }
 
@@ -284,8 +211,8 @@
     async function uploadSlip() {
       const btn = document.getElementById("sendBtn");
 
-      if (isExpired || isLocked) {
-        alert("ออเดอร์นี้ไม่สามารถส่งสลิปได้");
+      if (isExpired) {
+        alert("หมดเวลาชำระเงินแล้ว ไม่สามารถส่งสลิปได้");
         return;
       }
 
