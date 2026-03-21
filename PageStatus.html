@@ -86,6 +86,40 @@
       overflow: hidden;
     }
 
+    .search-card {
+      padding: 18px;
+      margin-bottom: 18px;
+    }
+
+    .search-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      align-items: end;
+    }
+
+    .search-label {
+      color: var(--muted);
+      font-size: .9rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .search-select {
+      width: 100%;
+      background: rgba(255,255,255,.03);
+      color: #fff;
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 14px;
+      padding: 12px 14px;
+      outline: none;
+    }
+
+    .search-select option {
+      background: #0d1117;
+      color: #fff;
+    }
+
     .order-summary {
       padding: 22px;
       display: grid;
@@ -121,10 +155,6 @@
       grid-template-columns: 1fr 1fr;
       gap: 12px;
       align-content: start;
-    }
-
-    .right-grid.right-grid-2 {
-      grid-template-columns: 1fr 1fr;
     }
 
     .right-grid.right-grid-1 {
@@ -206,17 +236,6 @@
       color: #ffd7d7;
     }
 
-    .status-meta {
-      text-align: right;
-      min-width: 150px;
-    }
-
-    .status-meta .small {
-      color: var(--muted);
-      font-size: .82rem;
-      display: block;
-    }
-
     .section-card {
       padding: 22px;
       margin-bottom: 18px;
@@ -236,7 +255,6 @@
       font-weight: 800;
     }
 
-    /* PROGRESS BAR */
     .progress-wrapper {
       position: relative;
       padding: 8px 6px 0;
@@ -334,7 +352,6 @@
       color: #7b8798;
     }
 
-    /* TIMELINE */
     .timeline {
       position: relative;
       padding-left: 14px;
@@ -505,11 +522,6 @@
         flex-direction: column;
         align-items: flex-start;
       }
-
-      .status-meta {
-        text-align: left;
-        min-width: auto;
-      }
     }
 
     @media (max-width: 768px) {
@@ -525,9 +537,12 @@
         font-size: 1.08rem;
       }
 
-      .right-grid,
-      .right-grid.right-grid-2 {
+      .right-grid {
         grid-template-columns: 1fr 1fr;
+      }
+
+      .search-row {
+        grid-template-columns: 1fr;
       }
 
       .progress-wrapper {
@@ -542,12 +557,12 @@
 
     @media (max-width: 520px) {
       .section-card,
-      .order-summary {
+      .order-summary,
+      .search-card {
         padding: 16px;
       }
 
       .right-grid,
-      .right-grid.right-grid-2,
       .right-grid.right-grid-1 {
         grid-template-columns: 1fr;
       }
@@ -572,9 +587,10 @@
     <div class="page-title">📦 ติดตามออเดอร์</div>
     <div class="page-subtitle">ตรวจสอบสถานะคำสั่งซื้อและความคืบหน้าล่าสุดของคุณ</div>
 
+    <div id="search-area"></div>
     <div id="content-area"></div>
 
-    <div class="footer-note">ข้อมูลสถานะอาจมีการอัปเดตตามเวลาจริงจากระบบร้านค้า</div>
+    <div class="footer-note">ข้อมูลสถานะอาจมีการเปลี่ยนแปลงตามระบบร้านค้า</div>
   </div>
 
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
@@ -629,6 +645,9 @@
       }
     };
 
+    let allOrders = [];
+    let currentOrderId = "";
+
     function safeText(value, fallback = "-") {
       if (value === undefined || value === null || String(value).trim() === "") return fallback;
       return String(value).trim();
@@ -654,12 +673,22 @@
       const date = new Date(raw);
       if (!isNaN(date.getTime())) {
         return new Intl.DateTimeFormat("th-TH", {
-          dateStyle: "short",
-          timeStyle: "short"
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: false
         }).format(date);
       }
 
       return raw;
+    }
+
+    function formatPrice(value) {
+      const num = Number(String(value).replace(/[^\d.-]/g, ""));
+      if (isNaN(num)) return "-";
+      return `${num.toLocaleString("th-TH")} บาท`;
     }
 
     function getStatusVisual(status) {
@@ -732,6 +761,38 @@
       return buttons.join("");
     }
 
+    function normalizeOrder(rawOrder) {
+      return {
+        id: rawOrder?.id || rawOrder?.order_id || "-",
+        items: rawOrder?.items || rawOrder?.bland || "-",
+        total: rawOrder?.total || "",
+        locat: rawOrder?.locat || rawOrder?.location || rawOrder?.address || "",
+        time: rawOrder?.time || rawOrder?.createdAt || "-",
+        status: rawOrder?.status || "-"
+      };
+    }
+
+    function renderSearchBox() {
+      const options = allOrders.map(order => {
+        const selected = order.id === currentOrderId ? "selected" : "";
+        return `<option value="${order.id}" ${selected}>${order.id}</option>`;
+      }).join("");
+
+      return `
+        <div class="glass-card search-card">
+          <div class="search-row">
+            <div>
+              <div class="search-label">ค้นหาออเดอร์ด้วย Order ID</div>
+              <select id="orderSelect" class="search-select" onchange="handleOrderChange(this.value)">
+                ${options}
+              </select>
+            </div>
+            <button class="btn btn-outline-info" onclick="renderSelectedOrder()">ค้นหา</button>
+          </div>
+        </div>
+      `;
+    }
+
     function renderOrderSummary(order, currentStatus) {
       const infoBoxes = [
         {
@@ -745,9 +806,9 @@
           alwaysShow: true
         },
         {
-          label: "ยอดรวม",
-          value: hasRealValue(order.total) ? `${order.total} บาท` : "",
-          alwaysShow: false
+          label: "ราคา",
+          value: hasRealValue(order.total) ? formatPrice(order.total) : "",
+          alwaysShow: true
         },
         {
           label: "ที่อยู่จัดส่ง",
@@ -757,10 +818,7 @@
       ];
 
       const visibleBoxes = infoBoxes.filter(item => item.alwaysShow || hasRealValue(item.value));
-
-      let rightGridClass = "right-grid";
-      if (visibleBoxes.length === 1) rightGridClass = "right-grid right-grid-1";
-      else if (visibleBoxes.length === 2) rightGridClass = "right-grid right-grid-2";
+      const rightGridClass = visibleBoxes.length === 1 ? "right-grid right-grid-1" : "right-grid";
 
       const boxesHtml = visibleBoxes.map(item => `
         <div class="mini-box">
@@ -786,9 +844,10 @@
       `;
     }
 
-    function renderStatusBanner(order, currentStatus) {
+    function renderStatusBanner(currentStatus) {
       const visual = getStatusVisual(currentStatus);
       const extraClass = visual.type === "warning" ? "warning" : visual.type === "danger" ? "danger" : "";
+
       return `
         <div class="status-banner ${extraClass}">
           <div class="status-left">
@@ -798,11 +857,6 @@
               <div class="status-desc">${visual.desc}</div>
             </div>
           </div>
-
-          <div class="status-meta">
-            <span class="small">อัปเดตล่าสุด</span>
-            <strong>${formatDateTime(order.time)}</strong>
-          </div>
         </div>
       `;
     }
@@ -810,14 +864,8 @@
     function renderProgress(currentStatus) {
       let activeIndex = MAIN_STEPS.findIndex(step => step.key === currentStatus);
 
-      if (currentStatus === "สลิปไม่ถูกต้อง") {
-        activeIndex = 1;
-      }
-
-      if (currentStatus === "ยกเลิก") {
-        activeIndex = 0;
-      }
-
+      if (currentStatus === "สลิปไม่ถูกต้อง") activeIndex = 1;
+      if (currentStatus === "ยกเลิก") activeIndex = 0;
       if (activeIndex < 0) activeIndex = 0;
 
       const fillPercent = (activeIndex / (MAIN_STEPS.length - 1)) * 100;
@@ -861,14 +909,8 @@
     function renderTimeline(currentStatus) {
       let activeIndex = MAIN_STEPS.findIndex(step => step.key === currentStatus);
 
-      if (currentStatus === "สลิปไม่ถูกต้อง") {
-        activeIndex = 1;
-      }
-
-      if (currentStatus === "ยกเลิก") {
-        activeIndex = 0;
-      }
-
+      if (currentStatus === "สลิปไม่ถูกต้อง") activeIndex = 1;
+      if (currentStatus === "ยกเลิก") activeIndex = 0;
       if (activeIndex < 0) activeIndex = 0;
 
       const timelineHtml = MAIN_STEPS.map((step, index) => {
@@ -943,22 +985,40 @@
       return `
         <div class="glass-card empty-box">
           <div class="empty-icon">📭</div>
-          <h4 class="mb-2">ไม่พบข้อมูลออเดอร์ล่าสุด</h4>
+          <h4 class="mb-2">ไม่พบข้อมูลออเดอร์</h4>
           <div class="mb-3">ยังไม่มีคำสั่งซื้อที่สามารถติดตามได้ในขณะนี้</div>
           <button class="btn btn-outline-info" onclick="location.reload()">รีเฟรช</button>
         </div>
       `;
     }
 
-    function normalizeOrder(rawOrder) {
-      return {
-        id: rawOrder?.id || rawOrder?.order_id || "-",
-        items: rawOrder?.items || rawOrder?.bland || "-",
-        total: rawOrder?.total || "",
-        locat: rawOrder?.locat || rawOrder?.location || "",
-        time: rawOrder?.time || rawOrder?.updatedAt || rawOrder?.createdAt || "-",
-        status: rawOrder?.status || "-"
-      };
+    function handleOrderChange(orderId) {
+      currentOrderId = orderId;
+      renderSelectedOrder();
+    }
+
+    function renderSelectedOrder() {
+      const contentArea = document.getElementById("content-area");
+      const searchArea = document.getElementById("search-area");
+
+      searchArea.innerHTML = renderSearchBox();
+
+      const found = allOrders.find(order => order.id === currentOrderId) || allOrders[0];
+      if (!found) {
+        contentArea.innerHTML = renderEmptyState();
+        return;
+      }
+
+      currentOrderId = found.id;
+      const currentStatus = safeText(found.status);
+
+      let html = "";
+      html += renderOrderSummary(found, currentStatus);
+      html += renderStatusBanner(currentStatus);
+      html += renderProgress(currentStatus);
+      html += renderTimeline(currentStatus);
+
+      contentArea.innerHTML = html;
     }
 
     async function init() {
@@ -977,23 +1037,17 @@
         const url = `${CONFIG.GAS_API}?type=status&uid=${encodeURIComponent(profile.userId)}`;
         const res = await fetch(url).then(r => r.json());
 
-        const rawOrder = res?.order;
-        if (!rawOrder) {
+        const ordersRaw = Array.isArray(res?.orders) ? res.orders : (res?.order ? [res.order] : []);
+        allOrders = ordersRaw.map(normalizeOrder);
+
+        if (!allOrders.length) {
           contentArea.innerHTML = renderEmptyState();
           page.style.display = "block";
           return;
         }
 
-        const order = normalizeOrder(rawOrder);
-        const currentStatus = safeText(order.status);
-
-        let html = "";
-        html += renderOrderSummary(order, currentStatus);
-        html += renderStatusBanner(order, currentStatus);
-        html += renderProgress(currentStatus);
-        html += renderTimeline(currentStatus);
-
-        contentArea.innerHTML = html;
+        currentOrderId = allOrders[0].id;
+        renderSelectedOrder();
         page.style.display = "block";
 
       } catch (error) {
@@ -1012,6 +1066,8 @@
       }
     }
 
+    window.handleOrderChange = handleOrderChange;
+    window.renderSelectedOrder = renderSelectedOrder;
     window.onload = init;
   </script>
 </body>
