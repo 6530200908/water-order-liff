@@ -89,7 +89,7 @@
     .order-summary {
       padding: 22px;
       display: grid;
-      grid-template-columns: 1.3fr .7fr;
+      grid-template-columns: 1.45fr .55fr;
       gap: 18px;
       margin-bottom: 18px;
     }
@@ -121,6 +121,14 @@
       grid-template-columns: 1fr 1fr;
       gap: 12px;
       align-content: start;
+    }
+
+    .right-grid.right-grid-2 {
+      grid-template-columns: 1fr 1fr;
+    }
+
+    .right-grid.right-grid-1 {
+      grid-template-columns: 1fr;
     }
 
     .mini-box {
@@ -226,11 +234,6 @@
       margin: 0;
       font-size: 1.05rem;
       font-weight: 800;
-    }
-
-    .section-title span {
-      color: var(--muted);
-      font-size: .9rem;
     }
 
     /* PROGRESS BAR */
@@ -350,7 +353,7 @@
     .t-item {
       position: relative;
       padding-left: 38px;
-      padding-bottom: 22px;
+      padding-bottom: 18px;
     }
 
     .t-dot {
@@ -387,7 +390,7 @@
       background: rgba(255,255,255,.025);
       border: 1px solid rgba(255,255,255,.06);
       border-radius: 16px;
-      padding: 14px 16px;
+      padding: 12px 16px;
     }
 
     .t-item.active .t-content {
@@ -439,20 +442,15 @@
     .t-desc {
       color: #d5dde8;
       font-size: .94rem;
-      margin-bottom: 6px;
       line-height: 1.5;
-    }
-
-    .t-time {
-      color: var(--muted);
-      font-size: .82rem;
+      margin-bottom: 0;
     }
 
     .action-row {
       display: flex;
       gap: 10px;
       flex-wrap: wrap;
-      margin-top: 16px;
+      margin-top: 12px;
     }
 
     .btn-soft-info {
@@ -527,7 +525,8 @@
         font-size: 1.08rem;
       }
 
-      .right-grid {
+      .right-grid,
+      .right-grid.right-grid-2 {
         grid-template-columns: 1fr 1fr;
       }
 
@@ -547,7 +546,9 @@
         padding: 16px;
       }
 
-      .right-grid {
+      .right-grid,
+      .right-grid.right-grid-2,
+      .right-grid.right-grid-1 {
         grid-template-columns: 1fr;
       }
 
@@ -633,6 +634,12 @@
       return String(value).trim();
     }
 
+    function hasRealValue(value) {
+      if (value === undefined || value === null) return false;
+      const text = String(value).trim();
+      return text !== "" && text !== "-";
+    }
+
     function formatDateTime(value) {
       if (!value) return "-";
 
@@ -713,7 +720,7 @@
       }
 
       if (s === "จัดส่งสำเร็จ") {
-        buttons.push(`<button class="btn btn-soft-info" onclick="location.reload()">รีเฟรชสถานะ</button>`);
+        buttons.push(`<button class="btn btn-soft-info" onclick="location.reload()">สั่งใหม่</button>`);
       }
 
       if (s === "ยกเลิก") {
@@ -726,7 +733,43 @@
     }
 
     function renderOrderSummary(order, currentStatus) {
-      const html = `
+      const infoBoxes = [
+        {
+          label: "สถานะล่าสุด",
+          value: safeText(currentStatus),
+          alwaysShow: true
+        },
+        {
+          label: "เวลาสั่งซื้อ",
+          value: formatDateTime(order.time),
+          alwaysShow: true
+        },
+        {
+          label: "ยอดรวม",
+          value: hasRealValue(order.total) ? `${order.total} บาท` : "",
+          alwaysShow: false
+        },
+        {
+          label: "ที่อยู่จัดส่ง",
+          value: hasRealValue(order.locat) ? order.locat : "",
+          alwaysShow: false
+        }
+      ];
+
+      const visibleBoxes = infoBoxes.filter(item => item.alwaysShow || hasRealValue(item.value));
+
+      let rightGridClass = "right-grid";
+      if (visibleBoxes.length === 1) rightGridClass = "right-grid right-grid-1";
+      else if (visibleBoxes.length === 2) rightGridClass = "right-grid right-grid-2";
+
+      const boxesHtml = visibleBoxes.map(item => `
+        <div class="mini-box">
+          <div class="label-sm">${item.label}</div>
+          <div class="value">${item.value}</div>
+        </div>
+      `).join("");
+
+      return `
         <div class="glass-card order-summary">
           <div>
             <div class="order-id-label">ORDER ID</div>
@@ -736,30 +779,11 @@
             <div class="order-items">${safeText(order.items)}</div>
           </div>
 
-          <div class="right-grid">
-            <div class="mini-box">
-              <div class="label-sm">สถานะล่าสุด</div>
-              <div class="value">${safeText(currentStatus)}</div>
-            </div>
-
-            <div class="mini-box">
-              <div class="label-sm">เวลาสั่งซื้อ</div>
-              <div class="value">${formatDateTime(order.time)}</div>
-            </div>
-
-            <div class="mini-box">
-              <div class="label-sm">ยอดรวม</div>
-              <div class="value">${safeText(order.total, "-")} บาท</div>
-            </div>
-
-            <div class="mini-box">
-              <div class="label-sm">ที่อยู่จัดส่ง</div>
-              <div class="value">${safeText(order.locat)}</div>
-            </div>
+          <div class="${rightGridClass}">
+            ${boxesHtml}
           </div>
         </div>
       `;
-      return html;
     }
 
     function renderStatusBanner(order, currentStatus) {
@@ -821,7 +845,6 @@
         <div class="glass-card section-card">
           <div class="section-title">
             <h5>ภาพรวมสถานะออเดอร์</h5>
-            <span>ติดตามความคืบหน้าแบบสรุป</span>
           </div>
 
           <div class="progress-wrapper">
@@ -875,7 +898,6 @@
                 <div class="t-badge ${badgeClass}">${badgeText}</div>
               </div>
               <div class="t-desc">${step.desc}</div>
-              <div class="t-time">${index === activeIndex ? "อัปเดตล่าสุดตามสถานะปัจจุบัน" : "ลำดับการดำเนินการของระบบ"}</div>
             </div>
           </div>
         `;
@@ -902,7 +924,6 @@
         <div class="glass-card section-card">
           <div class="section-title">
             <h5>รายละเอียดการติดตาม</h5>
-            <span>แสดงลำดับขั้นของออเดอร์</span>
           </div>
 
           <div class="timeline">
@@ -933,8 +954,8 @@
       return {
         id: rawOrder?.id || rawOrder?.order_id || "-",
         items: rawOrder?.items || rawOrder?.bland || "-",
-        total: rawOrder?.total || "-",
-        locat: rawOrder?.locat || rawOrder?.location || "-",
+        total: rawOrder?.total || "",
+        locat: rawOrder?.locat || rawOrder?.location || "",
         time: rawOrder?.time || rawOrder?.updatedAt || rawOrder?.createdAt || "-",
         status: rawOrder?.status || "-"
       };
