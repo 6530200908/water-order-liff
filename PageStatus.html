@@ -36,6 +36,11 @@ body{
   margin-bottom:10px;
 }
 
+.subtitle{
+  color:#94a3b8;
+  margin-bottom:20px;
+}
+
 .order-grid{
   display:grid;
   grid-template-columns:1.4fr .6fr;
@@ -52,15 +57,18 @@ body{
   background:#111827;
   padding:12px;
   border-radius:12px;
+  border:1px solid rgba(255,255,255,0.05);
 }
 
 .label{
   color:#999;
   font-size:.8rem;
+  margin-bottom:4px;
 }
 
 .value{
   font-weight:bold;
+  word-break:break-word;
 }
 
 /* STATUS */
@@ -72,6 +80,7 @@ body{
   border:1px solid rgba(34,211,238,.3);
   padding:15px;
   border-radius:15px;
+  margin-bottom:20px;
 }
 
 .icon{
@@ -79,16 +88,22 @@ body{
 }
 
 /* PROGRESS */
+.progress-card{
+  overflow-x:auto;
+}
+
 .progressx{
   display:flex;
   justify-content:space-between;
   position:relative;
+  min-width:700px;
+  padding-top:10px;
 }
 
 .progressx::before{
   content:"";
   position:absolute;
-  top:25px;
+  top:32px;
   left:10%;
   width:80%;
   height:3px;
@@ -98,6 +113,8 @@ body{
 .step{
   text-align:center;
   width:20%;
+  position:relative;
+  z-index:2;
 }
 
 .circle{
@@ -107,13 +124,16 @@ body{
   display:flex;
   align-items:center;
   justify-content:center;
-  margin:auto;
+  margin:auto auto 8px;
   border:2px solid #555;
+  background:#05070b;
+  font-weight:bold;
 }
 
 .done .circle{
   border-color:#22c55e;
   color:#22c55e;
+  box-shadow:0 0 0 4px rgba(34,197,94,.08);
 }
 
 .active .circle{
@@ -122,6 +142,18 @@ body{
   box-shadow:0 0 10px #22d3ee;
 }
 
+.step-label{
+  font-size:.95rem;
+  font-weight:bold;
+}
+
+.step-sub{
+  font-size:.75rem;
+  color:#94a3b8;
+  margin-top:2px;
+}
+
+/* TIMELINE */
 .timeline{
   border-left:2px solid #22d3ee;
   padding-left:20px;
@@ -133,6 +165,32 @@ body{
 
 .badge{
   font-size:.7rem;
+}
+
+.empty{
+  text-align:center;
+  color:#94a3b8;
+  padding:40px 20px;
+}
+
+@media (max-width: 768px){
+  .order-grid{
+    grid-template-columns:1fr;
+  }
+
+  .right-grid{
+    grid-template-columns:1fr 1fr;
+  }
+}
+
+@media (max-width: 520px){
+  .page{
+    padding:14px;
+  }
+
+  .right-grid{
+    grid-template-columns:1fr;
+  }
 }
 </style>
 </head>
@@ -150,140 +208,205 @@ body{
 
 <script>
 const steps = [
- "รอยืนยันออเดอร์",
- "รอตรวจสอบสลิป",
- "ชำระเงินแล้ว",
- "รอจัดส่ง",
- "จัดส่งสำเร็จ"
+  "รอยืนยันออเดอร์",
+  "รอตรวจสอบสลิป",
+  "ชำระเงินแล้ว",
+  "รอจัดส่ง",
+  "จัดส่งสำเร็จ"
 ];
 
-function safe(v){ return v && v !== "-" ? v : "" }
+function safe(v, fallback = ""){
+  if (v === undefined || v === null) return fallback;
+  const s = String(v).trim();
+  if (s === "" || s === "undefined" || s === "null") return fallback;
+  return s;
+}
+
+function hasValue(v){
+  return safe(v, "") !== "" && safe(v, "") !== "-";
+}
+
+function normalizeOrder(raw){
+  return {
+    id: safe(raw?.id || raw?.order_id, "-"),
+    items: safe(raw?.items || raw?.bland, "-"),
+    total: safe(raw?.total, ""),
+    locat: safe(raw?.locat || raw?.location, ""),
+    time: safe(raw?.time || raw?.createdAt || raw?.updatedAt, "-"),
+    status: safe(raw?.status, "-")
+  };
+}
+
+function getStatusMessage(status){
+  if(status === "รอยืนยันออเดอร์") return "ระบบได้รับคำสั่งซื้อของคุณแล้ว";
+  if(status === "รอตรวจสอบสลิป") return "ร้านได้รับหลักฐานการชำระเงินแล้ว";
+  if(status === "ชำระเงินแล้ว") return "ยืนยันการชำระเงินเรียบร้อย";
+  if(status === "รอจัดส่ง") return "ออเดอร์ของคุณกำลังดำเนินการ";
+  if(status === "จัดส่งสำเร็จ") return "ออเดอร์ของคุณถูกจัดส่งเรียบร้อยแล้ว";
+  if(status === "สลิปไม่ถูกต้อง") return "กรุณาอัปโหลดสลิปใหม่อีกครั้ง";
+  if(status === "ยกเลิก") return "ออเดอร์นี้ถูกยกเลิกแล้ว";
+  return "กำลังดำเนินการ";
+}
+
+function getStatusIcon(status){
+  if(status === "รอตรวจสอบสลิป") return "🧾";
+  if(status === "ชำระเงินแล้ว") return "💳";
+  if(status === "รอจัดส่ง") return "🛵";
+  if(status === "จัดส่งสำเร็จ") return "✅";
+  if(status === "สลิปไม่ถูกต้อง") return "⚠️";
+  if(status === "ยกเลิก") return "❌";
+  return "📦";
+}
 
 function render(order){
+  let idx = steps.indexOf(order.status);
+  if(order.status === "สลิปไม่ถูกต้อง") idx = 1;
+  if(order.status === "ยกเลิก") idx = 0;
+  if(idx < 0) idx = 0;
 
- let idx = steps.indexOf(order.status);
- if(order.status==="สลิปไม่ถูกต้อง") idx=1;
- if(order.status==="ยกเลิก") idx=0;
+  let rightBoxes = `
+    <div class="box">
+      <div class="label">สถานะล่าสุด</div>
+      <div class="value">${safe(order.status, "-")}</div>
+    </div>
 
- let rightBoxes = `
-   <div class="box">
-     <div class="label">สถานะล่าสุด</div>
-     <div class="value">${order.status}</div>
-   </div>
+    <div class="box">
+      <div class="label">เวลาสั่งซื้อ</div>
+      <div class="value">${safe(order.time, "-")}</div>
+    </div>
+  `;
 
-   <div class="box">
-     <div class="label">เวลาสั่งซื้อ</div>
-     <div class="value">${order.time}</div>
-   </div>
- `;
+  if(hasValue(order.total)){
+    rightBoxes += `
+      <div class="box">
+        <div class="label">ยอดรวม</div>
+        <div class="value">${order.total} บาท</div>
+      </div>`;
+  }
 
- if(safe(order.total)){
-   rightBoxes += `
-   <div class="box">
-     <div class="label">ยอดรวม</div>
-     <div class="value">${order.total} บาท</div>
-   </div>`;
- }
+  if(hasValue(order.locat)){
+    rightBoxes += `
+      <div class="box">
+        <div class="label">ที่อยู่จัดส่ง</div>
+        <div class="value">${order.locat}</div>
+      </div>`;
+  }
 
- if(safe(order.locat)){
-   rightBoxes += `
-   <div class="box">
-     <div class="label">ที่อยู่จัดส่ง</div>
-     <div class="value">${order.locat}</div>
-   </div>`;
- }
+  const progressHTML = steps.map((s, i) => {
+    let cls = "";
+    let sub = "รอดำเนินการ";
 
- let progressHTML = steps.map((s,i)=>{
-   let cls="";
-   if(i<idx) cls="done";
-   else if(i===idx) cls="active";
+    if(i < idx){
+      cls = "done";
+      sub = "เสร็จแล้ว";
+    } else if(i === idx){
+      cls = "active";
+      sub = "ปัจจุบัน";
+    }
 
-   return `
-   <div class="step ${cls}">
-     <div class="circle">${i+1}</div>
-     <div>${s}</div>
-   </div>`;
- }).join("");
+    return `
+      <div class="step ${cls}">
+        <div class="circle">${i + 1}</div>
+        <div class="step-label">${s}</div>
+        <div class="step-sub">${sub}</div>
+      </div>`;
+  }).join("");
 
- let timelineHTML = steps.map((s,i)=>{
-   let badge = "รอดำเนินการ";
-   if(i<idx) badge="เสร็จแล้ว";
-   if(i===idx) badge="ปัจจุบัน";
+  const timelineHTML = steps.map((s, i) => {
+    let badge = "รอดำเนินการ";
+    let badgeClass = "bg-secondary";
 
-   return `
-   <div class="item">
-     <b>${s}</b>
-     <span class="badge bg-secondary">${badge}</span>
-   </div>`;
- }).join("");
+    if(i < idx){
+      badge = "เสร็จแล้ว";
+      badgeClass = "bg-success";
+    }
+    if(i === idx){
+      badge = "ปัจจุบัน";
+      badgeClass = "bg-info text-dark";
+    }
 
- document.getElementById("app").innerHTML = `
-   <div class="title">📦 ติดตามออเดอร์</div>
+    return `
+      <div class="item">
+        <b>${s}</b>
+        <span class="badge ${badgeClass}">${badge}</span>
+      </div>`;
+  }).join("");
 
-   <div class="cardx order-grid">
-     <div>
-       <div class="label">ORDER ID</div>
-       <div style="font-size:2rem;font-weight:bold">${order.id}</div>
+  document.getElementById("app").innerHTML = `
+    <div class="title">📦 ติดตามออเดอร์</div>
+    <div class="subtitle">ตรวจสอบสถานะคำสั่งซื้อและความคืบหน้าล่าสุดของคุณ</div>
 
-       <div class="label mt-3">สินค้า</div>
-       <div>${order.items}</div>
-     </div>
+    <div class="cardx order-grid">
+      <div>
+        <div class="label">ORDER ID</div>
+        <div style="font-size:2rem;font-weight:bold">${safe(order.id, "-")}</div>
 
-     <div class="right-grid">
-       ${rightBoxes}
-     </div>
-   </div>
+        <div class="label mt-4">รายการสินค้า</div>
+        <div style="font-size:1.1rem;font-weight:bold">${safe(order.items, "-")}</div>
+      </div>
 
-   <div class="status">
-     <div class="icon">🛵</div>
-     <div>
-       <b>${order.status}</b><br>
-       ออเดอร์ของคุณกำลังดำเนินการ
-     </div>
-   </div>
+      <div class="right-grid">
+        ${rightBoxes}
+      </div>
+    </div>
 
-   <div class="cardx">
-     <div class="progressx">
-       ${progressHTML}
-     </div>
-   </div>
+    <div class="status">
+      <div class="icon">${getStatusIcon(order.status)}</div>
+      <div>
+        <b>${safe(order.status, "-")}</b><br>
+        ${getStatusMessage(order.status)}
+      </div>
+    </div>
 
-   <div class="cardx">
-     <div class="timeline">
-       ${timelineHTML}
-     </div>
-   </div>
- `;
+    <div class="cardx progress-card">
+      <div class="progressx">
+        ${progressHTML}
+      </div>
+    </div>
+
+    <div class="cardx">
+      <div class="timeline">
+        ${timelineHTML}
+      </div>
+    </div>
+  `;
 }
 
 async function init(){
- await liff.init({ liffId: CONFIG.LIFF_ID_STATUS });
+  try{
+    await liff.init({ liffId: CONFIG.LIFF_ID_STATUS });
 
- if(!liff.isLoggedIn()){
-   liff.login();
-   return;
- }
+    if(!liff.isLoggedIn()){
+      liff.login();
+      return;
+    }
 
- const profile = await liff.getProfile();
+    const profile = await liff.getProfile();
 
- const res = await fetch(`${CONFIG.GAS_API}?type=status&uid=${profile.userId}`)
- .then(r=>r.json());
+    const res = await fetch(`${CONFIG.GAS_API}?type=status&uid=${encodeURIComponent(profile.userId)}`)
+      .then(r => r.json());
 
- if(!res.order){
-   document.getElementById("app").innerHTML="ไม่พบข้อมูล";
- }else{
-   render({
-     id: res.order.order_id,
-     items: res.order.bland,
-     total: res.order.total,
-     locat: res.order.locat,
-     time: res.order.time,
-     status: res.order.status
-   });
- }
+    console.log("status response:", res);
 
- document.getElementById("loader").style.display="none";
- document.getElementById("app").style.display="block";
+    if(!res || !res.order){
+      document.getElementById("app").innerHTML = `
+        <div class="empty">ไม่พบข้อมูลออเดอร์</div>
+      `;
+    } else {
+      const order = normalizeOrder(res.order);
+      console.log("normalized order:", order);
+      render(order);
+    }
+
+  } catch (err){
+    console.error(err);
+    document.getElementById("app").innerHTML = `
+      <div class="empty">เกิดข้อผิดพลาดในการโหลดข้อมูล</div>
+    `;
+  } finally {
+    document.getElementById("loader").style.display = "none";
+    document.getElementById("app").style.display = "block";
+  }
 }
 
 init();
