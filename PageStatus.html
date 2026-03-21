@@ -1,416 +1,1018 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>สถานะออเดอร์</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>สถานะออเดอร์ - Water Delivery</title>
 
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="Styles.css" />
 
-<style>
-body{
-  background:#05070b;
-  color:#fff;
-  font-family:'Sarabun',sans-serif;
-}
+  <style>
+    :root{
+      --bg:#05070b;
+      --card:#0d1117;
+      --card-2:#111827;
+      --line:#253041;
+      --muted:#98a2b3;
+      --text:#f8fafc;
+      --primary:#22d3ee;
+      --primary-soft:rgba(34,211,238,.15);
+      --success:#22c55e;
+      --warning:#f59e0b;
+      --danger:#ef4444;
+      --gray:#6b7280;
+      --border:rgba(255,255,255,.08);
+      --shadow:0 10px 30px rgba(0,0,0,.30);
+    }
 
-.page{
-  max-width:1000px;
-  margin:auto;
-  padding:20px;
-}
+    * {
+      box-sizing: border-box;
+      font-family: "Sarabun", sans-serif;
+    }
 
-.cardx{
-  background:#0d1117;
-  border-radius:20px;
-  padding:20px;
-  margin-bottom:20px;
-  border:1px solid rgba(255,255,255,0.08);
-}
+    body {
+      margin: 0;
+      background:
+        radial-gradient(circle at top left, rgba(34,211,238,.08), transparent 25%),
+        radial-gradient(circle at top right, rgba(34,197,94,.06), transparent 20%),
+        var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
 
-.title{
-  color:#22d3ee;
-  font-weight:bold;
-  font-size:1.5rem;
-  margin-bottom:10px;
-}
+    #loader {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.75);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      color: #fff;
+    }
 
-.subtitle{
-  color:#94a3b8;
-  margin-bottom:20px;
-}
+    .page-wrap {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 20px 14px 60px;
+    }
 
-.order-grid{
-  display:grid;
-  grid-template-columns:1.4fr .6fr;
-  gap:15px;
-}
+    .page-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      color: var(--primary);
+      margin: 4px 0 18px;
+      font-size: 1.6rem;
+    }
 
-.right-grid{
-  display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:10px;
-}
+    .page-subtitle {
+      color: var(--muted);
+      font-size: .95rem;
+      margin-top: -6px;
+      margin-bottom: 18px;
+    }
 
-.box{
-  background:#111827;
-  padding:12px;
-  border-radius:12px;
-  border:1px solid rgba(255,255,255,0.05);
-}
+    .glass-card {
+      background: linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,.01));
+      border: 1px solid var(--border);
+      border-radius: 22px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
 
-.label{
-  color:#999;
-  font-size:.8rem;
-  margin-bottom:4px;
-}
+    .order-summary {
+      padding: 22px;
+      display: grid;
+      grid-template-columns: 1.45fr .55fr;
+      gap: 18px;
+      margin-bottom: 18px;
+    }
 
-.value{
-  font-weight:bold;
-  word-break:break-word;
-}
+    .order-id-label,
+    .label-sm {
+      color: var(--muted);
+      font-size: .86rem;
+      font-weight: 700;
+      letter-spacing: .3px;
+    }
 
-/* STATUS */
-.status{
-  display:flex;
-  align-items:center;
-  gap:15px;
-  background:rgba(34,211,238,.1);
-  border:1px solid rgba(34,211,238,.3);
-  padding:15px;
-  border-radius:15px;
-  margin-bottom:20px;
-}
+    .order-id-value {
+      font-size: 2rem;
+      font-weight: 800;
+      line-height: 1.15;
+      margin-top: 4px;
+    }
 
-.icon{
-  font-size:1.5rem;
-}
+    .order-items {
+      font-size: 1.35rem;
+      line-height: 1.45;
+      font-weight: 500;
+      margin-top: 4px;
+    }
 
-/* PROGRESS */
-.progress-card{
-  overflow-x:auto;
-}
+    .right-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      align-content: start;
+    }
 
-.progressx{
-  display:flex;
-  justify-content:space-between;
-  position:relative;
-  min-width:700px;
-  padding-top:10px;
-}
+    .right-grid.right-grid-2 {
+      grid-template-columns: 1fr 1fr;
+    }
 
-.progressx::before{
-  content:"";
-  position:absolute;
-  top:32px;
-  left:10%;
-  width:80%;
-  height:3px;
-  background:#333;
-}
+    .right-grid.right-grid-1 {
+      grid-template-columns: 1fr;
+    }
 
-.step{
-  text-align:center;
-  width:20%;
-  position:relative;
-  z-index:2;
-}
+    .mini-box {
+      background: rgba(255,255,255,.03);
+      border: 1px solid rgba(255,255,255,.06);
+      border-radius: 16px;
+      padding: 14px;
+      min-height: 84px;
+    }
 
-.circle{
-  width:45px;
-  height:45px;
-  border-radius:50%;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  margin:auto auto 8px;
-  border:2px solid #555;
-  background:#05070b;
-  font-weight:bold;
-}
+    .mini-box .value {
+      font-size: 1rem;
+      font-weight: 700;
+      margin-top: 6px;
+      color: #fff;
+      word-break: break-word;
+    }
 
-.done .circle{
-  border-color:#22c55e;
-  color:#22c55e;
-  box-shadow:0 0 0 4px rgba(34,197,94,.08);
-}
+    .status-banner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      background: linear-gradient(180deg, rgba(34,211,238,.12), rgba(34,211,238,.05));
+      border: 1px solid rgba(34,211,238,.22);
+      border-radius: 18px;
+      padding: 16px 18px;
+      margin-bottom: 18px;
+    }
 
-.active .circle{
-  border-color:#22d3ee;
-  color:#22d3ee;
-  box-shadow:0 0 10px #22d3ee;
-}
+    .status-banner.warning {
+      background: linear-gradient(180deg, rgba(245,158,11,.15), rgba(245,158,11,.06));
+      border-color: rgba(245,158,11,.25);
+    }
 
-.step-label{
-  font-size:.95rem;
-  font-weight:bold;
-}
+    .status-banner.danger {
+      background: linear-gradient(180deg, rgba(239,68,68,.15), rgba(239,68,68,.06));
+      border-color: rgba(239,68,68,.25);
+    }
 
-.step-sub{
-  font-size:.75rem;
-  color:#94a3b8;
-  margin-top:2px;
-}
+    .status-left {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
 
-/* TIMELINE */
-.timeline{
-  border-left:2px solid #22d3ee;
-  padding-left:20px;
-}
+    .status-icon {
+      width: 54px;
+      height: 54px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 16px;
+      font-size: 1.5rem;
+      background: rgba(255,255,255,.08);
+      flex-shrink: 0;
+    }
 
-.item{
-  margin-bottom:15px;
-}
+    .status-title {
+      font-size: 1.15rem;
+      font-weight: 800;
+      margin-bottom: 2px;
+    }
 
-.badge{
-  font-size:.7rem;
-}
+    .status-desc {
+      color: #d6edf2;
+      font-size: .95rem;
+    }
 
-.empty{
-  text-align:center;
-  color:#94a3b8;
-  padding:40px 20px;
-}
+    .status-banner.warning .status-desc {
+      color: #fff0c2;
+    }
 
-@media (max-width: 768px){
-  .order-grid{
-    grid-template-columns:1fr;
-  }
+    .status-banner.danger .status-desc {
+      color: #ffd7d7;
+    }
 
-  .right-grid{
-    grid-template-columns:1fr 1fr;
-  }
-}
+    .status-meta {
+      text-align: right;
+      min-width: 150px;
+    }
 
-@media (max-width: 520px){
-  .page{
-    padding:14px;
-  }
+    .status-meta .small {
+      color: var(--muted);
+      font-size: .82rem;
+      display: block;
+    }
 
-  .right-grid{
-    grid-template-columns:1fr;
-  }
-}
-</style>
+    .section-card {
+      padding: 22px;
+      margin-bottom: 18px;
+    }
+
+    .section-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+
+    .section-title h5 {
+      margin: 0;
+      font-size: 1.05rem;
+      font-weight: 800;
+    }
+
+    /* PROGRESS BAR */
+    .progress-wrapper {
+      position: relative;
+      padding: 8px 6px 0;
+    }
+
+    .progress-line {
+      position: absolute;
+      top: 30px;
+      left: 9%;
+      right: 9%;
+      height: 4px;
+      background: #293242;
+      border-radius: 999px;
+      z-index: 0;
+    }
+
+    .progress-line-fill {
+      position: absolute;
+      top: 30px;
+      left: 9%;
+      height: 4px;
+      width: 0%;
+      background: linear-gradient(90deg, var(--success), var(--primary));
+      border-radius: 999px;
+      z-index: 1;
+      transition: width .35s ease;
+    }
+
+    .progress-steps {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      position: relative;
+      z-index: 2;
+    }
+
+    .progress-step {
+      flex: 1;
+      text-align: center;
+      min-width: 0;
+    }
+
+    .progress-icon {
+      width: 52px;
+      height: 52px;
+      margin: 0 auto 10px;
+      border-radius: 50%;
+      border: 2px solid #3c4758;
+      background: #111826;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.25rem;
+      color: #94a3b8;
+      transition: .25s ease;
+    }
+
+    .progress-step.done .progress-icon {
+      background: rgba(34,197,94,.12);
+      border-color: var(--success);
+      color: var(--success);
+      box-shadow: 0 0 0 6px rgba(34,197,94,.08);
+    }
+
+    .progress-step.active .progress-icon {
+      background: rgba(34,211,238,.12);
+      border-color: var(--primary);
+      color: var(--primary);
+      box-shadow: 0 0 18px rgba(34,211,238,.45);
+      animation: pulseGlow 1.8s infinite;
+    }
+
+    @keyframes pulseGlow {
+      0% { box-shadow: 0 0 0 0 rgba(34,211,238,.35); }
+      70% { box-shadow: 0 0 0 12px rgba(34,211,238,0); }
+      100% { box-shadow: 0 0 0 0 rgba(34,211,238,0); }
+    }
+
+    .progress-label {
+      font-size: .94rem;
+      font-weight: 700;
+      line-height: 1.3;
+      color: #cbd5e1;
+    }
+
+    .progress-time {
+      font-size: .78rem;
+      color: var(--muted);
+      margin-top: 4px;
+      min-height: 18px;
+    }
+
+    .progress-step.future .progress-label,
+    .progress-step.future .progress-time {
+      color: #7b8798;
+    }
+
+    /* TIMELINE */
+    .timeline {
+      position: relative;
+      padding-left: 14px;
+    }
+
+    .timeline::before {
+      content: "";
+      position: absolute;
+      left: 13px;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: linear-gradient(to bottom, rgba(34,211,238,.35), rgba(255,255,255,.08));
+    }
+
+    .t-item {
+      position: relative;
+      padding-left: 38px;
+      padding-bottom: 18px;
+    }
+
+    .t-dot {
+      position: absolute;
+      left: 0;
+      top: 2px;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      border: 2px solid #4b5563;
+      background: #0b1220;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #94a3b8;
+      font-size: .88rem;
+      z-index: 2;
+    }
+
+    .t-item.done .t-dot {
+      border-color: var(--success);
+      color: var(--success);
+      background: rgba(34,197,94,.12);
+    }
+
+    .t-item.active .t-dot {
+      border-color: var(--primary);
+      color: var(--primary);
+      background: rgba(34,211,238,.12);
+      box-shadow: 0 0 16px rgba(34,211,238,.35);
+    }
+
+    .t-content {
+      background: rgba(255,255,255,.025);
+      border: 1px solid rgba(255,255,255,.06);
+      border-radius: 16px;
+      padding: 12px 16px;
+    }
+
+    .t-item.active .t-content {
+      border-color: rgba(34,211,238,.25);
+      background: linear-gradient(180deg, rgba(34,211,238,.08), rgba(255,255,255,.025));
+    }
+
+    .t-head {
+      display: flex;
+      align-items: start;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 4px;
+    }
+
+    .t-title {
+      font-weight: 800;
+      font-size: 1rem;
+      margin: 0;
+    }
+
+    .t-badge {
+      font-size: .72rem;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 999px;
+      white-space: nowrap;
+      border: 1px solid transparent;
+    }
+
+    .badge-done {
+      background: rgba(34,197,94,.12);
+      color: #86efac;
+      border-color: rgba(34,197,94,.25);
+    }
+
+    .badge-active {
+      background: rgba(34,211,238,.12);
+      color: #67e8f9;
+      border-color: rgba(34,211,238,.25);
+    }
+
+    .badge-future {
+      background: rgba(255,255,255,.06);
+      color: #cbd5e1;
+      border-color: rgba(255,255,255,.08);
+    }
+
+    .t-desc {
+      color: #d5dde8;
+      font-size: .94rem;
+      line-height: 1.5;
+      margin-bottom: 0;
+    }
+
+    .action-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 12px;
+    }
+
+    .btn-soft-info {
+      background: rgba(34,211,238,.12);
+      color: #67e8f9;
+      border: 1px solid rgba(34,211,238,.28);
+    }
+
+    .btn-soft-warning {
+      background: rgba(245,158,11,.12);
+      color: #fcd34d;
+      border: 1px solid rgba(245,158,11,.28);
+    }
+
+    .btn-soft-danger {
+      background: rgba(239,68,68,.12);
+      color: #fca5a5;
+      border: 1px solid rgba(239,68,68,.28);
+    }
+
+    .btn-soft-info:hover,
+    .btn-soft-warning:hover,
+    .btn-soft-danger:hover {
+      color: #fff;
+      transform: translateY(-1px);
+    }
+
+    .empty-box {
+      text-align: center;
+      padding: 50px 20px;
+      color: var(--muted);
+    }
+
+    .empty-icon {
+      font-size: 3rem;
+      margin-bottom: 10px;
+    }
+
+    .footer-note {
+      color: var(--muted);
+      font-size: .88rem;
+      text-align: center;
+      margin-top: 6px;
+    }
+
+    @media (max-width: 900px) {
+      .order-summary {
+        grid-template-columns: 1fr;
+      }
+
+      .status-banner {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .status-meta {
+        text-align: left;
+        min-width: auto;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .page-title {
+        font-size: 1.35rem;
+      }
+
+      .order-id-value {
+        font-size: 1.65rem;
+      }
+
+      .order-items {
+        font-size: 1.08rem;
+      }
+
+      .right-grid,
+      .right-grid.right-grid-2 {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .progress-wrapper {
+        overflow-x: auto;
+        padding-bottom: 8px;
+      }
+
+      .progress-steps {
+        min-width: 700px;
+      }
+    }
+
+    @media (max-width: 520px) {
+      .section-card,
+      .order-summary {
+        padding: 16px;
+      }
+
+      .right-grid,
+      .right-grid.right-grid-2,
+      .right-grid.right-grid-1 {
+        grid-template-columns: 1fr;
+      }
+
+      .status-title {
+        font-size: 1rem;
+      }
+
+      .status-desc {
+        font-size: .9rem;
+      }
+    }
+  </style>
 </head>
-
 <body>
+  <div id="loader">
+    <div class="spinner-border text-info"></div>
+    <div>กำลังโหลดสถานะออเดอร์...</div>
+  </div>
 
-<div id="loader" style="text-align:center;margin-top:50px;">
-  ⏳ กำลังโหลด...
-</div>
+  <div id="page-status" class="page-wrap" style="display:none;">
+    <div class="page-title">📦 ติดตามออเดอร์</div>
+    <div class="page-subtitle">ตรวจสอบสถานะคำสั่งซื้อและความคืบหน้าล่าสุดของคุณ</div>
 
-<div id="app" class="page" style="display:none;"></div>
+    <div id="content-area"></div>
 
-<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-<script src="Config.js"></script>
+    <div class="footer-note">ข้อมูลสถานะอาจมีการอัปเดตตามเวลาจริงจากระบบร้านค้า</div>
+  </div>
 
-<script>
-const steps = [
-  "รอยืนยันออเดอร์",
-  "รอตรวจสอบสลิป",
-  "ชำระเงินแล้ว",
-  "รอจัดส่ง",
-  "จัดส่งสำเร็จ"
-];
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <script src="Config.js"></script>
 
-function safe(v, fallback = ""){
-  if (v === undefined || v === null) return fallback;
-  const s = String(v).trim();
-  if (s === "" || s === "undefined" || s === "null") return fallback;
-  return s;
-}
+  <script>
+    const MAIN_STEPS = [
+      {
+        key: "รอยืนยันออเดอร์",
+        icon: "📦",
+        title: "รับออเดอร์",
+        desc: "ระบบได้รับคำสั่งซื้อของคุณแล้ว และกำลังรอร้านยืนยันรายการ"
+      },
+      {
+        key: "รอตรวจสอบสลิป",
+        icon: "🧾",
+        title: "ตรวจสอบสลิป",
+        desc: "ร้านได้รับหลักฐานการชำระเงินแล้ว และกำลังตรวจสอบข้อมูล"
+      },
+      {
+        key: "ชำระเงินแล้ว",
+        icon: "💳",
+        title: "ชำระเงินแล้ว",
+        desc: "ยืนยันการชำระเงินเรียบร้อย กำลังเตรียมสินค้า"
+      },
+      {
+        key: "รอจัดส่ง",
+        icon: "🛵",
+        title: "กำลังจัดส่ง",
+        desc: "ออเดอร์ของคุณพร้อมจัดส่งแล้ว กรุณารอไรเดอร์ดำเนินการ"
+      },
+      {
+        key: "จัดส่งสำเร็จ",
+        icon: "✅",
+        title: "จัดส่งสำเร็จ",
+        desc: "ออเดอร์ของคุณถูกจัดส่งเรียบร้อยแล้ว ขอบคุณที่ใช้บริการ"
+      }
+    ];
 
-function hasValue(v){
-  return safe(v, "") !== "" && safe(v, "") !== "-";
-}
+    const SPECIAL_STATUS = {
+      "ยกเลิก": {
+        type: "danger",
+        icon: "❌",
+        title: "ออเดอร์ถูกยกเลิก",
+        desc: "ออเดอร์นี้ถูกยกเลิกแล้ว หากมีข้อสงสัยกรุณาติดต่อร้าน"
+      },
+      "สลิปไม่ถูกต้อง": {
+        type: "warning",
+        icon: "⚠️",
+        title: "สลิปไม่ถูกต้อง",
+        desc: "ระบบตรวจสอบสลิปไม่ผ่าน กรุณาอัปโหลดสลิปใหม่อีกครั้ง"
+      }
+    };
 
-function normalizeOrder(raw){
-  return {
-    id: safe(raw?.id || raw?.order_id, "-"),
-    items: safe(raw?.items || raw?.bland, "-"),
-    total: safe(raw?.total, ""),
-    locat: safe(raw?.locat || raw?.location, ""),
-    time: safe(raw?.time || raw?.createdAt || raw?.updatedAt, "-"),
-    status: safe(raw?.status, "-")
-  };
-}
-
-function getStatusMessage(status){
-  if(status === "รอยืนยันออเดอร์") return "ระบบได้รับคำสั่งซื้อของคุณแล้ว";
-  if(status === "รอตรวจสอบสลิป") return "ร้านได้รับหลักฐานการชำระเงินแล้ว";
-  if(status === "ชำระเงินแล้ว") return "ยืนยันการชำระเงินเรียบร้อย";
-  if(status === "รอจัดส่ง") return "ออเดอร์ของคุณกำลังดำเนินการ";
-  if(status === "จัดส่งสำเร็จ") return "ออเดอร์ของคุณถูกจัดส่งเรียบร้อยแล้ว";
-  if(status === "สลิปไม่ถูกต้อง") return "กรุณาอัปโหลดสลิปใหม่อีกครั้ง";
-  if(status === "ยกเลิก") return "ออเดอร์นี้ถูกยกเลิกแล้ว";
-  return "กำลังดำเนินการ";
-}
-
-function getStatusIcon(status){
-  if(status === "รอตรวจสอบสลิป") return "🧾";
-  if(status === "ชำระเงินแล้ว") return "💳";
-  if(status === "รอจัดส่ง") return "🛵";
-  if(status === "จัดส่งสำเร็จ") return "✅";
-  if(status === "สลิปไม่ถูกต้อง") return "⚠️";
-  if(status === "ยกเลิก") return "❌";
-  return "📦";
-}
-
-function render(order){
-  let idx = steps.indexOf(order.status);
-  if(order.status === "สลิปไม่ถูกต้อง") idx = 1;
-  if(order.status === "ยกเลิก") idx = 0;
-  if(idx < 0) idx = 0;
-
-  let rightBoxes = `
-    <div class="box">
-      <div class="label">สถานะล่าสุด</div>
-      <div class="value">${safe(order.status, "-")}</div>
-    </div>
-
-    <div class="box">
-      <div class="label">เวลาสั่งซื้อ</div>
-      <div class="value">${safe(order.time, "-")}</div>
-    </div>
-  `;
-
-  if(hasValue(order.total)){
-    rightBoxes += `
-      <div class="box">
-        <div class="label">ยอดรวม</div>
-        <div class="value">${order.total} บาท</div>
-      </div>`;
-  }
-
-  if(hasValue(order.locat)){
-    rightBoxes += `
-      <div class="box">
-        <div class="label">ที่อยู่จัดส่ง</div>
-        <div class="value">${order.locat}</div>
-      </div>`;
-  }
-
-  const progressHTML = steps.map((s, i) => {
-    let cls = "";
-    let sub = "รอดำเนินการ";
-
-    if(i < idx){
-      cls = "done";
-      sub = "เสร็จแล้ว";
-    } else if(i === idx){
-      cls = "active";
-      sub = "ปัจจุบัน";
+    function safeText(value, fallback = "-") {
+      if (value === undefined || value === null || String(value).trim() === "") return fallback;
+      return String(value).trim();
     }
 
-    return `
-      <div class="step ${cls}">
-        <div class="circle">${i + 1}</div>
-        <div class="step-label">${s}</div>
-        <div class="step-sub">${sub}</div>
-      </div>`;
-  }).join("");
-
-  const timelineHTML = steps.map((s, i) => {
-    let badge = "รอดำเนินการ";
-    let badgeClass = "bg-secondary";
-
-    if(i < idx){
-      badge = "เสร็จแล้ว";
-      badgeClass = "bg-success";
-    }
-    if(i === idx){
-      badge = "ปัจจุบัน";
-      badgeClass = "bg-info text-dark";
+    function hasRealValue(value) {
+      if (value === undefined || value === null) return false;
+      const text = String(value).trim();
+      return text !== "" && text !== "-";
     }
 
-    return `
-      <div class="item">
-        <b>${s}</b>
-        <span class="badge ${badgeClass}">${badge}</span>
-      </div>`;
-  }).join("");
+    function formatDateTime(value) {
+      if (!value) return "-";
 
-  document.getElementById("app").innerHTML = `
-    <div class="title">📦 ติดตามออเดอร์</div>
-    <div class="subtitle">ตรวจสอบสถานะคำสั่งซื้อและความคืบหน้าล่าสุดของคุณ</div>
+      const raw = String(value).trim();
 
-    <div class="cardx order-grid">
-      <div>
-        <div class="label">ORDER ID</div>
-        <div style="font-size:2rem;font-weight:bold">${safe(order.id, "-")}</div>
+      const thaiMatch = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4}),?\s*(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+      if (thaiMatch) {
+        const [, d, m, y, hh, mm, ss] = thaiMatch;
+        return `${d.padStart(2, "0")}/${m.padStart(2, "0")}/${y} ${hh.padStart(2, "0")}:${mm}${ss ? ":" + ss : ""}`;
+      }
 
-        <div class="label mt-4">รายการสินค้า</div>
-        <div style="font-size:1.1rem;font-weight:bold">${safe(order.items, "-")}</div>
-      </div>
+      const date = new Date(raw);
+      if (!isNaN(date.getTime())) {
+        return new Intl.DateTimeFormat("th-TH", {
+          dateStyle: "short",
+          timeStyle: "short"
+        }).format(date);
+      }
 
-      <div class="right-grid">
-        ${rightBoxes}
-      </div>
-    </div>
-
-    <div class="status">
-      <div class="icon">${getStatusIcon(order.status)}</div>
-      <div>
-        <b>${safe(order.status, "-")}</b><br>
-        ${getStatusMessage(order.status)}
-      </div>
-    </div>
-
-    <div class="cardx progress-card">
-      <div class="progressx">
-        ${progressHTML}
-      </div>
-    </div>
-
-    <div class="cardx">
-      <div class="timeline">
-        ${timelineHTML}
-      </div>
-    </div>
-  `;
-}
-
-async function init(){
-  try{
-    await liff.init({ liffId: CONFIG.LIFF_ID_STATUS });
-
-    if(!liff.isLoggedIn()){
-      liff.login();
-      return;
+      return raw;
     }
 
-    const profile = await liff.getProfile();
+    function getStatusVisual(status) {
+      const normalized = safeText(status, "");
+      if (SPECIAL_STATUS[normalized]) return SPECIAL_STATUS[normalized];
 
-    const res = await fetch(`${CONFIG.GAS_API}?type=status&uid=${encodeURIComponent(profile.userId)}`)
-      .then(r => r.json());
+      const map = {
+        "รอยืนยันออเดอร์": {
+          type: "info",
+          icon: "📦",
+          title: "รอยืนยันออเดอร์",
+          desc: "ระบบรับคำสั่งซื้อแล้ว กำลังรอร้านตรวจสอบรายการ"
+        },
+        "รอตรวจสอบสลิป": {
+          type: "info",
+          icon: "🧾",
+          title: "รอตรวจสอบสลิป",
+          desc: "ร้านได้รับสลิปของคุณแล้ว และกำลังตรวจสอบข้อมูล"
+        },
+        "ชำระเงินแล้ว": {
+          type: "info",
+          icon: "💳",
+          title: "ชำระเงินแล้ว",
+          desc: "ตรวจสอบการชำระเงินสำเร็จ กำลังเตรียมสินค้า"
+        },
+        "รอจัดส่ง": {
+          type: "info",
+          icon: "🛵",
+          title: "รอจัดส่ง",
+          desc: "ออเดอร์ของคุณกำลังอยู่ในขั้นตอนเตรียมจัดส่ง"
+        },
+        "จัดส่งสำเร็จ": {
+          type: "success",
+          icon: "✅",
+          title: "จัดส่งสำเร็จ",
+          desc: "จัดส่งสินค้าสำเร็จเรียบร้อยแล้ว"
+        }
+      };
 
-    console.log("status response:", res);
+      return map[normalized] || {
+        type: "info",
+        icon: "📌",
+        title: normalized || "ไม่ทราบสถานะ",
+        desc: "ไม่พบคำอธิบายสถานะ"
+      };
+    }
 
-    if(!res || !res.order){
-      document.getElementById("app").innerHTML = `
-        <div class="empty">ไม่พบข้อมูลออเดอร์</div>
+    function getActionButtons(status) {
+      const s = safeText(status, "");
+      const buttons = [];
+
+      if (s === "สลิปไม่ถูกต้อง") {
+        buttons.push(`<button class="btn btn-soft-warning" onclick="alert('เชื่อมปุ่มอัปโหลดสลิปใหม่ได้ตรงนี้')">อัปโหลดสลิปใหม่</button>`);
+      }
+
+      if (s === "รอจัดส่ง") {
+        buttons.push(`<button class="btn btn-soft-info" onclick="alert('เชื่อมปุ่มติดต่อร้านได้ตรงนี้')">ติดต่อร้าน</button>`);
+      }
+
+      if (s === "จัดส่งสำเร็จ") {
+        buttons.push(`<button class="btn btn-soft-info" onclick="location.reload()">สั่งใหม่</button>`);
+      }
+
+      if (s === "ยกเลิก") {
+        buttons.push(`<button class="btn btn-soft-danger" onclick="alert('เชื่อมปุ่มติดต่อร้านได้ตรงนี้')">ติดต่อร้าน</button>`);
+      }
+
+      buttons.push(`<button class="btn btn-outline-light" onclick="location.reload()">รีเฟรช</button>`);
+
+      return buttons.join("");
+    }
+
+    function renderOrderSummary(order, currentStatus) {
+      const infoBoxes = [
+        {
+          label: "สถานะล่าสุด",
+          value: safeText(currentStatus),
+          alwaysShow: true
+        },
+        {
+          label: "เวลาสั่งซื้อ",
+          value: formatDateTime(order.time),
+          alwaysShow: true
+        },
+        {
+          label: "ยอดรวม",
+          value: hasRealValue(order.total) ? `${order.total} บาท` : "",
+          alwaysShow: false
+        },
+        {
+          label: "ที่อยู่จัดส่ง",
+          value: hasRealValue(order.locat) ? order.locat : "",
+          alwaysShow: false
+        }
+      ];
+
+      const visibleBoxes = infoBoxes.filter(item => item.alwaysShow || hasRealValue(item.value));
+
+      let rightGridClass = "right-grid";
+      if (visibleBoxes.length === 1) rightGridClass = "right-grid right-grid-1";
+      else if (visibleBoxes.length === 2) rightGridClass = "right-grid right-grid-2";
+
+      const boxesHtml = visibleBoxes.map(item => `
+        <div class="mini-box">
+          <div class="label-sm">${item.label}</div>
+          <div class="value">${item.value}</div>
+        </div>
+      `).join("");
+
+      return `
+        <div class="glass-card order-summary">
+          <div>
+            <div class="order-id-label">ORDER ID</div>
+            <div class="order-id-value">${safeText(order.id)}</div>
+
+            <div class="label-sm mt-4">รายการสินค้า</div>
+            <div class="order-items">${safeText(order.items)}</div>
+          </div>
+
+          <div class="${rightGridClass}">
+            ${boxesHtml}
+          </div>
+        </div>
       `;
-    } else {
-      const order = normalizeOrder(res.order);
-      console.log("normalized order:", order);
-      render(order);
     }
 
-  } catch (err){
-    console.error(err);
-    document.getElementById("app").innerHTML = `
-      <div class="empty">เกิดข้อผิดพลาดในการโหลดข้อมูล</div>
-    `;
-  } finally {
-    document.getElementById("loader").style.display = "none";
-    document.getElementById("app").style.display = "block";
-  }
-}
+    function renderStatusBanner(order, currentStatus) {
+      const visual = getStatusVisual(currentStatus);
+      const extraClass = visual.type === "warning" ? "warning" : visual.type === "danger" ? "danger" : "";
+      return `
+        <div class="status-banner ${extraClass}">
+          <div class="status-left">
+            <div class="status-icon">${visual.icon}</div>
+            <div>
+              <div class="status-title">${visual.title}</div>
+              <div class="status-desc">${visual.desc}</div>
+            </div>
+          </div>
 
-init();
-</script>
+          <div class="status-meta">
+            <span class="small">อัปเดตล่าสุด</span>
+            <strong>${formatDateTime(order.time)}</strong>
+          </div>
+        </div>
+      `;
+    }
 
+    function renderProgress(currentStatus) {
+      let activeIndex = MAIN_STEPS.findIndex(step => step.key === currentStatus);
+
+      if (currentStatus === "สลิปไม่ถูกต้อง") {
+        activeIndex = 1;
+      }
+
+      if (currentStatus === "ยกเลิก") {
+        activeIndex = 0;
+      }
+
+      if (activeIndex < 0) activeIndex = 0;
+
+      const fillPercent = (activeIndex / (MAIN_STEPS.length - 1)) * 100;
+
+      const stepsHtml = MAIN_STEPS.map((step, index) => {
+        let cls = "future";
+        let timeText = "";
+
+        if (index < activeIndex) cls = "done";
+        else if (index === activeIndex) cls = "active";
+
+        if (index < activeIndex) timeText = "เสร็จสิ้นแล้ว";
+        else if (index === activeIndex) timeText = "สถานะปัจจุบัน";
+
+        return `
+          <div class="progress-step ${cls}">
+            <div class="progress-icon">${step.icon}</div>
+            <div class="progress-label">${step.title}</div>
+            <div class="progress-time">${timeText}</div>
+          </div>
+        `;
+      }).join("");
+
+      return `
+        <div class="glass-card section-card">
+          <div class="section-title">
+            <h5>ภาพรวมสถานะออเดอร์</h5>
+          </div>
+
+          <div class="progress-wrapper">
+            <div class="progress-line"></div>
+            <div class="progress-line-fill" style="width:${fillPercent}%"></div>
+            <div class="progress-steps">
+              ${stepsHtml}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderTimeline(currentStatus) {
+      let activeIndex = MAIN_STEPS.findIndex(step => step.key === currentStatus);
+
+      if (currentStatus === "สลิปไม่ถูกต้อง") {
+        activeIndex = 1;
+      }
+
+      if (currentStatus === "ยกเลิก") {
+        activeIndex = 0;
+      }
+
+      if (activeIndex < 0) activeIndex = 0;
+
+      const timelineHtml = MAIN_STEPS.map((step, index) => {
+        let cls = "";
+        let badgeClass = "badge-future";
+        let badgeText = "รอดำเนินการ";
+        let dotIcon = "•";
+
+        if (index < activeIndex) {
+          cls = "done";
+          badgeClass = "badge-done";
+          badgeText = "เสร็จสิ้นแล้ว";
+          dotIcon = "✓";
+        } else if (index === activeIndex) {
+          cls = "active";
+          badgeClass = "badge-active";
+          badgeText = "สถานะปัจจุบัน";
+          dotIcon = "●";
+        }
+
+        return `
+          <div class="t-item ${cls}">
+            <div class="t-dot">${dotIcon}</div>
+            <div class="t-content">
+              <div class="t-head">
+                <div class="t-title">${step.icon} ${step.title}</div>
+                <div class="t-badge ${badgeClass}">${badgeText}</div>
+              </div>
+              <div class="t-desc">${step.desc}</div>
+            </div>
+          </div>
+        `;
+      }).join("");
+
+      let specialBox = "";
+      if (SPECIAL_STATUS[currentStatus]) {
+        const sp = SPECIAL_STATUS[currentStatus];
+        const specialClass = sp.type === "warning" ? "warning" : "danger";
+        specialBox = `
+          <div class="status-banner ${specialClass}" style="margin-top:14px; margin-bottom:0;">
+            <div class="status-left">
+              <div class="status-icon">${sp.icon}</div>
+              <div>
+                <div class="status-title">${sp.title}</div>
+                <div class="status-desc">${sp.desc}</div>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      return `
+        <div class="glass-card section-card">
+          <div class="section-title">
+            <h5>รายละเอียดการติดตาม</h5>
+          </div>
+
+          <div class="timeline">
+            ${timelineHtml}
+          </div>
+
+          ${specialBox}
+
+          <div class="action-row">
+            ${getActionButtons(currentStatus)}
+          </div>
+        </div>
+      `;
+    }
+
+    function renderEmptyState() {
+      return `
+        <div class="glass-card empty-box">
+          <div class="empty-icon">📭</div>
+          <h4 class="mb-2">ไม่พบข้อมูลออเดอร์ล่าสุด</h4>
+          <div class="mb-3">ยังไม่มีคำสั่งซื้อที่สามารถติดตามได้ในขณะนี้</div>
+          <button class="btn btn-outline-info" onclick="location.reload()">รีเฟรช</button>
+        </div>
+      `;
+    }
+
+    function normalizeOrder(rawOrder) {
+      return {
+        id: rawOrder?.id || rawOrder?.order_id || "-",
+        items: rawOrder?.items || rawOrder?.bland || "-",
+        total: rawOrder?.total || "",
+        locat: rawOrder?.locat || rawOrder?.location || "",
+        time: rawOrder?.time || rawOrder?.updatedAt || rawOrder?.createdAt || "-",
+        status: rawOrder?.status || "-"
+      };
+    }
+
+    async function init() {
+      const loader = document.getElementById("loader");
+      const page = document.getElementById("page-status");
+      const contentArea = document.getElementById("content-area");
+
+      try {
+        await liff.init({ liffId: CONFIG.LIFF_ID_STATUS });
+        if (!liff.isLoggedIn()) {
+          liff.login();
+          return;
+        }
+
+        const profile = await liff.getProfile();
+        const url = `${CONFIG.GAS_API}?type=status&uid=${encodeURIComponent(profile.userId)}`;
+        const res = await fetch(url).then(r => r.json());
+
+        const rawOrder = res?.order;
+        if (!rawOrder) {
+          contentArea.innerHTML = renderEmptyState();
+          page.style.display = "block";
+          return;
+        }
+
+        const order = normalizeOrder(rawOrder);
+        const currentStatus = safeText(order.status);
+
+        let html = "";
+        html += renderOrderSummary(order, currentStatus);
+        html += renderStatusBanner(order, currentStatus);
+        html += renderProgress(currentStatus);
+        html += renderTimeline(currentStatus);
+
+        contentArea.innerHTML = html;
+        page.style.display = "block";
+
+      } catch (error) {
+        console.error(error);
+        contentArea.innerHTML = `
+          <div class="glass-card empty-box">
+            <div class="empty-icon">⚠️</div>
+            <h4 class="mb-2">เกิดข้อผิดพลาดในการโหลดข้อมูล</h4>
+            <div class="mb-3">กรุณาลองใหม่อีกครั้ง</div>
+            <button class="btn btn-outline-info" onclick="location.reload()">รีเฟรช</button>
+          </div>
+        `;
+        page.style.display = "block";
+      } finally {
+        loader.style.display = "none";
+      }
+    }
+
+    window.onload = init;
+  </script>
 </body>
 </html>
