@@ -601,10 +601,10 @@
         desc: "ระบบได้รับคำสั่งซื้อของคุณแล้ว และกำลังรอร้านยืนยันรายการ"
       },
       {
-        key: "รอตรวจสอบสลิป",
-        icon: "🧾",
-        title: "ตรวจสอบสลิป",
-        desc: "ร้านได้รับหลักฐานการชำระเงินแล้ว และกำลังตรวจสอบข้อมูล"
+        key: "รอชำระเงิน",
+        icon: "💸",
+        title: "รอชำระเงิน",
+        desc: "ออเดอร์ของคุณได้รับการยืนยันแล้ว กรุณาดำเนินการชำระเงิน"
       },
       {
         key: "ชำระเงินแล้ว",
@@ -696,11 +696,11 @@
           title: "รอยืนยันออเดอร์",
           desc: "ระบบรับคำสั่งซื้อแล้ว กำลังรอร้านตรวจสอบรายการ"
         },
-        "รอตรวจสอบสลิป": {
+        "รอชำระเงิน": {
           type: "info",
-          icon: "🧾",
-          title: "รอตรวจสอบสลิป",
-          desc: "ร้านได้รับสลิปของคุณแล้ว และกำลังตรวจสอบข้อมูล"
+          icon: "💸",
+          title: "รอชำระเงิน",
+          desc: "ออเดอร์ของคุณได้รับการยืนยันแล้ว กรุณาดำเนินการชำระเงิน"
         },
         "ชำระเงินแล้ว": {
           type: "info",
@@ -733,6 +733,10 @@
     function getActionButtons(status) {
       const s = safeText(status, "");
       const buttons = [];
+
+      if (s === "รอชำระเงิน") {
+        buttons.push(`<button class="btn btn-soft-warning" onclick="alert('เชื่อมปุ่มชำระเงินได้ตรงนี้')">ชำระเงิน</button>`);
+      }
 
       if (s === "สลิปไม่ถูกต้อง") {
         buttons.push(`<button class="btn btn-soft-warning" onclick="alert('เชื่อมปุ่มอัปโหลดสลิปใหม่ได้ตรงนี้')">อัปโหลดสลิปใหม่</button>`);
@@ -842,6 +846,7 @@
     function renderProgress(currentStatus) {
       let activeIndex = MAIN_STEPS.findIndex(step => step.key === currentStatus);
 
+      if (currentStatus === "รอชำระเงิน") activeIndex = 1;
       if (currentStatus === "สลิปไม่ถูกต้อง") activeIndex = 1;
       if (currentStatus === "ยกเลิก") activeIndex = 0;
       if (activeIndex < 0) activeIndex = 0;
@@ -887,6 +892,7 @@
     function renderTimeline(currentStatus) {
       let activeIndex = MAIN_STEPS.findIndex(step => step.key === currentStatus);
 
+      if (currentStatus === "รอชำระเงิน") activeIndex = 1;
       if (currentStatus === "สลิปไม่ถูกต้อง") activeIndex = 1;
       if (currentStatus === "ยกเลิก") activeIndex = 0;
       if (activeIndex < 0) activeIndex = 0;
