@@ -86,7 +86,7 @@
     <div class="row g-2 mb-3">
       <div class="col-12 col-md-6">
         <div class="chart-box h-100">
-          <div class="text-center small label-cyan mb-3">🏆 5 อันดับสินค้าขายดี (แพค)</div>
+          <div class="text-center small label-cyan mb-3">🏆 5 อันดับสินค้าขายดี (แพ็ค)</div>
           <div id="top-products-list"></div>
         </div>
       </div>
@@ -215,7 +215,7 @@ function applyFilter() {
       document.getElementById("top-products-list").innerHTML = top5.map((p, i) => `
         <div class="d-flex justify-content-between mb-2 p-2 border-bottom border-secondary">
           <span class="text-white small">${i+1}. ${p[0]}</span>
-          <span class="text-info fw-bold">${p[1].toLocaleString()} แพค</span>
+          <span class="text-info fw-bold">${p[1].toLocaleString()} แพ็ค</span>
         </div>
       `).join("") || '<div class="text-muted text-center py-3">ไม่มีข้อมูลการขาย</div>';
 
