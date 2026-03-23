@@ -238,29 +238,29 @@ function applyFilter() {
       });
     }
 
-    function drawBarChart(successData) {
-      const dayMap = {};
-      successData.forEach(o => {
-        const d = o.time ? o.time.split(",")[0].substring(0, 5) : "N/A";
-        dayMap[d] = (dayMap[d] || 0) + 1;
-      });
-      const barArray = [["วันที่", "ออเดอร์"]];
-      Object.entries(dayMap).slice(-7).forEach(entry => barArray.push(entry));
+    // function drawBarChart(successData) {
+    //   const dayMap = {};
+    //   successData.forEach(o => {
+    //     const d = o.time ? o.time.split(",")[0].substring(0, 5) : "N/A";
+    //     dayMap[d] = (dayMap[d] || 0) + 1;
+    //   });
+    //   const barArray = [["วันที่", "ออเดอร์"]];
+    //   Object.entries(dayMap).slice(-7).forEach(entry => barArray.push(entry));
 
-      if(barArray.length > 1) {
-        new google.visualization.ColumnChart(document.getElementById("bar-chart")).draw(
-          google.visualization.arrayToDataTable(barArray),
-          {
-            backgroundColor: "transparent",
-            colors: ["#0dcaf0"],
-            legend: "none",
-            hAxis: { textStyle: { color: "#fff", fontSize: 10 } },
-            vAxis: { textStyle: { color: "#fff" }, gridlines: { color: "#333" } },
-            chartArea: { width: "85%", height: "70%" }
-          }
-        );
-      }
-    }
+    //   if(barArray.length > 1) {
+    //     new google.visualization.ColumnChart(document.getElementById("bar-chart")).draw(
+    //       google.visualization.arrayToDataTable(barArray),
+    //       {
+    //         backgroundColor: "transparent",
+    //         colors: ["#0dcaf0"],
+    //         legend: "none",
+    //         hAxis: { textStyle: { color: "#fff", fontSize: 10 } },
+    //         vAxis: { textStyle: { color: "#fff" }, gridlines: { color: "#333" } },
+    //         chartArea: { width: "85%", height: "70%" }
+    //       }
+    //     );
+    //   }
+    // }
 
     document.addEventListener("DOMContentLoaded", init);
   </script>
