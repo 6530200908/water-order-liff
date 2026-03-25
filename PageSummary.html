@@ -65,7 +65,7 @@
       </div>
       <div class="col-6 col-md-3">
         <div class="stat-card">
-          <div class="text-muted small">ส่งสำเร็จ</div>
+          <div class="text-muted small">จัดส่งสำเร็จ</div>
           <div id="stat-success-count" class="stat-value text-info">0<small>งาน</small></div>
         </div>
       </div>
@@ -185,7 +185,7 @@ function applyFilter() {
     }
 
     function renderDashboard(data) {
-      const successItems = data.filter(o => o.status === "ส่งสำเร็จ");
+      const successItems = data.filter(o => o.status === "จัดส่งสำเร็จ");
       const pendingItems = data.filter(o => o.status === "รอจัดส่ง");
       const cancelItems = data.filter(o => o.status === "ยกเลิก");
 
