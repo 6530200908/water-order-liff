@@ -74,7 +74,6 @@
         }
 
         document.getElementById("slip-order-text").innerText = "ออเดอร์: " + orderIdFromUrl;
-
         document.getElementById("slipInput").addEventListener("change", handleFile);
 
         startCountdownFromOrderTime(timeFromUrl);
@@ -208,6 +207,42 @@
       reader.readAsDataURL(file);
     }
 
+    async function trySendLineMessage() {
+      try {
+        if (!window.liff) return false;
+        if (!liff.isInClient()) {
+          console.warn("ไม่ได้เปิดใน LINE client");
+          return false;
+        }
+
+        await liff.sendMessages([
+          {
+            type: "text",
+            text: `✅ ส่งสลิปเรียบร้อยแล้ว\nเลขออเดอร์: ${orderIdFromUrl}`
+          }
+        ]);
+
+        return true;
+      } catch (err) {
+        console.warn("sendMessages failed:", err);
+        return false;
+      }
+    }
+
+    function closeLiffOrFallback() {
+      try {
+        if (window.liff && liff.isInClient()) {
+          liff.closeWindow();
+          return;
+        }
+      } catch (err) {
+        console.warn("closeWindow failed:", err);
+      }
+
+      // fallback
+      window.location.href = "about:blank";
+    }
+
     async function uploadSlip() {
       const btn = document.getElementById("sendBtn");
 
@@ -237,18 +272,18 @@
         });
 
         if (!res.ok) {
-          throw new Error("Upload failed");
+          throw new Error(`Upload failed: ${res.status}`);
         }
 
-        await liff.sendMessages([
-          { type: "text", text: "✅ ส่งสลิปเรียบร้อยแล้ว" }
-        ]);
+        // อัปโหลดสำเร็จแล้ว
+        await trySendLineMessage();
 
-        liff.closeWindow();
+        alert("ส่งสลิปเรียบร้อยแล้ว");
+        closeLiffOrFallback();
 
       } catch (err) {
-        console.error(err);
-        alert("เกิดข้อผิดพลาดในการส่งข้อมูล");
+        console.error("upload error:", err);
+        alert("เกิดข้อผิดพลาดในการอัปโหลดข้อมูล");
         btn.disabled = false;
         btn.innerText = "ส่งสลิปโอนเงิน";
       }
