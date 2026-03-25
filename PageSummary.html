@@ -219,10 +219,10 @@ function applyFilter() {
         </div>
       `).join("") || '<div class="text-muted text-center py-3">ไม่มีข้อมูลการขาย</div>';
 
-      // google.charts.setOnLoadCallback(() => {
-      //   drawPieChart(successItems.length, pendingItems.length, cancelItems.length);
-      //   drawBarChart(successItems);
-      // });
+      google.charts.setOnLoadCallback(() => {
+        drawPieChart(successItems.length, pendingItems.length, cancelItems.length);
+        drawBarChart(successItems);
+      });
     }
 
     function drawPieChart(s, p, c) {
