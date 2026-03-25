@@ -10,7 +10,7 @@ const CONFIG = {
   LIFF_ID_SUMMARY: "2008821220-nF2QLSuT",
   LIFF_ID_ORDERLIST: "2008821220-GhN9SMVD",
   
-  WEBHOOK_SLIP: "https://amarinaom.app.n8n.cloud/webhook/upload-slip2",
+  WEBHOOK_SLIP: "https://amarinaom.app.n8n.cloud/webhook-test/upload-slip2",
   WEBHOOK_Delivery: "https://amarinaom.app.n8n.cloud/webhook-test/delivery",
 
   // ตั้งค่าสิทธิการเข้าถึงแต่ละหน้า
