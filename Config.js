@@ -10,8 +10,8 @@ const CONFIG = {
   LIFF_ID_SUMMARY: "2008821220-nF2QLSuT",
   LIFF_ID_ORDERLIST: "2008821220-GhN9SMVD",
   
-  WEBHOOK_SLIP: "https://amarinaom.app.n8n.cloud/webhook/upload-slip2",
-  WEBHOOK_Delivery: "https://amarinaom.app.n8n.cloud/webhook/delivery",
+  WEBHOOK_SLIP: "https://amarin-650200908-drinking-water-bot-v2.hf.space/webhook/upload-slip2",
+  WEBHOOK_Delivery: "https://amarin-650200908-drinking-water-bot-v2.hf.space/webhook/delivery",
 
   // ตั้งค่าสิทธิการเข้าถึงแต่ละหน้า
   PAGE_PERMISSIONS: {
