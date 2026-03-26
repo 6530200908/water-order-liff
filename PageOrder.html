@@ -15,6 +15,8 @@
     .label-cyan { color: #0dcaf0; font-size: 0.85rem; display: block; margin-top: 10px; }
     .form-control-dark { background-color: #2b3035; border: 1px solid #495057; color: white; }
     .form-control-dark:focus { background-color: #343a40; color: white; border-color: #0dcaf0; box-shadow: none; }
+    /* สไตล์สำหรับวันที่ที่เลือกไม่ได้ */
+    input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); }
   </style>
 </head>
 <body>
@@ -47,7 +49,7 @@
       <label class="label-cyan">ชื่อผู้รับ</label>
       <input type="text" id="cusName" class="form-control form-control-dark mb-3" placeholder="ระบุชื่อผู้รับ">
 
-      <label class="label-cyan">วันที่ต้องการให้จัดส่ง</label>
+      <label class="label-cyan">วันที่ต้องการให้จัดส่ง (เลือกย้อนหลังไม่ได้)</label>
       <input type="date" id="deliveryDate" class="form-control form-control-dark mb-3">
 
       <label class="label-cyan">สถานที่ส่ง</label>
@@ -79,7 +81,6 @@
     let dbPromptpayID = "";
     let locationMap = {};
 
-    // พิกัดเริ่มต้น: แหลมฉบัง
     const DEFAULT_LAT = 13.07148;
     const DEFAULT_LNG = 100.55088;
 
@@ -90,9 +91,11 @@
         const profile = await liff.getProfile();
         currentUserId = profile.userId;
 
-        // ตั้งค่าวันที่เริ่มต้นเป็นวันนี้
-        const today = new Date().toISOString().split('T')[0];
-        document.getElementById('deliveryDate').value = today;
+        // --- ส่วนจัดการวันที่ห้ามเลือกย้อนหลัง ---
+        const deliveryInput = document.getElementById('deliveryDate');
+        const today = new Date().toISOString().split('T')[0]; // ได้ค่า YYYY-MM-DD
+        deliveryInput.value = today; // ตั้งค่าเริ่มต้นเป็นวันนี้
+        deliveryInput.min = today;   // ห้ามเลือกวันที่น้อยกว่าวันนี้ (ย้อนหลัง)
 
         const res = await fetch(`${CONFIG.GAS_API}?uid=${currentUserId}`).then(r => r.json());
         products = res.products || [];
@@ -216,6 +219,13 @@
       const gpsValue = document.getElementById("gpsData").value.trim();
       const customAddress = document.getElementById("cusAddress").value.trim();
       const deliveryDate = document.getElementById("deliveryDate").value;
+
+      // ตรวจสอบวันที่อีกครั้งในฝั่ง JS
+      const today = new Date().toISOString().split('T')[0];
+      if (deliveryDate < today) {
+        alert("ห้ามเลือกวันที่จัดส่งย้อนหลังครับ");
+        return;
+      }
 
       if (!name || !loc || !deliveryDate) { alert("กรอกข้อมูลให้ครบ"); return; }
       const selectedItems = Object.keys(cart).filter(i => cart[i] > 0);
