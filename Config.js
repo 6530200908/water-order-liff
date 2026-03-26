@@ -1,5 +1,5 @@
 const CONFIG = {
-  GAS_API: "https://script.google.com/macros/s/AKfycbyb2LKg0c8uaxkzA0NRvQtll5HBg6ZqSuHUAPWoglVhM44xwIu7Fs_KVMq73DJnTA0qiA/exec",
+  GAS_API: "https://script.google.com/macros/s/AKfycbyRF-zFFeYuVH0PPfB_RJwmw3IaEd3D-qU3kJ34ZHU3qgoclcBq6Uj05BzrEbPD3kY/exec",
   LIFF_ID_ORDER: "2009604469-stmruoOV",
   LIFF_ID_STATUS: "2009604469-Qu3VzR7E",
   LIFF_ID_SLIP: "2009604469-P2U2iMAw",
