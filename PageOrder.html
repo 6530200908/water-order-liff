@@ -12,10 +12,9 @@
 
   <style>
     #loader { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 9999; display: flex; justify-content: center; align-items: center; }
-    .label-cyan { color: #0dcaf0; font-size: 0.85rem; }
-    .stat-value small { font-size: 0.9rem; margin-left: 4px; }
-    /* เพิ่มปุ่มดึงตำแหน่งปัจจุบันบนแผนที่ */
-    .locate-btn { background: white; border: 2px solid rgba(0,0,0,0.2); border-radius: 4px; padding: 5px; cursor: pointer; }
+    .label-cyan { color: #0dcaf0; font-size: 0.85rem; display: block; margin-top: 10px; }
+    .form-control-dark { background-color: #2b3035; border: 1px solid #495057; color: white; }
+    .form-control-dark:focus { background-color: #343a40; color: white; border-color: #0dcaf0; box-shadow: none; }
   </style>
 </head>
 <body>
@@ -48,13 +47,16 @@
       <label class="label-cyan">ชื่อผู้รับ</label>
       <input type="text" id="cusName" class="form-control form-control-dark mb-3" placeholder="ระบุชื่อผู้รับ">
 
+      <label class="label-cyan">วันที่ต้องการให้จัดส่ง</label>
+      <input type="date" id="deliveryDate" class="form-control form-control-dark mb-3">
+
       <label class="label-cyan">สถานที่ส่ง</label>
       <select id="locSelect" class="form-select form-control-dark mb-3" onchange="handleLocationChange(this.value)"></select>
 
       <input type="hidden" id="gpsData">
 
       <div id="gps-section" style="display:none;">
-        <label class="label-cyan mb-2">📍 ปักหมุดจุดส่งน้ำ </label>
+        <label class="label-cyan mb-2">📍 ปักหมุดจุดส่งน้ำ (เริ่มต้น: แหลมฉบัง)</label>
         <div id="map" style="height:220px; border-radius:12px; overflow:hidden; margin-bottom: 10px;"></div>
         <p id="gpsStatus" class="small text-center mb-2 text-muted">กดที่แผนที่เพื่อเปลี่ยนจุดส่ง</p>
         <textarea id="cusAddress" class="form-control form-control-dark mb-3" rows="2" placeholder="ที่อยู่เพิ่มเติม (เช่น ตึก ชั้น ฯลฯ)"></textarea>
@@ -77,7 +79,7 @@
     let dbPromptpayID = "";
     let locationMap = {};
 
-    // พิกัดเริ่มต้น: แหลมฉบัง (4WC9+8J5)
+    // พิกัดเริ่มต้น: แหลมฉบัง
     const DEFAULT_LAT = 13.07148;
     const DEFAULT_LNG = 100.55088;
 
@@ -87,6 +89,10 @@
         if (!liff.isLoggedIn()) { liff.login(); return; }
         const profile = await liff.getProfile();
         currentUserId = profile.userId;
+
+        // ตั้งค่าวันที่เริ่มต้นเป็นวันนี้
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('deliveryDate').value = today;
 
         const res = await fetch(`${CONFIG.GAS_API}?uid=${currentUserId}`).then(r => r.json());
         products = res.products || [];
@@ -124,7 +130,6 @@
       }
     }
 
-    // ฟังก์ชันดึงพิกัดปัจจุบัน
     function getCurrentPosition() {
       return new Promise((resolve) => {
         if (!navigator.geolocation) return resolve(null);
@@ -138,17 +143,14 @@
 
     async function initMap() {
       if (!map) {
-        // เริ่มต้นที่พิกัดแหลมฉบังที่คุณกำหนดก่อน
         map = L.map("map").setView([DEFAULT_LAT, DEFAULT_LNG], 15);
         L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: "&copy; OpenStreetMap" }).addTo(map);
 
-        // ลองดึงพิกัดจริงของผู้ใช้ ถ้าได้ให้เลื่อนไปที่นั่น
         const userPos = await getCurrentPosition();
         if (userPos) {
           map.setView(userPos, 16);
           updateMarker(userPos[0], userPos[1]);
         } else {
-          // ถ้าไม่ได้พิกัดผู้ใช้ ให้ปักหมุดไว้ที่แหลมฉบังเป็นค่าเริ่มต้น
           updateMarker(DEFAULT_LAT, DEFAULT_LNG);
         }
 
@@ -213,8 +215,9 @@
       const name = document.getElementById("cusName").value.trim();
       const gpsValue = document.getElementById("gpsData").value.trim();
       const customAddress = document.getElementById("cusAddress").value.trim();
+      const deliveryDate = document.getElementById("deliveryDate").value;
 
-      if (!name || !loc) { alert("กรอกข้อมูลให้ครบ"); return; }
+      if (!name || !loc || !deliveryDate) { alert("กรอกข้อมูลให้ครบ"); return; }
       const selectedItems = Object.keys(cart).filter(i => cart[i] > 0);
       
       const btn = document.getElementById("btn-confirm");
@@ -229,7 +232,8 @@
         gps: (loc === "อื่นๆ") ? gpsValue : (locationMap[loc] || ""),
         items: selectedItems.map(i => products[i].desc).join(", "),
         amounts: selectedItems.map(i => String(cart[i])).join(", "),
-        total: document.getElementById("total-price").innerText
+        total: document.getElementById("total-price").innerText,
+        deliveryDate: deliveryDate
       };
 
       try {
@@ -239,7 +243,7 @@
         if (liff.isInClient()) {
           await liff.sendMessages([{
             type: "text",
-            text: `💧 บันทึกออเดอร์สำเร็จ!\nเลขออเดอร์: ${gasRes.orderId}\nคุณ: ${name}\nรายการ:\n${itemDetails}\nรวม: ${orderData.total} บาท\nขอบคุณที่ใช้บริการครับ`
+            text: `💧 บันทึกออเดอร์สำเร็จ!\nเลขออเดอร์: ${gasRes.orderId}\nจัดส่งวันที่: ${deliveryDate}\nคุณ: ${name}\nรายการ:\n${itemDetails}\nรวม: ${orderData.total} บาท\nขอบคุณครับ`
           }]);
           liff.closeWindow();
         } else {
