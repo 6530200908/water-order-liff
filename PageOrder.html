@@ -11,11 +11,10 @@
   <link rel="stylesheet" href="Styles.css?v=20260320-FINAL">
 
   <style>
-    #loader { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 9999; display: flex; justify-content: center; align-items: center; }
+    #loader { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; color: white; }
     .label-cyan { color: #0dcaf0; font-size: 0.85rem; display: block; margin-top: 10px; }
     .form-control-dark { background-color: #2b3035; border: 1px solid #495057; color: white; }
     .form-control-dark:focus { background-color: #343a40; color: white; border-color: #0dcaf0; box-shadow: none; }
-    /* สไตล์สำหรับวันที่ที่เลือกไม่ได้ */
     input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); }
   </style>
 </head>
@@ -49,7 +48,7 @@
       <label class="label-cyan">ชื่อผู้รับ</label>
       <input type="text" id="cusName" class="form-control form-control-dark mb-3" placeholder="ระบุชื่อผู้รับ">
 
-      <label class="label-cyan">วันที่ต้องการให้จัดส่ง (เลือกย้อนหลังไม่ได้)</label>
+      <label class="label-cyan">วันที่ต้องการให้จัดส่ง</label>
       <input type="date" id="deliveryDate" class="form-control form-control-dark mb-3">
 
       <label class="label-cyan">สถานที่ส่ง</label>
@@ -76,13 +75,10 @@
     let currentUserId = "";
     let products = [];
     let cart = {};
-    let map = null;
-    let marker = null;
-    let dbPromptpayID = "";
+    let map = null, marker = null;
     let locationMap = {};
 
-    const DEFAULT_LAT = 13.07148;
-    const DEFAULT_LNG = 100.55088;
+    const DEFAULT_LAT = 13.07148, DEFAULT_LNG = 100.55088;
 
     async function init() {
       try {
@@ -91,22 +87,44 @@
         const profile = await liff.getProfile();
         currentUserId = profile.userId;
 
-        // --- ส่วนจัดการวันที่ห้ามเลือกย้อนหลัง ---
+        // 1. ตั้งค่าวันที่ห้ามย้อนหลัง (ใช้ Timezone ไทย)
         const deliveryInput = document.getElementById('deliveryDate');
-        const today = new Date().toISOString().split('T')[0]; // ได้ค่า YYYY-MM-DD
-        deliveryInput.value = today; // ตั้งค่าเริ่มต้นเป็นวันนี้
-        deliveryInput.min = today;   // ห้ามเลือกวันที่น้อยกว่าวันนี้ (ย้อนหลัง)
+        const today = new Date().toLocaleDateString('en-CA', {timeZone: 'Asia/Bangkok'});
+        deliveryInput.value = today;
+        deliveryInput.min = today;
 
+        // 2. ดึงข้อมูลจาก GAS API
         const res = await fetch(`${CONFIG.GAS_API}?uid=${currentUserId}`).then(r => r.json());
         products = res.products || [];
-        dbPromptpayID = res.promptpayID || "";
         
         renderProducts();
         setupLocationOptions(res.locations || []);
 
+        // 3. ใส่ชื่อลูกค้า Default
         document.getElementById("cusName").value = (res.customer && res.customer.name) ? res.customer.name : profile.displayName;
-      } catch (e) { alert("โหลดข้อมูลล้มเหลว"); }
-      finally { document.getElementById("loader").style.display = "none"; }
+
+        // 4. ตรวจสอบสถานที่ Default (Strict Match)
+        if (res.customer && res.customer.address) {
+          const locSelect = document.getElementById("locSelect");
+          const savedAddr = res.customer.address.trim();
+          
+          // เช็คว่าใน Dropdown มี Option ที่ชื่อตรงกับใน DB หรือไม่
+          const hasOption = Array.from(locSelect.options).some(opt => opt.value === savedAddr);
+          
+          if (hasOption) {
+            locSelect.value = savedAddr;
+            handleLocationChange(savedAddr);
+          } else {
+            // หากไม่ตรงเป๊ะ ให้ปล่อยเป็น "-- เลือกสถานที่ --"
+            locSelect.value = "";
+          }
+        }
+      } catch (e) { 
+        console.error(e);
+        alert("โหลดข้อมูลล้มเหลว"); 
+      } finally { 
+        document.getElementById("loader").style.display = "none"; 
+      }
     }
 
     function setupLocationOptions(locations) {
@@ -133,43 +151,32 @@
       }
     }
 
-    function getCurrentPosition() {
-      return new Promise((resolve) => {
-        if (!navigator.geolocation) return resolve(null);
-        navigator.geolocation.getCurrentPosition(
-          (pos) => resolve([pos.coords.latitude, pos.coords.longitude]),
-          () => resolve(null),
-          { enableHighAccuracy: true, timeout: 5000 }
-        );
-      });
-    }
-
     async function initMap() {
       if (!map) {
         map = L.map("map").setView([DEFAULT_LAT, DEFAULT_LNG], 15);
-        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: "&copy; OpenStreetMap" }).addTo(map);
-
-        const userPos = await getCurrentPosition();
-        if (userPos) {
-          map.setView(userPos, 16);
-          updateMarker(userPos[0], userPos[1]);
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: "&copy; OSM" }).addTo(map);
+        map.on("click", (e) => updateMarker(e.latlng.lat, e.latlng.lng));
+        
+        // ลองดึงตำแหน่งปัจจุบัน ถ้าล้มเหลวใช้ค่า Default
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(
+            p => { updateMarker(p.coords.latitude, p.coords.longitude); map.setView([p.coords.latitude, p.coords.longitude], 16); },
+            () => updateMarker(DEFAULT_LAT, DEFAULT_LNG)
+          );
         } else {
           updateMarker(DEFAULT_LAT, DEFAULT_LNG);
         }
-
-        map.on("click", function(e) {
-          updateMarker(e.latlng.lat, e.latlng.lng);
-        });
       }
       map.invalidateSize();
     }
 
     function updateMarker(lat, lng) {
-      if (marker) { marker.setLatLng([lat, lng]); } 
-      else { marker = L.marker([lat, lng]).addTo(map); }
+      if (marker) marker.setLatLng([lat, lng]);
+      else marker = L.marker([lat, lng]).addTo(map);
       document.getElementById("gpsData").value = `${lat},${lng}`;
-      document.getElementById("gpsStatus").innerText = "📍 ปักหมุดเรียบร้อย";
-      document.getElementById("gpsStatus").className = "small text-center mb-2 text-success fw-bold";
+      const status = document.getElementById("gpsStatus");
+      status.innerText = "📍 ปักหมุดเรียบร้อย";
+      status.className = "small text-center mb-2 text-success fw-bold";
     }
 
     function renderProducts() {
@@ -202,12 +209,12 @@
       if (cart[i] > products[i].stock) { alert("สินค้าไม่พอ"); cart[i] = products[i].stock; }
       document.getElementById(`qty-${i}`).innerText = cart[i];
       let total = 0;
-      Object.keys(cart).forEach(k => { total += (cart[k] || 0) * Number(products[k].price || 0); });
+      Object.keys(cart).forEach(k => { total += cart[k] * Number(products[k].price); });
       document.getElementById("total-price").innerText = total;
     }
 
     function openPayment() {
-      if (document.getElementById("total-price").innerText === "0") { alert("เลือกน้ำก่อนครับ"); return; }
+      if (document.getElementById("total-price").innerText === "0") return alert("เลือกน้ำก่อนครับ");
       document.getElementById("payment-ui").style.display = "flex";
     }
 
@@ -216,34 +223,25 @@
     async function confirmOrder() {
       const loc = document.getElementById("locSelect").value;
       const name = document.getElementById("cusName").value.trim();
-      const gpsValue = document.getElementById("gpsData").value.trim();
-      const customAddress = document.getElementById("cusAddress").value.trim();
-      const deliveryDate = document.getElementById("deliveryDate").value;
+      const delDate = document.getElementById("deliveryDate").value;
+      const today = new Date().toLocaleDateString('en-CA', {timeZone: 'Asia/Bangkok'});
 
-      // ตรวจสอบวันที่อีกครั้งในฝั่ง JS
-      const today = new Date().toISOString().split('T')[0];
-      if (deliveryDate < today) {
-        alert("ห้ามเลือกวันที่จัดส่งย้อนหลังครับ");
-        return;
-      }
+      if (delDate < today) return alert("ห้ามเลือกวันที่ย้อนหลังครับ");
+      if (!name || !loc || !delDate) return alert("กรอกข้อมูลให้ครบ");
 
-      if (!name || !loc || !deliveryDate) { alert("กรอกข้อมูลให้ครบ"); return; }
-      const selectedItems = Object.keys(cart).filter(i => cart[i] > 0);
-      
       const btn = document.getElementById("btn-confirm");
-      btn.disabled = true;
-      btn.innerText = "กำลังประมวลผล...";
+      btn.disabled = true; btn.innerText = "กำลังบันทึก...";
 
-      const itemDetails = selectedItems.map(i => `- ${products[i].desc} x ${cart[i]}`).join("\n");
+      const selectedItems = Object.keys(cart).filter(i => cart[i] > 0);
       const orderData = {
         uid: currentUserId,
         name: name,
-        address: (loc === "อื่นๆ") ? customAddress : loc,
-        gps: (loc === "อื่นๆ") ? gpsValue : (locationMap[loc] || ""),
+        address: (loc === "อื่นๆ") ? document.getElementById("cusAddress").value : loc,
+        gps: (loc === "อื่นๆ") ? document.getElementById("gpsData").value : (locationMap[loc] || ""),
         items: selectedItems.map(i => products[i].desc).join(", "),
         amounts: selectedItems.map(i => String(cart[i])).join(", "),
         total: document.getElementById("total-price").innerText,
-        deliveryDate: deliveryDate
+        deliveryDate: delDate
       };
 
       try {
@@ -253,21 +251,21 @@
         if (liff.isInClient()) {
           await liff.sendMessages([{
             type: "text",
-            text: `💧 บันทึกออเดอร์สำเร็จ!\nเลขออเดอร์: ${gasRes.orderId}\nจัดส่งวันที่: ${deliveryDate}\nคุณ: ${name}\nรายการ:\n${itemDetails}\nรวม: ${orderData.total} บาท\nขอบคุณครับ`
+            text: `💧 สั่งน้ำสำเร็จ!\nเลขออเดอร์: ${gasRes.orderId}\nส่งวันที่: ${delDate}\nคุณ: ${name}\nรวม: ${orderData.total} บาท`
           }]);
           liff.closeWindow();
         } else {
           alert(`สั่งซื้อสำเร็จ! เลขออเดอร์: ${gasRes.orderId}`);
+          location.reload();
         }
       } catch (err) {
         alert("ผิดพลาด: " + err.message);
-        btn.disabled = false;
-        btn.innerText = "ยืนยันการสั่งซื้อ";
+        btn.disabled = false; btn.innerText = "ยืนยันการสั่งซื้อ";
       }
     }
 
     function escapeHtml(str) {
-      return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+      return String(str).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"}[m]));
     }
     window.onload = init;
   </script>
