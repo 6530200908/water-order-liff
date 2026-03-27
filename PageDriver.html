@@ -13,73 +13,141 @@
 
 <style>
 .modal-full{
-display:none;
-position:fixed;
-inset:0;
-background:rgba(0,0,0,0.9);
-z-index:1000;
-padding:20px;
-overflow-y:auto;
+  display:none;
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,0.9);
+  z-index:1000;
+  padding:20px;
+  overflow-y:auto;
 }
 
 .preview-box{
-width:100%;
-height:200px;
-background:#000;
-border-radius:10px;
-display:flex;
-align-items:center;
-justify-content:center;
-overflow:hidden;
-border:1px dashed #3f444a;
+  width:100%;
+  height:200px;
+  background:#000;
+  border-radius:10px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  overflow:hidden;
+  border:1px dashed #3f444a;
 }
 
 #driver-preview{
-width:100%;
-height:100%;
-object-fit:cover;
+  width:100%;
+  height:100%;
+  object-fit:cover;
 }
 
 .location-group-toggle{
-width:100%;
-background:linear-gradient(135deg, rgba(13,202,240,0.22), rgba(13,202,240,0.08));
-border:2px solid #16d4ff;
-border-left:8px solid #16d4ff;
-border-radius:18px;
-padding:18px 18px 16px;
-margin-bottom:14px;
-text-align:left;
-color:#fff;
-transition:.2s ease;
+  width:100%;
+  background:linear-gradient(135deg, rgba(13,202,240,0.22), rgba(13,202,240,0.08));
+  border:2px solid #16d4ff;
+  border-left:8px solid #16d4ff;
+  border-radius:18px;
+  padding:18px 18px 16px;
+  margin-bottom:14px;
+  text-align:left;
+  color:#fff;
+  transition:.2s ease;
 }
 
 .location-group-toggle:hover{
-background:linear-gradient(135deg, rgba(13,202,240,0.30), rgba(13,202,240,0.12));
+  background:linear-gradient(135deg, rgba(13,202,240,0.30), rgba(13,202,240,0.12));
 }
 
 .location-group-title{
-color:#35dcff;
-font-weight:700;
-font-size:1.35rem;
-margin:0;
-text-shadow:0 0 10px rgba(13,202,240,0.18);
+  color:#35dcff;
+  font-weight:700;
+  font-size:1.35rem;
+  margin:0;
+  text-shadow:0 0 10px rgba(13,202,240,0.18);
 }
 
 .location-group-sub{
-color:#d7e1e8;
-font-size:1rem;
-margin-top:8px;
-font-weight:500;
+  color:#d7e1e8;
+  font-size:1rem;
+  margin-top:8px;
+  font-weight:500;
 }
 
 .location-group-arrow{
-font-size:1.2rem;
-color:#35dcff;
-transition:transform .2s ease;
+  font-size:1.2rem;
+  color:#35dcff;
+  transition:transform .2s ease;
 }
 
 .location-orders{
-padding-top:2px;
+  padding-top:2px;
+}
+
+.filter-wrap{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  margin-bottom:18px;
+}
+
+.filter-btn{
+  border:1px solid #19d7ff;
+  background:#07141a;
+  color:#9fefff;
+  border-radius:999px;
+  padding:10px 16px;
+  font-weight:700;
+  cursor:pointer;
+  transition:.2s ease;
+}
+
+.filter-btn:hover{
+  background:#0c2630;
+}
+
+.filter-btn.active{
+  background:#0dcaf0;
+  color:#00151c;
+  border-color:#0dcaf0;
+  box-shadow:0 0 0 3px rgba(13,202,240,0.18);
+}
+
+.filter-summary{
+  color:#b8c7d0;
+  font-size:.95rem;
+  margin-bottom:16px;
+}
+
+.delivery-date-badge{
+  display:inline-block;
+  font-size:.78rem;
+  font-weight:700;
+  padding:4px 10px;
+  border-radius:999px;
+  margin-bottom:8px;
+}
+
+.delivery-date-today{
+  background:rgba(25, 135, 84, .18);
+  color:#7ff0ad;
+  border:1px solid rgba(25, 135, 84, .45);
+}
+
+.delivery-date-future{
+  background:rgba(13, 202, 240, .16);
+  color:#76e9ff;
+  border:1px solid rgba(13, 202, 240, .45);
+}
+
+.delivery-date-overdue{
+  background:rgba(220, 53, 69, .18);
+  color:#ff8d98;
+  border:1px solid rgba(220, 53, 69, .45);
+}
+
+.delivery-date-unknown{
+  background:rgba(108, 117, 125, .18);
+  color:#d2d8dd;
+  border:1px solid rgba(108, 117, 125, .45);
 }
 </style>
 </head>
@@ -92,7 +160,16 @@ padding-top:2px;
 </div>
 
 <div class="container mt-3 pb-5">
-  <h3 class="fw-bold text-info mb-4">🚚 รายการรอจัดส่ง</h3>
+  <h3 class="fw-bold text-info mb-3">🚚 รายการรอจัดส่ง</h3>
+
+  <div class="filter-wrap" id="delivery-filter-bar">
+    <button class="filter-btn active" data-filter="all" onclick="setDeliveryFilter('all')">ทั้งหมด (<span id="count-all">0</span>)</button>
+    <button class="filter-btn" data-filter="today" onclick="setDeliveryFilter('today')">วันนี้ (<span id="count-today">0</span>)</button>
+    <button class="filter-btn" data-filter="future" onclick="setDeliveryFilter('future')">วันข้างหน้า (<span id="count-future">0</span>)</button>
+    <button class="filter-btn" data-filter="overdue" onclick="setDeliveryFilter('overdue')">ค้างส่ง (<span id="count-overdue">0</span>)</button>
+  </div>
+
+  <div id="filter-summary" class="filter-summary"></div>
   <div id="driver-order-list"></div>
 </div>
 
@@ -144,6 +221,9 @@ padding-top:2px;
 let currentOrderId = "";
 let driverImageBase64 = "";
 let currentDriverUid = "";
+
+let allDriverOrders = [];
+let currentDeliveryFilter = "all";
 
 window.onload = async () => {
   try {
@@ -199,124 +279,9 @@ function loadDriverOrders() {
         return;
       }
 
-      if (!res.orders || res.orders.length === 0) {
-        list.innerHTML = "<div class='text-center mt-5 text-muted'>ไม่มีงานค้าง 🎉</div>";
-        return;
-      }
-
-      const grouped = {};
-
-      res.orders.forEach(o => {
-        const key = (o.locat || "ไม่ระบุที่อยู่จัดส่ง").trim();
-        if (!grouped[key]) grouped[key] = [];
-        grouped[key].push(o);
-      });
-
-      const sortedLocations = Object.keys(grouped).sort((a, b) => a.localeCompare(b, "th"));
-
-      list.innerHTML = sortedLocations.map((locationName, index) => {
-        const orders = grouped[locationName];
-        const collapseGroupId = `location-group-${index}`;
-        const headingId = `location-heading-${index}`;
-
-        return `
-          <div class="mb-4">
-
-            <button
-              class="location-group-toggle"
-              type="button"
-              data-bs-toggle="collapse"
-              data-bs-target="#${collapseGroupId}"
-              aria-expanded="true"
-              aria-controls="${collapseGroupId}"
-              id="${headingId}"
-            >
-              <div class="d-flex justify-content-between align-items-start gap-3">
-                <div>
-                  <div class="location-group-title">📍 จุดส่ง: ${locationName}</div>
-                  <div class="location-group-sub">มีทั้งหมด ${orders.length} ออเดอร์</div>
-                </div>
-                <div class="location-group-arrow">▾</div>
-              </div>
-            </button>
-
-            <div id="${collapseGroupId}" class="collapse show location-orders">
-              ${orders.map(o => {
-                const collapseId = "detail-" + o.order_id;
-
-                return `
-                  <div class="role-card border-start border-info border-4 shadow-sm mb-3">
-
-                    <div class="d-flex justify-content-between mb-2">
-                      <span class="badge bg-info text-dark">${o.order_id}</span>
-                      <small class="text-muted">🕒 ${o.time || "-"}</small>
-                    </div>
-
-                    <div class="fw-bold text-white">👤 ${o.customer || "-"}</div>
-                    <div class="small text-info mb-2">📍 ${o.locat || "-"}</div>
-
-                    <div class="d-flex justify-content-between mb-2">
-                      <span class="badge bg-secondary">${o.status || "-"}</span>
-                      <span class="fw-bold text-warning">${o.total || "-"}</span>
-                    </div>
-
-                    <button
-                      class="btn btn-outline-info btn-sm w-100 mb-2"
-                      data-bs-toggle="collapse"
-                      data-bs-target="#${collapseId}"
-                    >
-                      ดูรายละเอียด
-                    </button>
-
-                    <div id="${collapseId}" class="collapse">
-                      <div class="bg-black p-3 rounded-3 small mb-2 border border-secondary">
-                        <div>🧾 ${o.items || "-"}</div>
-                        ${o.amount ? `<div class="mt-1">📦 ${o.amount}</div>` : ""}
-                        <div class="mt-1 text-muted">📌 ${o.gps || "-"}</div>
-                      </div>
-                    </div>
-
-                    <div class="row g-2">
-                      <div class="col-4">
-                        ${
-                          o.gps
-                            ? `
-                            <a
-                              href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(o.gps)}&travelmode=driving"
-                              target="_blank"
-                              class="btn btn-outline-secondary btn-sm w-100"
-                            >
-                              🗺️ แผนที่
-                            </a>
-                            `
-                            : `
-                            <button class="btn btn-outline-secondary btn-sm w-100" disabled>
-                              ไม่มีพิกัด
-                            </button>
-                            `
-                        }
-                      </div>
-
-                      <div class="col-8">
-                        <button
-                          class="btn btn-info btn-sm w-100 fw-bold text-dark"
-                          onclick="openUploadModal('${o.order_id}')"
-                        >
-                          📷 ส่งงาน
-                        </button>
-                      </div>
-                    </div>
-
-                  </div>
-                `;
-              }).join("")}
-            </div>
-
-          </div>
-        `;
-      }).join("");
-
-      setCollapseArrowHandlers();
+      allDriverOrders = Array.isArray(res.orders) ? res.orders.map(enrichDeliveryOrder) : [];
+      updateFilterCounts();
+      renderDriverOrders();
     })
     .catch(err => {
       console.error("loadDriverOrders error =", err);
@@ -326,6 +291,302 @@ function loadDriverOrders() {
     .finally(() => {
       document.getElementById("loader").style.display = "none";
     });
+}
+
+function enrichDeliveryOrder(order) {
+  const deliveryType = getDeliveryType(order.deliveryDate);
+
+  return {
+    ...order,
+    deliveryType,
+    deliveryDateLabel: formatDateThaiShort(order.deliveryDate),
+    sortDeliveryValue: getDateOnlyTime(order.deliveryDate),
+    sortOrderTimeValue: getDateTimeValue(order.timeRaw || order.time)
+  };
+}
+
+function setDeliveryFilter(filterKey) {
+  currentDeliveryFilter = filterKey;
+
+  document.querySelectorAll(".filter-btn").forEach(btn => {
+    btn.classList.toggle("active", btn.dataset.filter === filterKey);
+  });
+
+  renderDriverOrders();
+}
+
+function updateFilterCounts() {
+  const counts = {
+    all: allDriverOrders.length,
+    today: allDriverOrders.filter(o => o.deliveryType === "today").length,
+    future: allDriverOrders.filter(o => o.deliveryType === "future").length,
+    overdue: allDriverOrders.filter(o => o.deliveryType === "overdue").length
+  };
+
+  document.getElementById("count-all").textContent = counts.all;
+  document.getElementById("count-today").textContent = counts.today;
+  document.getElementById("count-future").textContent = counts.future;
+  document.getElementById("count-overdue").textContent = counts.overdue;
+}
+
+function renderDriverOrders() {
+  const list = document.getElementById("driver-order-list");
+  const summary = document.getElementById("filter-summary");
+
+  let filteredOrders = [...allDriverOrders];
+
+  if (currentDeliveryFilter !== "all") {
+    filteredOrders = filteredOrders.filter(o => o.deliveryType === currentDeliveryFilter);
+  }
+
+  filteredOrders.sort((a, b) => {
+    const aDelivery = a.sortDeliveryValue || Number.MAX_SAFE_INTEGER;
+    const bDelivery = b.sortDeliveryValue || Number.MAX_SAFE_INTEGER;
+
+    if (aDelivery !== bDelivery) return aDelivery - bDelivery;
+
+    const aLoc = (a.locat || "").toString();
+    const bLoc = (b.locat || "").toString();
+    const locCompare = aLoc.localeCompare(bLoc, "th");
+    if (locCompare !== 0) return locCompare;
+
+    return (a.sortOrderTimeValue || 0) - (b.sortOrderTimeValue || 0);
+  });
+
+  summary.innerHTML = getFilterSummaryText(filteredOrders.length);
+
+  if (!filteredOrders.length) {
+    list.innerHTML = "<div class='text-center mt-5 text-muted'>ไม่พบรายการตามตัวกรองนี้</div>";
+    return;
+  }
+
+  const grouped = {};
+
+  filteredOrders.forEach(o => {
+    const key = (o.locat || "ไม่ระบุที่อยู่จัดส่ง").trim();
+    if (!grouped[key]) grouped[key] = [];
+    grouped[key].push(o);
+  });
+
+  const sortedLocations = Object.keys(grouped).sort((a, b) => a.localeCompare(b, "th"));
+
+  list.innerHTML = sortedLocations.map((locationName, index) => {
+    const orders = grouped[locationName];
+    const collapseGroupId = `location-group-${index}`;
+    const headingId = `location-heading-${index}`;
+
+    return `
+      <div class="mb-4">
+        <button
+          class="location-group-toggle"
+          type="button"
+          data-bs-toggle="collapse"
+          data-bs-target="#${collapseGroupId}"
+          aria-expanded="true"
+          aria-controls="${collapseGroupId}"
+          id="${headingId}"
+        >
+          <div class="d-flex justify-content-between align-items-start gap-3">
+            <div>
+              <div class="location-group-title">📍 จุดส่ง: ${escapeHtml(locationName)}</div>
+              <div class="location-group-sub">มีทั้งหมด ${orders.length} ออเดอร์</div>
+            </div>
+            <div class="location-group-arrow">▾</div>
+          </div>
+        </button>
+
+        <div id="${collapseGroupId}" class="collapse show location-orders">
+          ${orders.map(o => {
+            const collapseId = "detail-" + safeId(o.order_id);
+
+            return `
+              <div class="role-card border-start border-info border-4 shadow-sm mb-3">
+
+                <div class="d-flex justify-content-between mb-2">
+                  <span class="badge bg-info text-dark">${escapeHtml(o.order_id || "-")}</span>
+                  <small class="text-muted">🕒 ${escapeHtml(o.time || "-")}</small>
+                </div>
+
+                <div class="${getDeliveryBadgeClass(o.deliveryType)} delivery-date-badge">
+                  ${escapeHtml(getDeliveryBadgeText(o))}
+                </div>
+
+                <div class="fw-bold text-white">👤 ${escapeHtml(o.customer || "-")}</div>
+                <div class="small text-info mb-2">📍 ${escapeHtml(o.locat || "-")}</div>
+
+                <div class="d-flex justify-content-between mb-2">
+                  <span class="badge bg-secondary">${escapeHtml(o.status || "-")}</span>
+                  <span class="fw-bold text-warning">${escapeHtml(String(o.total || "-"))}</span>
+                </div>
+
+                <button
+                  class="btn btn-outline-info btn-sm w-100 mb-2"
+                  data-bs-toggle="collapse"
+                  data-bs-target="#${collapseId}"
+                >
+                  ดูรายละเอียด
+                </button>
+
+                <div id="${collapseId}" class="collapse">
+                  <div class="bg-black p-3 rounded-3 small mb-2 border border-secondary">
+                    <div>🧾 ${escapeHtml(o.items || "-")}</div>
+                    ${o.amount ? `<div class="mt-1">📦 ${escapeHtml(o.amount)}</div>` : ""}
+                    <div class="mt-1">📅 วันส่ง: ${escapeHtml(o.deliveryDateLabel || "-")}</div>
+                    <div class="mt-1 text-muted">📌 ${escapeHtml(o.gps || "-")}</div>
+                  </div>
+                </div>
+
+                <div class="row g-2">
+                  <div class="col-4">
+                    ${
+                      o.gps
+                        ? `
+                        <a
+                          href="https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(o.gps)}&travelmode=driving"
+                          target="_blank"
+                          class="btn btn-outline-secondary btn-sm w-100"
+                        >
+                          🗺️ แผนที่
+                        </a>
+                        `
+                        : `
+                        <button class="btn btn-outline-secondary btn-sm w-100" disabled>
+                          ไม่มีพิกัด
+                        </button>
+                        `
+                    }
+                  </div>
+
+                  <div class="col-8">
+                    <button
+                      class="btn btn-info btn-sm w-100 fw-bold text-dark"
+                      onclick="openUploadModal('${escapeJs(o.order_id)}')"
+                    >
+                      📷 ส่งงาน
+                    </button>
+                  </div>
+                </div>
+
+              </div>
+            `;
+          }).join("")}
+        </div>
+      </div>
+    `;
+  }).join("");
+
+  setCollapseArrowHandlers();
+}
+
+function getFilterSummaryText(count) {
+  const map = {
+    all: "แสดงรายการรอจัดส่งทั้งหมด",
+    today: "แสดงเฉพาะออเดอร์ที่ต้องส่งวันนี้",
+    future: "แสดงเฉพาะออเดอร์ที่มีกำหนดส่งวันข้างหน้า",
+    overdue: "แสดงเฉพาะออเดอร์ค้างส่งที่เลยวันส่งแล้ว"
+  };
+
+  return `${map[currentDeliveryFilter] || ""} • ${count} รายการ`;
+}
+
+function getDeliveryType(deliveryDate) {
+  const target = parseDateOnly(deliveryDate);
+  if (!target) return "unknown";
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const diff = target.getTime() - today.getTime();
+
+  if (diff === 0) return "today";
+  if (diff > 0) return "future";
+  return "overdue";
+}
+
+function parseDateOnly(value) {
+  if (!value) return null;
+
+  const str = String(value).trim();
+
+  const isoMatch = str.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (isoMatch) {
+    const y = Number(isoMatch[1]);
+    const m = Number(isoMatch[2]) - 1;
+    const d = Number(isoMatch[3]);
+    const dt = new Date(y, m, d);
+    return isNaN(dt.getTime()) ? null : dt;
+  }
+
+  const thaiMatch = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (thaiMatch) {
+    const d = Number(thaiMatch[1]);
+    const m = Number(thaiMatch[2]) - 1;
+    const y = Number(thaiMatch[3]);
+    const dt = new Date(y, m, d);
+    return isNaN(dt.getTime()) ? null : dt;
+  }
+
+  const dt = new Date(str);
+  if (isNaN(dt.getTime())) return null;
+  dt.setHours(0, 0, 0, 0);
+  return dt;
+}
+
+function getDateOnlyTime(value) {
+  const dt = parseDateOnly(value);
+  return dt ? dt.getTime() : null;
+}
+
+function getDateTimeValue(value) {
+  if (!value) return 0;
+
+  const dt = new Date(value);
+  if (!isNaN(dt.getTime())) return dt.getTime();
+
+  const str = String(value).trim();
+  const match = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4}),?\s+(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+  if (match) {
+    const d = Number(match[1]);
+    const m = Number(match[2]) - 1;
+    const y = Number(match[3]);
+    const hh = Number(match[4] || 0);
+    const mm = Number(match[5] || 0);
+    const ss = Number(match[6] || 0);
+    const parsed = new Date(y, m, d, hh, mm, ss);
+    return isNaN(parsed.getTime()) ? 0 : parsed.getTime();
+  }
+
+  return 0;
+}
+
+function formatDateThaiShort(value) {
+  const dt = parseDateOnly(value);
+  if (!dt) return "-";
+
+  const dd = String(dt.getDate()).padStart(2, "0");
+  const mm = String(dt.getMonth() + 1).padStart(2, "0");
+  const yyyy = dt.getFullYear();
+  return `${dd}/${mm}/${yyyy}`;
+}
+
+function getDeliveryBadgeText(order) {
+  if (order.deliveryType === "today") {
+    return `📅 ส่งวันนี้ • ${order.deliveryDateLabel || "-"}`;
+  }
+  if (order.deliveryType === "future") {
+    return `📅 ส่งวันข้างหน้า • ${order.deliveryDateLabel || "-"}`;
+  }
+  if (order.deliveryType === "overdue") {
+    return `⚠️ ค้างส่ง • ${order.deliveryDateLabel || "-"}`;
+  }
+  return `📅 ยังไม่ระบุวันส่ง`;
+}
+
+function getDeliveryBadgeClass(type) {
+  if (type === "today") return "delivery-date-today";
+  if (type === "future") return "delivery-date-future";
+  if (type === "overdue") return "delivery-date-overdue";
+  return "delivery-date-unknown";
 }
 
 function setCollapseArrowHandlers() {
@@ -460,6 +721,23 @@ async function submitDelivery() {
     btn.disabled = false;
     btn.innerHTML = originalHtml;
   }
+}
+
+function safeId(value) {
+  return String(value || "").replace(/[^a-zA-Z0-9_-]/g, "-");
+}
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function escapeJs(value) {
+  return String(value ?? "").replace(/\\/g, "\\\\").replace(/'/g, "\\'");
 }
 </script>
 
