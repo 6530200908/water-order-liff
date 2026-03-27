@@ -480,10 +480,10 @@ function renderDriverOrders() {
 
 function getFilterSummaryText(count) {
   const map = {
-    all: "แสดงรายการรอจัดส่งทั้งหมด",
-    today: "แสดงเฉพาะออเดอร์ที่ต้องส่งวันนี้",
-    future: "แสดงเฉพาะออเดอร์ที่มีกำหนดส่งวันข้างหน้า",
-    overdue: "แสดงเฉพาะออเดอร์ค้างส่งที่เลยวันส่งแล้ว"
+    all: "รายการรอจัดส่งทั้งหมด",
+    today: "ออเดอร์ที่ต้องส่งวันนี้",
+    future: "ออเดอร์ที่มีกำหนดส่งวันข้างหน้า",
+    overdue: "ออเดอร์ค้างส่งที่เลยวันส่งแล้ว"
   };
 
   return `${map[currentDeliveryFilter] || ""} • ${count} รายการ`;
